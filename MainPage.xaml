@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ControlInventarioMovil.MainPage">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
+            <Label Text="Nuevo Inventario" 
+           FontSize="28" 
+           FontAttributes="Bold" 
+           HorizontalOptions="Center" />
+
+            <Entry x:Name="txtAlias"
+           Placeholder="Ingresa el nombre (ej. Almacén Central)" />
+
+            <Button Text="Guardar en Somee" 
+            Clicked="OnGuardarClicked" 
+            BackgroundColor="#2b0b98" 
+            TextColor="White"
+            CornerRadius="10" />
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
