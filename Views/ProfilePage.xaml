@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:ControlInventarioMovil.Views.Controls"
+             x:Class="ControlInventarioMovil.Views.ProfilePage"
+             BackgroundColor="White"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto, *, Auto">
+
+        <Grid Grid.Row="0" BackgroundColor="#1B4F5F" Padding="15,20" ColumnDefinitions="Auto, *, Auto">
+            <Image Source="arrow_back.png" HeightRequest="25" WidthRequest="25" Grid.Column="0" VerticalOptions="Center">
+                <Image.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnBackClicked"/>
+                </Image.GestureRecognizers>
+            </Image>
+
+            <Label Text="Mi Cuenta" TextColor="White" FontSize="20" FontAttributes="Bold" 
+                   VerticalOptions="Center" HorizontalOptions="Center" Grid.Column="1" />
+
+            <Image Source="edit_icon.png" HeightRequest="25" WidthRequest="25" Grid.Column="2" VerticalOptions="Center">
+                <Image.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnEditProfileClicked"/>
+                </Image.GestureRecognizers>
+            </Image>
+        </Grid>
+
+        <ScrollView Grid.Row="1" Orientation="Vertical">
+            <VerticalStackLayout Padding="0,30" Spacing="10">
+
+                <VerticalStackLayout HorizontalOptions="Center" Spacing="5">
+
+                    <Border HorizontalOptions="Center" VerticalOptions="Center" HeightRequest="130" WidthRequest="130" Margin="0,10,0,0" BackgroundColor="White" StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="65"/>
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="#A8D08D" Offset="0,0" Radius="20" Opacity="0.7"/>
+                        </Border.Shadow>
+
+                        <Image x:Name="imgProfile" Source="user_outline.png" HeightRequest="130" WidthRequest="130" Aspect="AspectFill" VerticalOptions="Center" HorizontalOptions="Center"/>
+                    </Border>
+
+                    <Label x:Name="lblFullName" Text="Cargando..." FontSize="28" FontAttributes="Bold" TextColor="Black" HorizontalTextAlignment="Center"/>
+                    <Label x:Name="lblJobPosition" Text="Rol" FontSize="16" TextColor="Gray" HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+                <Border BackgroundColor="White" Padding="15" Margin="20,10" Stroke="#D3D3D3" StrokeThickness="1">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10" Fill="Gray" HeightRequest="100" WidthRequest="200"/>
+                    </Border.StrokeShape>
+                    <Grid ColumnDefinitions="Auto, *, Auto" VerticalOptions="Center">
+                        <Image Source="user_icon.png" HeightRequest="30" WidthRequest="30" Grid.Column="0" Margin="0,0,10,0"/>
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                            <Label Text="Nombre de Usuario" FontSize="14" TextColor="Gray"/>
+                            <Label x:Name="lblUsername" Text="..." FontSize="16" TextColor="Black" FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+
+                        <HorizontalStackLayout Grid.Column="2" VerticalOptions="Center" HorizontalOptions="End" Spacing="5">
+                            <Grid HeightRequest="25" WidthRequest="40">
+                                <Rectangle Fill="#1B4F5F" RadiusX="3" RadiusY="3"/>
+                                <Ellipse x:Name="badgeStatus" Fill="#A8D08D" HeightRequest="12" WidthRequest="12" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            </Grid>
+                        </HorizontalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Border BackgroundColor="White" Padding="15" Margin="20,10" Stroke="#D3D3D3" StrokeThickness="1">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10"/>
+                    </Border.StrokeShape>
+                    <Grid ColumnDefinitions="*, *" ColumnSpacing="15">
+                        <HorizontalStackLayout Spacing="10" Grid.Column="0">
+                            <Image Source="mail.png" HeightRequest="30" WidthRequest="30"/>
+                            <VerticalStackLayout>
+                                <Label Text="Email" FontSize="12" TextColor="Gray"/>
+                                <Label x:Name="lblEmail" Text="..." FontSize="14" TextColor="Black" FontAttributes="Bold"/>
+                            </VerticalStackLayout>
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout Spacing="10" Grid.Column="1">
+                            <Image Source="phone.png" HeightRequest="30" WidthRequest="30"/>
+                            <VerticalStackLayout>
+                                <Label Text="Teléfono" FontSize="12" TextColor="Gray"/>
+                                <Label x:Name="lblPhoneNumber" Text="..." FontSize="14" TextColor="Black" FontAttributes="Bold"/>
+                            </VerticalStackLayout>
+                        </HorizontalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="BtnLogout" BackgroundColor="White" Padding="15" Margin="20,30,20,20" Stroke="#1B4F5F" StrokeThickness="2" HorizontalOptions="Center" WidthRequest="250">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="25"/>
+                    </Border.StrokeShape>
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnLogoutClicked"/>
+                    </Border.GestureRecognizers>
+                    <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Image Source="logout_icon.png" HeightRequest="20" WidthRequest="20"/>
+                        <Label Text="Cerrar Sesión" TextColor="#1B4F5F" FontAttributes="Bold" FontSize="16"/>
+                    </HorizontalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <controls:FooterView Grid.Row="2" />
+    </Grid>
+</ContentPage>

@@ -2,26 +2,137 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ControlInventarioMovil.Views.LoginPage"
-             Shell.NavBarIsVisible="False"
-             Title="LoginPage">
+             NavigationPage.HasNavigationBar="False" 
+             Shell.NavBarIsVisible="False">
 
-    <VerticalStackLayout Spacing="25" Padding="30" VerticalOptions="Center">
+    <Grid>
+        <Grid BackgroundColor="#1E003B">
+            <Ellipse x:Name="orbMorado" WidthRequest="400" HeightRequest="400" HorizontalOptions="Start" VerticalOptions="Start" Margin="-50,-50,0,0" Opacity="0.7">
+                <Ellipse.Fill>
+                    <RadialGradientBrush>
+                        <GradientStop Color="#8A2BE2" Offset="0.0" />
+                        <GradientStop Color="Transparent" Offset="1.0" />
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
 
-        <Image Source="dotnet_bot.png" HeightRequest="100" HorizontalOptions="Center" />
+            <Ellipse x:Name="orbAzul" WidthRequest="450" HeightRequest="450" HorizontalOptions="End" VerticalOptions="End" Margin="0,0,-50,-50" Opacity="0.7">
+                <Ellipse.Fill>
+                    <RadialGradientBrush>
+                        <GradientStop Color="#0000FF" Offset="0.0" />
+                        <GradientStop Color="Transparent" Offset="1.0" />
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
 
-        <Label Text="Bienvenido" FontSize="32" FontAttributes="Bold" HorizontalOptions="Center" />
-        <Label Text="Inicia sesión para continuar" TextColor="Gray" HorizontalOptions="Center" />
+            <Ellipse x:Name="orbCeleste" WidthRequest="350" HeightRequest="350" HorizontalOptions="Center" VerticalOptions="Center" Opacity="0.7">
+                <Ellipse.Fill>
+                    <RadialGradientBrush>
+                        <GradientStop Color="#00CED1" Offset="0.0" />
+                        <GradientStop Color="Transparent" Offset="1.0" />
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
+        </Grid>
 
-        <Entry x:Name="txtUser" Placeholder="Usuario" />
-        <Entry x:Name="txtPass" Placeholder="Contraseña" IsPassword="True" />
+        <ScrollView>
+            <VerticalStackLayout Padding="30" Spacing="10" VerticalOptions="Center">
 
-        <Button Text="ENTRAR" 
-                Clicked="OnLoginClicked"
-                BackgroundColor="#512BD4" 
-                TextColor="White" 
-                HeightRequest="50"
-                CornerRadius="25" />
+                <Image Source="dotnet_bot.png" HeightRequest="70" HorizontalOptions="Center" Margin="0,0,0,10" />
 
-        <ActivityIndicator x:Name="loading" IsRunning="False" Color="#512BD4" />
-    </VerticalStackLayout>
+                <Label Text="¡Bienvenido!" FontSize="32" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
+                <Label Text="¿Quién desea ingresar?" FontSize="18" TextColor="#E0E0E0" HorizontalOptions="Center" Margin="0,0,0,5" />
+
+                <Border Stroke="#60FFFFFF" StrokeThickness="1" BackgroundColor="#40000000" Padding="15" Margin="0,5">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="20" />
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="5">
+
+                        <Label Text="Usuario:" TextColor="#A0E2FF" FontSize="14" />
+                        <Border x:Name="borderUser" Stroke="#A0E2FF" StrokeThickness="1" BackgroundColor="#30000000" Padding="10,0" HeightRequest="45">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding Source={x:Reference txtUsername}, Path=IsFocused}" Value="True" x:DataType="Entry">
+                                    <Setter Property="Stroke" Value="#00CED1" />
+                                    <Setter Property="StrokeThickness" Value="2" />
+                                    <Setter Property="BackgroundColor" Value="#40000000" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Entry x:Name="txtUsername" TextColor="White" Placeholder="Tu usuario" PlaceholderColor="#80FFFFFF" BackgroundColor="Transparent" VerticalOptions="Center" />
+                        </Border>
+
+                        <Label Text="Contraseña:" TextColor="#A0E2FF" FontSize="14" Margin="0,5,0,0" />
+
+                        <Border x:Name="borderPass" Stroke="#A0E2FF" StrokeThickness="1" BackgroundColor="#30000000" Padding="10,0" HeightRequest="45">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding Source={x:Reference txtPassword}, Path=IsFocused}" Value="True" x:DataType="Entry">
+                                    <Setter Property="Stroke" Value="#00CED1" />
+                                    <Setter Property="StrokeThickness" Value="2" />
+                                    <Setter Property="BackgroundColor" Value="#40000000" />
+                                </DataTrigger>
+                            </Border.Triggers>
+
+                            <Grid ColumnDefinitions="*, Auto">
+
+                                <Entry x:Name="txtPassword" 
+               Grid.Column="0"
+               IsPassword="True" 
+               TextColor="White" 
+               Placeholder="••••••••" 
+               PlaceholderColor="#80FFFFFF" 
+               BackgroundColor="Transparent" 
+               VerticalOptions="Center" />
+
+                                <Image x:Name="imgShowPassword" 
+               Source="eye_closed.png" 
+               Grid.Column="1"
+               HeightRequest="25" 
+               WidthRequest="25" 
+               VerticalOptions="Center"
+               Margin="10,0,0,0">
+                                    <Image.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnShowPasswordTapped"/>
+                                    </Image.GestureRecognizers>
+                                </Image>
+
+                            </Grid>
+                        </Border>
+
+                        <HorizontalStackLayout VerticalOptions="Center" Margin="0,15,0,0">
+                            <CheckBox x:Name="chkRememberMe" Color="#00CED1" />
+                            <Label Text="Recordarme" TextColor="White" VerticalOptions="Center" FontSize="14" />
+                        </HorizontalStackLayout>
+
+                        <Label Text="¿Olvidaste tu contraseña?" TextColor="#E0E0E0" TextDecorations="Underline" HorizontalOptions="Center" Margin="0,0,0,10" FontSize="14">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnForgot_Tapped" />
+                            </Label.GestureRecognizers>
+                        </Label>
+
+                        <Button Text="Ingresar" TextColor="White" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnLoginClicked">
+                            <Button.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Color="#4B0082" Offset="0.0" />
+                                    <GradientStop Color="#0000FF" Offset="1.0" />
+                                </LinearGradientBrush>
+                            </Button.Background>
+                        </Button>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label x:Name="lblStatus" Text="" TextColor="LightGreen" HorizontalOptions="Center"/>
+                <Label Text="© 2026. Todos los derechos reservados." TextColor="#A0A0A0" FontSize="12" HorizontalOptions="Center" />
+
+                <ActivityIndicator x:Name="loading" IsRunning="False" Color="#512BD4" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
 </ContentPage>
