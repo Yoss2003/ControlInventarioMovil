@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ControlInventarioMovil.Views.Controls.FooterView">
+
+    <Grid BackgroundColor="#1B4F5F" HeightRequest="85" ColumnDefinitions="*, *, *, *">
+
+        <Grid.Resources>
+            <Style TargetType="ContentView">
+                <Setter Property="VisualStateManager.VisualStateGroups">
+                    <VisualStateGroupList>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualState x:Name="Normal">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="Transparent"/>
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="PointerOver">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="#143D49"/>
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateGroupList>
+                </Setter>
+            </Style>
+        </Grid.Resources>
+
+        <ContentView Grid.Column="0" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand">
+            <ContentView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnFooterButtonTapped" CommandParameter="Agregar"/>
+            </ContentView.GestureRecognizers>
+            <VerticalStackLayout VerticalOptions="Center">
+                <Image Source="add_icon.png" HeightRequest="40" WidthRequest="40"/>
+                <Label Text="Agregar" TextColor="White" HorizontalOptions="Center" FontSize="11" Margin="0,4,0,0"/>
+            </VerticalStackLayout>
+        </ContentView>
+
+        <ContentView Grid.Column="1" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand">
+            <ContentView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnFooterButtonTapped" CommandParameter="Vender"/>
+            </ContentView.GestureRecognizers>
+            <VerticalStackLayout VerticalOptions="Center">
+                <Image Source="sell_icon.png" HeightRequest="40" WidthRequest="40"/>
+                <Label Text="Vender" TextColor="White" HorizontalOptions="Center" FontSize="11" Margin="0,4,0,0"/>
+            </VerticalStackLayout>
+        </ContentView>
+
+        <ContentView Grid.Column="2" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand">
+            <ContentView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnFooterButtonTapped" CommandParameter="Analisis"/>
+            </ContentView.GestureRecognizers>
+            <VerticalStackLayout VerticalOptions="Center">
+                <Image Source="check_icon.png" HeightRequest="40" WidthRequest="40"/>
+                <Label Text="Análisis" TextColor="White" HorizontalOptions="Center" FontSize="11" Margin="0,4,0,0"/>
+            </VerticalStackLayout>
+        </ContentView>
+
+        <ContentView Grid.Column="3" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand">
+            <ContentView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnFooterButtonTapped" CommandParameter="Perfil"/>
+            </ContentView.GestureRecognizers>
+            <VerticalStackLayout VerticalOptions="Center">
+                <Image Source="user_icon.png" HeightRequest="40" WidthRequest="40"/>
+                <Label Text="Perfil" TextColor="White" HorizontalOptions="Center" FontSize="11" Margin="0,4,0,0"/>
+            </VerticalStackLayout>
+        </ContentView>
+    </Grid>
+
+</ContentView>

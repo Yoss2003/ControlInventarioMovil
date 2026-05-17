@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ControlInventarioMovil.Views.EditProfilePage"
+             BackgroundColor="White"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto, *">
+
+        <Grid Grid.Row="0" BackgroundColor="#1B4F5F" Padding="15,20" ColumnDefinitions="Auto, *">
+            <Image Source="arrow_back.png" HeightRequest="25" WidthRequest="25" Grid.Column="0" VerticalOptions="Center">
+                <Image.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCancelClicked"/>
+                </Image.GestureRecognizers>
+            </Image>
+            <Label Text="Panel de Administración de Usuario" TextColor="White" FontSize="18" FontAttributes="Bold" 
+                   VerticalOptions="Center" HorizontalOptions="Center" Grid.Column="1" Margin="0,0,25,0"/>
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="20" Spacing="15">
+
+                <VerticalStackLayout HorizontalOptions="Center" Spacing="5" Margin="0,0,0,10">
+                    <Border HeightRequest="110" WidthRequest="110" StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="55"/>
+                        </Border.StrokeShape>
+                        <Image x:Name="imgProfilePreview" Source="user_outline.png" Aspect="AspectFill" HeightRequest="110" WidthRequest="110"/>
+                    </Border>
+                    <Label Text="Cambiar Foto de Perfil" TextColor="#1B4F5F" FontSize="14" FontAttributes="Bold" HorizontalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnChangePhotoTapped"/>
+                        </Label.GestureRecognizers>
+                    </Label>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Nombres *" FontAttributes="Bold" TextColor="Black" FontSize="14"/>
+                    <Entry x:Name="txtFirstName" Placeholder="Ej. Juan Carlos" TextColor="Black" BackgroundColor="#F5F5F5" MaxLength="50" TextChanged="OnNameFieldsChanged"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Apellidos *" FontAttributes="Bold" TextColor="Black" FontSize="14"/>
+                    <Entry x:Name="txtLastName" Placeholder="Ej. Pérez Gómez" TextColor="Black" BackgroundColor="#F5F5F5" MaxLength="50" TextChanged="OnNameFieldsChanged"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <HorizontalStackLayout Spacing="5">
+                        <Label Text="Nombre de Usuario" FontAttributes="Bold" TextColor="Black" FontSize="14"/>
+                        <Label Text="(Autogenerado)" TextColor="Gray" FontSize="12" VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                    <Entry x:Name="txtUsername" Placeholder="juan.pg" TextColor="Black" BackgroundColor="#E0E0E0" IsReadOnly="True"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Correo Electrónico *" FontAttributes="Bold" TextColor="Black" FontSize="14"/>
+                    <Entry x:Name="txtEmail" Keyboard="Email" Placeholder="usuario@empresa.com" TextColor="Black" BackgroundColor="#F5F5F5"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Teléfono" FontAttributes="Bold" TextColor="Black" FontSize="14"/>
+                    <Entry x:Name="txtPhoneNumber" Keyboard="Telephone" Placeholder="987654321" TextColor="Black" BackgroundColor="#F5F5F5"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Contraseña Actual" FontAttributes="Bold" TextColor="Black" FontSize="14"/>
+                    <Entry x:Name="txtCurrentPassword" IsPassword="True" IsReadOnly="True" TextColor="Black" BackgroundColor="#E0E0E0"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Nueva Contraseña (Opcional)" FontAttributes="Bold" TextColor="Black" FontSize="14"/>
+                    <Entry x:Name="txtPassword" IsPassword="True" Placeholder="Escribe aquí para cambiarla" TextColor="Black" BackgroundColor="#F5F5F5"/>
+                </VerticalStackLayout>
+
+                <Border Padding="10" BackgroundColor="#F5F5F5" StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="5"/>
+                    </Border.StrokeShape>
+                    <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center">
+                        <VerticalStackLayout Grid.Column="0">
+                            <Label Text="Estado del Usuario" FontAttributes="Bold" TextColor="Black" FontSize="14"/>
+                            <Label Text="Permitir el acceso al sistema" TextColor="Gray" FontSize="12"/>
+                        </VerticalStackLayout>
+                        <Switch x:Name="swIsActive" Grid.Column="1" IsToggled="True" OnColor="#1B4F5F"/>
+                    </Grid>
+                </Border>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Rol del Sistema *" FontAttributes="Bold" TextColor="Black" FontSize="14"/>
+                    <Picker x:Name="pckRole" Title="Seleccione un Rol" ItemDisplayBinding="{Binding Nombre}" TextColor="Black" TitleColor="Gray" BackgroundColor="#F5F5F5"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Área de Trabajo *" FontAttributes="Bold" TextColor="Black" FontSize="14"/>
+                    <Picker x:Name="pckArea" Title="Seleccione el Área" ItemDisplayBinding="{Binding Nombre}" TextColor="Black" TitleColor="Gray" BackgroundColor="#F5F5F5"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Puesto de Trabajo *" FontAttributes="Bold" TextColor="Black" FontSize="14"/>
+                    <Picker x:Name="pckPosition" Title="Seleccione el Puesto" ItemDisplayBinding="{Binding Nombre}" TextColor="Black" TitleColor="Gray" BackgroundColor="#F5F5F5"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Tipo de Contrato" FontAttributes="Bold" TextColor="Black" FontSize="14"/>
+                    <Picker x:Name="pckContractType" Title="Seleccione el Contrato" ItemDisplayBinding="{Binding Nombre}" TextColor="Black" TitleColor="Gray" BackgroundColor="#F5F5F5"/>
+                </VerticalStackLayout>
+
+                <Button x:Name="btnSave" Text="Guardar Cambios" BackgroundColor="#1B4F5F" TextColor="White" 
+                        FontAttributes="Bold" FontSize="16" CornerRadius="25" HeightRequest="50" Margin="0,15,0,10"
+                        Clicked="OnSaveClicked"/>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>
