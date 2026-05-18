@@ -2,7 +2,7 @@
 
 namespace ControlInventarioMovil.Models
 {
-    public class Parameter
+    public class Parameters
     {
         [Key]
         public int Id { get; set; }
