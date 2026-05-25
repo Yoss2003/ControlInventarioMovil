@@ -26,17 +26,21 @@
             </Style>
         </Grid.Resources>
 
-        <ContentView Grid.Column="0" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand">
+        <ContentView Grid.Column="0" VerticalOptions="Fill" HorizontalOptions="Fill">
             <ContentView.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnFooterButtonTapped" CommandParameter="Agregar"/>
             </ContentView.GestureRecognizers>
             <VerticalStackLayout VerticalOptions="Center">
-                <Image Source="add_icon.png" HeightRequest="40" WidthRequest="40"/>
+              <Image Source="add_icon.png"
+       HeightRequest="50"
+       WidthRequest="50"
+       Grid.Column="2"
+       VerticalOptions="Center" />
                 <Label Text="Agregar" TextColor="White" HorizontalOptions="Center" FontSize="11" Margin="0,4,0,0"/>
             </VerticalStackLayout>
         </ContentView>
 
-        <ContentView Grid.Column="1" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand">
+        <ContentView Grid.Column="1" VerticalOptions="Fill" HorizontalOptions="Fill">
             <ContentView.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnFooterButtonTapped" CommandParameter="Vender"/>
             </ContentView.GestureRecognizers>
@@ -46,7 +50,7 @@
             </VerticalStackLayout>
         </ContentView>
 
-        <ContentView Grid.Column="2" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand">
+        <ContentView Grid.Column="2" VerticalOptions="Fill" HorizontalOptions="Fill">
             <ContentView.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnFooterButtonTapped" CommandParameter="Analisis"/>
             </ContentView.GestureRecognizers>
@@ -56,7 +60,7 @@
             </VerticalStackLayout>
         </ContentView>
 
-        <ContentView Grid.Column="3" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand">
+        <ContentView Grid.Column="3" VerticalOptions="Fill" HorizontalOptions="Fill">
             <ContentView.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnFooterButtonTapped" CommandParameter="Perfil"/>
             </ContentView.GestureRecognizers>
