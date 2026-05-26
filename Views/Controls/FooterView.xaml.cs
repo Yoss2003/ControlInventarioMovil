@@ -20,7 +20,7 @@ public partial class FooterView : ContentView
 
         // --- EFECTO PULSO PREMIUM ---
         await botonSeleccionado.ScaleTo(0.9, 80, Easing.CubicIn);
-        await botonSeleccionado.ScaleTo(1.0, 120, Easing.CubicOut);
+        _ = botonSeleccionado.ScaleTo(1.0, 120, Easing.CubicOut);
 
         _estaNavegando = true;
 
@@ -48,7 +48,7 @@ public partial class FooterView : ContentView
             case "Perfil":
                 if (!rutaActual.Contains("ProfilePage"))
                 {
-                    await Shell.Current.GoToAsync("ProfilePage");
+                    await Shell.Current.GoToAsync("ProfilePage", false);
                 }
                 break;
         }

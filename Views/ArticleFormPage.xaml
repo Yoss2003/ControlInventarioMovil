@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ControlInventarioMovil.Views.ArticleFormPage"
+             Title="Detalle de Artículo"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#1C262E">
+    <Grid>
+        <Grid RowDefinitions="Auto, *, 70">
+
+            <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="15,20,15,15" BackgroundColor="#1C262E">
+                <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" VerticalOptions="Center" Clicked="OnVolverClicked"/>
+                <Label Grid.Column="1" Text="NUEVO ARTÍCULO" TextColor="White" FontAttributes="Bold" FontSize="16" CharacterSpacing="1" HorizontalOptions="Center" VerticalOptions="Center"/>
+                <ImageButton Grid.Column="2" Source="config_icon.png" WidthRequest="30" HeightRequest="30" BackgroundColor="Transparent" VerticalOptions="Center"/>
+            </Grid>
+
+            <ScrollView Grid.Row="1" Padding="15">
+                <VerticalStackLayout Spacing="20">
+
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Border HeightRequest="120" WidthRequest="120" StrokeShape="RoundRectangle 12" Stroke="#2E3842" BackgroundColor="#232B35" StrokeThickness="1">
+                            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="5">
+                                <Image Source="config_icon.png" HeightRequest="30" WidthRequest="30" HorizontalOptions="Center"/>
+                                <Label Text="Toca para Capturar&#x0a;Foto Principal" TextColor="#606A72" FontSize="10" HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="15">
+                        <Label Text="CLASIFICACIÓN" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Categoría (Obligatorio)" TextColor="#939CA5" FontSize="12"/>
+                            <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#A2D149" BackgroundColor="#232B35" Padding="10,0">
+                                <Grid>
+                                    <Label Text="-- SELECCIONE CATEGORÍA --" TextColor="#606A72" VerticalOptions="Center" InputTransparent="True" IsVisible="False">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding Source={x:Reference PkrCategory}, Path=SelectedIndex}" Value="-1">
+                                                <Setter Property="IsVisible" Value="True" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                    <Picker x:Name="PkrCategory" Title="" TextColor="White" BackgroundColor="Transparent" HeightRequest="40" HorizontalOptions="Fill" VerticalOptions="Fill" SelectedIndexChanged="OnCategoryChanged">
+                                        <Picker.Items>
+                                            <x:String>Laptops (Serializado)</x:String>
+                                            <x:String>Cables (Estándar)</x:String>
+                                        </Picker.Items>
+                                    </Picker>
+                                </Grid>
+                            </Border>
+                            <Label x:Name="LblTrackingInfo" Text="Modo de Rastreo: Pendiente..." TextColor="#606A72" FontSize="11" FontAttributes="Italic" Margin="5,0,0,0"/>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout x:Name="ContenedorNombre" Spacing="5" IsVisible="False">
+                            <Label Text="Nombre del Artículo (Generado/Obligatorio)" TextColor="#939CA5" FontSize="12"/>
+                            <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
+                                <Entry x:Name="TxtName" TextColor="White" Placeholder="Ej. Laptop HP ProBook" PlaceholderColor="#606A72" HeightRequest="40"/>
+                            </Border>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="15">
+                        <Label Text="IDENTIFICACIÓN TÉCNICA" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+
+                        <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                            <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                <Label Text="Código SKU" TextColor="#939CA5" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
+                                    <Entry x:Name="TxtSku" TextColor="White" Placeholder="SKU Interno" PlaceholderColor="#606A72" HeightRequest="40"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                <Label Text="Código de Barras" TextColor="#939CA5" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
+                                    <Entry x:Name="TxtBarcode" TextColor="White" Placeholder="Escaneable" PlaceholderColor="#606A72" HeightRequest="40" Keyboard="Numeric"/>
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                            <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                <Label Text="Marca" TextColor="#939CA5" FontSize="12"/>
+
+                                <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="8">
+
+                                    <Border Grid.Column="0" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
+                                        <Grid>
+                                            <Label Text="-- SELECCIONE --" TextColor="#606A72" VerticalOptions="Center" InputTransparent="True" IsVisible="False">
+                                                <Label.Triggers>
+                                                    <DataTrigger TargetType="Label" Binding="{Binding Source={x:Reference PkrBrand}, Path=SelectedIndex}" Value="-1">
+                                                        <Setter Property="IsVisible" Value="True" />
+                                                    </DataTrigger>
+                                                </Label.Triggers>
+                                            </Label>
+                                            <Picker x:Name="PkrBrand" Title="" TextColor="White" BackgroundColor="Transparent" HeightRequest="40" HorizontalOptions="Fill" VerticalOptions="Fill"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <Border Grid.Column="1" BackgroundColor="#2E3842" Stroke="Transparent" StrokeShape="RoundRectangle 8" WidthRequest="40" HeightRequest="40" VerticalOptions="Center">
+                                        <Image Source="edit_icon.png" WidthRequest="18" HeightRequest="18" HorizontalOptions="Center" VerticalOptions="Center" />
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnEditarMarcaSeleccionadaClicked"/>
+                                        </Border.GestureRecognizers>
+                                    </Border>
+
+                                    <Button Grid.Column="2" Text="+" BackgroundColor="#2E3842" TextColor="#A2D149" FontAttributes="Bold" FontSize="18" WidthRequest="40" HeightRequest="40" CornerRadius="8" Padding="0" Clicked="OnAdministrarMarcasClicked"/>
+
+                                </Grid>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                <Label Text="Modelo" TextColor="#939CA5" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
+                                    <Entry x:Name="TxtModel" TextColor="White" Placeholder="Modelo exacto" PlaceholderColor="#606A72" HeightRequest="40"/>
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="15">
+                        <Label Text="DATOS FINANCIEROS Y STOCK" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+
+                        <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                            <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                <Label Text="Costo Adquisición" TextColor="#939CA5" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
+                                    <Entry x:Name="TxtAcquisitionPrice" TextColor="White" Placeholder="0.00" PlaceholderColor="#606A72" HeightRequest="40" Keyboard="Numeric"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                <Label Text="Precio de Salida" TextColor="#939CA5" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
+                                    <Entry x:Name="TxtSalePrice" TextColor="White" Placeholder="0.00" PlaceholderColor="#606A72" HeightRequest="40" Keyboard="Numeric"/>
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                            <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                <Label Text="Unidad Medida" TextColor="#939CA5" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
+                                    <Grid>
+                                        <Label Text="-- SELECCIONE --" TextColor="#606A72" VerticalOptions="Center" InputTransparent="True" IsVisible="False">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding Source={x:Reference PkrMeasurement}, Path=SelectedIndex}" Value="-1">
+                                                    <Setter Property="IsVisible" Value="True" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                        <Picker x:Name="PkrMeasurement" Title="" TextColor="White" BackgroundColor="Transparent" HeightRequest="40" HorizontalOptions="Fill" VerticalOptions="Fill"/>
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                <Label Text="Stock Inicial" TextColor="#939CA5" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
+                                    <Entry x:Name="TxtStock" TextColor="White" Placeholder="0.0" PlaceholderColor="#606A72" HeightRequest="40" Keyboard="Numeric"/>
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="12" Padding="15,10,15,15" BackgroundColor="#161F27">
+                <Button Grid.Column="0" Text="CANCELAR" BackgroundColor="#2E3842" TextColor="#939CA5" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Clicked="OnCancelarClicked"/>
+                <Button Grid.Column="1" Text="GUARDAR ARTÍCULO" BackgroundColor="#A2D149" TextColor="#1C262E" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Clicked="OnGuardarClicked"/>
+            </Grid>
+
+        </Grid>
+        <Grid x:Name="OverlayMarcas" BackgroundColor="#B3000000" IsVisible="False" Opacity="0">
+            <Border VerticalOptions="End" BackgroundColor="#1C262E" StrokeShape="RoundRectangle 20,20,0,0" StrokeThickness="0" Padding="20,25,20,30">
+                <VerticalStackLayout Spacing="15">
+
+                    <Label Text="NUEVA MARCA" TextColor="#A2D149" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center"/>
+
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Nombre de la Marca" TextColor="#939CA5" FontSize="12"/>
+                        <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
+                            <Entry x:Name="TxtNuevaMarca" TextColor="White" Placeholder="Ej. Sony, Dell..." PlaceholderColor="#606A72" HeightRequest="40"/>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <Grid ColumnDefinitions="*, *" ColumnSpacing="12" Margin="0,10,0,0">
+                        <Button Grid.Column="0" Text="CANCELAR" BackgroundColor="#2E3842" TextColor="#939CA5" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Clicked="OnCerrarOverlayMarcasClicked"/>
+                        <Button Grid.Column="1" Text="GUARDAR" BackgroundColor="#A2D149" TextColor="#1C262E" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Clicked="OnGuardarMarcaClicked"/>
+                    </Grid>
+
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>

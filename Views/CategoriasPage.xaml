@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ControlInventarioMovil.Views.CategoriasPage"
+             Title="Categorías"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#1C262E">
+
+    <Grid>
+        <Grid RowDefinitions="Auto, *, Auto">
+
+            <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="15,20,15,15" BackgroundColor="#1C262E">
+                <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" VerticalOptions="Center" Clicked="OnVolverClicked"/>
+                <Label Grid.Column="1" Text="CATEGORÍAS" TextColor="White" FontAttributes="Bold" FontSize="16" CharacterSpacing="1" HorizontalOptions="Center" VerticalOptions="Center"/>
+                <ImageButton Grid.Column="2" Source="config_icon.png" WidthRequest="30" HeightRequest="30" BackgroundColor="Transparent" VerticalOptions="Center"/>
+            </Grid>
+
+            <Grid Grid.Row="1" Padding="15">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="0" Text="CATEGORÍAS REGISTRADAS" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+
+                <CollectionView x:Name="ColCategoriasPadre" Grid.Row="1">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+
+                            <VerticalStackLayout Margin="0,0,0,15">
+
+                                <Border StrokeShape="RoundRectangle 10" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#232B35" Padding="15,12" Margin="0,15,0,0">
+                                    <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto">
+
+                                        <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="2">
+                                            <Label Text="{Binding TrackingMode}" TextColor="White" FontSize="16" FontAttributes="Bold"/>
+                                            <Label Text="{Binding Description, TargetNullValue='Sin descripción'}" TextColor="#606A72" FontSize="12" LineBreakMode="TailTruncation"/>
+                                        </VerticalStackLayout>
+
+                                        <Border Grid.Row="0" Grid.Column="1" BackgroundColor="#2E3842" Stroke="Transparent" StrokeShape="RoundRectangle 6" WidthRequest="32" HeightRequest="32" VerticalOptions="Start">
+                                            <Image Source="edit_icon.png" WidthRequest="16" HeightRequest="16" HorizontalOptions="Center" VerticalOptions="Center" />
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnEditarPadreClicked" CommandParameter="{Binding .}"/>
+                                            </Border.GestureRecognizers>
+                                        </Border>
+
+                                        <HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="2" Spacing="5" Margin="0,12,0,0">
+                                            <HorizontalStackLayout.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnToggleSubcategoriasTapped" CommandParameter="{Binding .}"/>
+                                            </HorizontalStackLayout.GestureRecognizers>
+                                            <Label Text="{Binding ToggleText}" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" VerticalOptions="Center"/>
+                                        </HorizontalStackLayout>
+
+                                    </Grid>
+                                </Border>
+
+                                <Grid x:Name="ContenedorHijas" HeightRequest="0" IsVisible="False" Opacity="0" Margin="25,5,0,0">
+
+                                    <BoxView WidthRequest="2" BackgroundColor="#2E3842" HorizontalOptions="Start" VerticalOptions="Fill" Margin="0,0,0,15"/>
+
+                                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Subcategorias}" Spacing="8" Margin="0,5,0,5">
+
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid ColumnDefinitions="20, *">
+
+                                                    <BoxView Grid.Column="0" HeightRequest="2" BackgroundColor="#2E3842" HorizontalOptions="Fill" VerticalOptions="Center"/>
+
+                                                    <Border Grid.Column="1" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#1A2229" Padding="12,10">
+
+                                                        <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="8">
+
+                                                            <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                                                                <Label Text="{Binding Name}" TextColor="#A2D149" FontSize="14" FontAttributes="Bold"/>
+                                                                <Label Text="{Binding Description, TargetNullValue='Sin descripción'}" TextColor="#606A72" FontSize="11" LineBreakMode="TailTruncation"/>
+                                                            </VerticalStackLayout>
+
+                                                            <Border Grid.Column="1" BackgroundColor="#232B35" StrokeShape="RoundRectangle 4" StrokeThickness="0" Padding="6,2" VerticalOptions="Center">
+                                                                <Label Text="{Binding DefaultTrackingMode}" TextColor="#939CA5" FontSize="9" FontAttributes="Bold"/>
+                                                            </Border>
+
+                                                            <Border Grid.Column="2" BackgroundColor="#2E3842" Stroke="Transparent" StrokeShape="RoundRectangle 4" WidthRequest="26" HeightRequest="26" VerticalOptions="Center">
+                                                                <Image Source="edit_icon.png" WidthRequest="12" HeightRequest="12" HorizontalOptions="Center" VerticalOptions="Center" />
+                                                                <Border.GestureRecognizers>
+                                                                    <TapGestureRecognizer Tapped="OnEditarHijaClicked" CommandParameter="{Binding .}"/>
+                                                                </Border.GestureRecognizers>
+                                                            </Border>
+
+                                                        </Grid>
+                                                    </Border>
+
+                                                </Grid>
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+
+                                        <BindableLayout.EmptyView>
+                                            <Grid ColumnDefinitions="20, *" Margin="0,5,0,0">
+                                                <BoxView Grid.Column="0" HeightRequest="2" BackgroundColor="#2E3842" HorizontalOptions="Fill" VerticalOptions="Center"/>
+                                                <Label Grid.Column="1" Text="Aún no hay subcategorías" TextColor="#606A72" FontSize="12" FontAttributes="Italic" VerticalOptions="Center"/>
+                                            </Grid>
+                                        </BindableLayout.EmptyView>
+
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </VerticalStackLayout>
+
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+
+                    <CollectionView.EmptyView>
+                        <Label Text="No hay categorías registradas en la Base de Datos." TextColor="#606A72" FontSize="13" HorizontalOptions="Center" Margin="0,20,0,0"/>
+                    </CollectionView.EmptyView>
+                </CollectionView>
+            </Grid>
+
+            <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="12" Padding="15,10,15,15" BackgroundColor="#161F27">
+                <Button Grid.Column="0" Text="AGREGAR CATEGORÍA H." BackgroundColor="#2E3842" TextColor="White" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Clicked="OnAgregarHijaClicked"/>
+                <Button Grid.Column="1" Text="AGREGAR CATEGORÍA P." BackgroundColor="#A2D149" TextColor="#1C262E" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Clicked="OnAgregarPadreClicked"/>
+            </Grid>
+        </Grid>
+
+        <Grid x:Name="FormOverlay" RowDefinitions="Auto, *, Auto" BackgroundColor="#1C262E" IsVisible="False" TranslationY="1000">
+
+            <Grid Grid.Row="0" Padding="15,20,15,15" BackgroundColor="#161F27">
+                <Label x:Name="LblFormTitulo" Text="AGREGAR CATEGORÍA" TextColor="#A2D149" FontAttributes="Bold" FontSize="16" CharacterSpacing="1" HorizontalOptions="Center"/>
+            </Grid>
+
+            <ScrollView Grid.Row="1" Padding="15,10,15,15">
+                <VerticalStackLayout Spacing="20">
+
+                    <Label Text="IDENTIDAD DE CATEGORÍA" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+
+                    <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" ColumnSpacing="12" Margin="0,-10,0,0">
+
+                        <VerticalStackLayout x:Name="SecNombre" Grid.Column="0" Spacing="5">
+                            <Label Text="Nombre (Oblig.)" TextColor="#939CA5" FontSize="12"/>
+                            <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
+                                <Entry x:Name="TxtNombreCat" TextColor="White" Placeholder="Ej. Laptops" PlaceholderColor="#606A72" HeightRequest="40"/>
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout x:Name="SecContexto" Grid.Column="1" Spacing="5">
+                            <Label Text="Grupo (Padre)" TextColor="#939CA5" FontSize="12"/>
+                            <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" BackgroundColor="#232B35" >
+                                <Grid>
+                                    <Label Text="-- SELECCIONE --" TextColor="#606A72" VerticalOptions="Center" InputTransparent="True" IsVisible="False" Margin="10">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding Source={x:Reference PkrPadre}, Path=SelectedIndex}" Value="-1">
+                                                <Setter Property="IsVisible" Value="True" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                    <Picker x:Name="PkrPadre" Title="" TextColor="White" BackgroundColor="Transparent" HeightRequest="40" HorizontalOptions="Fill" VerticalOptions="Fill"/>
+                                </Grid>
+                            </Border>
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <VerticalStackLayout x:Name="SecReglas" Spacing="5">
+                        <Label Text="REGLAS Y SEGUIMIENTO" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+
+                        <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" ColumnSpacing="12">
+
+                            <VerticalStackLayout Grid.Column="0" Spacing="5">
+
+                                <Grid ColumnDefinitions="*, Auto" HeightRequest="20">
+                                    <Label Grid.Column="0" Text="TrackingMode" TextColor="#939CA5" FontSize="12" VerticalOptions="Center" LineBreakMode="TailTruncation"/>
+                                    <HorizontalStackLayout Grid.Column="1" x:Name="ContenedorRetornable" Spacing="2" VerticalOptions="Center" IsVisible="False">
+                                        <Label Text="Retorno" TextColor="#939CA5" FontSize="10" VerticalOptions="Center"/>
+                                        <Switch x:Name="SwRetornable" IsToggled="True" OnColor="#A2D149" ThumbColor="White" Scale="0.6" VerticalOptions="Center" Margin="0,-10,0,-10"/>
+                                    </HorizontalStackLayout>
+                                </Grid>
+
+                                <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" BackgroundColor="#232B35">
+                                    <Grid>
+                                        <Label Text="-- SELECCIONE --" TextColor="#606A72" VerticalOptions="Center" InputTransparent="True" IsVisible="False" Margin="10">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding Source={x:Reference PkrTrackingMode}, Path=SelectedIndex}" Value="-1">
+                                                    <Setter Property="IsVisible" Value="True" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                        <Picker x:Name="PkrTrackingMode" Title="" TextColor="White" BackgroundColor="Transparent" HeightRequest="40" HorizontalOptions="Fill" VerticalOptions="Fill" SelectedIndexChanged="OnTrackingModeChanged">
+                                            <Picker.Items>
+                                                <x:String>Serializado</x:String>
+                                                <x:String>Estándar</x:String>
+                                                <x:String>A Granel</x:String>
+                                            </Picker.Items>
+                                        </Picker>
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                <Grid ColumnDefinitions="*, Auto" HeightRequest="20">
+                                    <Label Text="NamingMethod" TextColor="#939CA5" FontSize="12" VerticalOptions="Center"/>
+                                    <HorizontalStackLayout Grid.Column="1" Spacing="2">
+                                        <Label Text="Libre" TextColor="#939CA5" FontSize="11" VerticalOptions="Center"/>
+                                        <CheckBox x:Name="ChkModoLibre" Color="#A2D149" CheckedChanged="OnModoLibreCheckedChanged" WidthRequest="20" HeightRequest="20"/>
+                                    </HorizontalStackLayout>
+                                </Grid>
+
+                                <Border x:Name="ContainerPickerNaming" StrokeShape="RoundRectangle 8" StrokeThickness="1" BackgroundColor="#232B35">
+                                    <Grid>
+                                        <Label Text="-- SELECCIONE --" TextColor="#606A72" VerticalOptions="Center" InputTransparent="True" IsVisible="False" Margin="10">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding Source={x:Reference PkrNaming}, Path=SelectedIndex}" Value="-1">
+                                                    <Setter Property="IsVisible" Value="True" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                        <Picker x:Name="PkrNaming" Title="" TextColor="White" BackgroundColor="Transparent" HeightRequest="40" HorizontalOptions="Fill" VerticalOptions="Fill">
+                                            <Picker.Items>
+                                                <x:String>Código + Modelo</x:String>
+                                                <x:String>Solo Empaque</x:String>
+                                            </Picker.Items>
+                                        </Picker>
+                                    </Grid>
+                                </Border>
+
+                                <VerticalStackLayout x:Name="ContainerTxtNaming" IsVisible="False" Spacing="5">
+                                    <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#A2D149" BackgroundColor="#232B35" Padding="10,0">
+                                        <Entry x:Name="TxtNamingCustom" TextColor="White" Placeholder="Free Mode" IsReadOnly="True" HeightRequest="40"/>
+                                    </Border>
+                                    <Grid x:Name="ContainerTags" ColumnDefinitions="*, *, *, *" ColumnSpacing="6">
+                                        <Button Grid.Column="0" Text="[Code]" BackgroundColor="#2E3842" TextColor="#A2D149" FontSize="10" HeightRequest="35" CornerRadius="6" Clicked="OnTagToggleClicked"/>
+                                        <Button Grid.Column="1" Text="[Model]" BackgroundColor="#2E3842" TextColor="#A2D149" FontSize="10" HeightRequest="35" CornerRadius="6" Clicked="OnTagToggleClicked"/>
+                                        <Button Grid.Column="2" Text="[Brand]" BackgroundColor="#2E3842" TextColor="#A2D149" FontSize="10" HeightRequest="35" CornerRadius="6" Clicked="OnTagToggleClicked"/>
+                                        <Button Grid.Column="3" Text="[Pack]" BackgroundColor="#2E3842" TextColor="#A2D149" FontSize="10" HeightRequest="35" CornerRadius="6" Clicked="OnTagToggleClicked"/>
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="NOTAS ADICIONALES" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                        <Label Text="Descripción / Observaciones" TextColor="#939CA5" FontSize="12"/>
+                        <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10">
+                            <Editor x:Name="TxtDescription" TextColor="White" Placeholder="Detalles sobre el uso..." PlaceholderColor="#606A72" HeightRequest="70"/>
+                        </Border>
+                    </VerticalStackLayout>
+
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="12" Padding="15,10,15,15" BackgroundColor="#161F27">
+                <Button Grid.Column="0" Text="CANCELAR" BackgroundColor="#2E3842" TextColor="#939CA5" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Clicked="OnCerrarFormClicked"/>
+                <Button Grid.Column="1" Text="CONFIRMAR" BackgroundColor="#A2D149" TextColor="#1C262E" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Clicked="OnConfirmarFormClicked"/>
+            </Grid>
+        </Grid>
+    </Grid>
+</ContentPage>
