@@ -9,7 +9,11 @@
     <Grid RowDefinitions="Auto, *">
 
         <Grid Grid.Row="0" BackgroundColor="#1B4F5F" Padding="15,20" ColumnDefinitions="Auto, *, Auto">
-            <Image Source="arrow_back.png" HeightRequest="25" WidthRequest="25" Grid.Column="0" VerticalOptions="Center">
+            <Image Source="arrow_back.png" 
+                   HeightRequest="25" 
+                   WidthRequest="25" 
+                   Grid.Column="0" 
+                   VerticalOptions="Center">
                 <Image.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnBackClicked"/>
                 </Image.GestureRecognizers>
@@ -18,7 +22,11 @@
             <Label Text="Mi Cuenta" TextColor="White" FontSize="20" FontAttributes="Bold" 
                    VerticalOptions="Center" HorizontalOptions="Center" Grid.Column="1"/>
 
-            <Image Source="edit_icon.svg" HeightRequest="25" WidthRequest="25" Grid.Column="2" VerticalOptions="Center" >
+            <Image Source="edit_icon.png" 
+                   HeightRequest="25" 
+                   WidthRequest="25" 
+                   Grid.Column="2" 
+                   VerticalOptions="Center" >
                 <Image.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnEditProfileClicked"/>
                 </Image.GestureRecognizers>

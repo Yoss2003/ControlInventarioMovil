@@ -32,10 +32,10 @@
             </ContentView.GestureRecognizers>
             <VerticalStackLayout VerticalOptions="Center">
               <Image Source="add_icon.png"
-       HeightRequest="50"
-       WidthRequest="50"
-       Grid.Column="2"
-       VerticalOptions="Center" />
+                           HeightRequest="50"
+                           WidthRequest="50"
+                           Grid.Column="2"
+                           VerticalOptions="Center" />
                 <Label Text="Agregar" TextColor="White" HorizontalOptions="Center" FontSize="11" Margin="0,4,0,0"/>
             </VerticalStackLayout>
         </ContentView>
@@ -55,7 +55,9 @@
                 <TapGestureRecognizer Tapped="OnFooterButtonTapped" CommandParameter="Analisis"/>
             </ContentView.GestureRecognizers>
             <VerticalStackLayout VerticalOptions="Center">
-                <Image Source="check_icon.png" HeightRequest="40" WidthRequest="40"/>
+                <Image Source="check_icon.png" 
+                       HeightRequest="40" 
+                       WidthRequest="40" />
                 <Label Text="Análisis" TextColor="White" HorizontalOptions="Center" FontSize="11" Margin="0,4,0,0"/>
             </VerticalStackLayout>
         </ContentView>

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:ControlInventarioMovil.Views.Controls"
+             x:Class="ControlInventarioMovil.Views.InventoryPage"
+             Title="Inventario"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#1C262E">
+
+    <Grid RowDefinitions="Auto, *, 65">
+
+        <Grid Grid.Row="0" RowDefinitions="Auto, Auto" Padding="15,15,15,10" BackgroundColor="#1C262E">
+            <Label Grid.Row="0" Text="MÓDULO DE INVENTARIO" TextColor="#939CA5" FontSize="11" FontAttributes="Bold" CharacterSpacing="1" HorizontalOptions="Start" Margin="0,0,0,10"/>
+            <Grid Grid.Row="1" ColumnDefinitions="Auto, *, Auto" ColumnSpacing="12" VerticalOptions="Center">
+                <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" VerticalOptions="Center" Clicked="OnVolverClicked"/>
+                <SearchBar Grid.Column="1" Placeholder="Buscar por artículo o código..." TextColor="White" PlaceholderColor="#727C84" BackgroundColor="#232B35" HeightRequest="45" VerticalOptions="Center" CancelButtonColor="White"/>
+                <ImageButton Grid.Column="2" Source="config_icon.png" WidthRequest="35" HeightRequest="35" BackgroundColor="Transparent" VerticalOptions="Center"/>
+            </Grid>
+        </Grid>
+
+        <CollectionView Grid.Row="1" Margin="12,4,12,12" SelectionMode="None" ItemsSource="{Binding Articulos}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border StrokeShape="RoundRectangle 10" StrokeThickness="1" Stroke="#2E3842" BackgroundColor="#232B35" Margin="0,0,0,10" Padding="12">
+                        <Grid ColumnDefinitions="Auto, *, Auto" RowDefinitions="Auto, Auto">
+                            <BoxView Grid.Column="0" Grid.RowSpan="2" WidthRequest="4" Color="#2CA02C" VerticalOptions="Fill" Margin="0,0,12,0"/>
+                            <VerticalStackLayout Grid.Column="1" Grid.Row="0" VerticalOptions="Center">
+                                <Label Text="{Binding Name}" TextColor="White" FontAttributes="Bold" FontSize="15" />
+                                <Label Text="{Binding Barcode, StringFormat='Código: {0}'}" TextColor="#939CA5" FontSize="12" Margin="0,2,0,0"/>
+                            </VerticalStackLayout>
+                            <HorizontalStackLayout Grid.Column="1" Grid.Row="1" Margin="0,6,0,0" Spacing="15">
+                                <Label Text="Categoría: General" TextColor="#727C84" FontSize="11"/>
+                                <Label Text="{Binding SalePrice, StringFormat='Precio: S/. {0:F2}'}" TextColor="#727C84" FontSize="11" FontAttributes="Bold"/>
+                            </HorizontalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Grid.RowSpan="2" VerticalOptions="Center" HorizontalOptions="End" Margin="5,0,0,0">
+                                <Label Text="{Binding Stock}" TextColor="White" FontSize="20" FontAttributes="Bold" HorizontalOptions="Center"/>
+                                <Label Text="Uds" TextColor="#939CA5" FontSize="11" HorizontalOptions="Center"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Grid Grid.Row="2" BackgroundColor="#161F27" ColumnDefinitions="*, *, *">
+            <ContentView Grid.Column="0" VerticalOptions="Center">
+                <ContentView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnInicioClicked"/>
+                </ContentView.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="2">
+                    <Image Source="registros.png" HeightRequest="24" WidthRequest="24"/>
+                    <Label Text="Inicio" TextColor="#727C84" FontSize="11" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </ContentView>
+            <ContentView Grid.Column="1" />
+            <ContentView Grid.Column="2" VerticalOptions="Center">
+                <ContentView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnPerfilClicked"/>
+                </ContentView.GestureRecognizers>
+                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="2">
+                    <Image Source="user_icon.png" HeightRequest="24" WidthRequest="24"/>
+                    <Label Text="Perfil" TextColor="#727C84" FontSize="11" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </ContentView>
+        </Grid>
+
+        <Grid x:Name="OverlayFondo"
+      Grid.RowSpan="3"
+      BackgroundColor="Black" Opacity="0" IsVisible="False" InputTransparent="True">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnCerrarMenuTapped"/>
+            </Grid.GestureRecognizers>
+        </Grid>
+
+        <ContentView x:Name="BtnCategoria" 
+             Grid.Row="1" Grid.RowSpan="2" HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,10"
+             Scale="0" Opacity="0" InputTransparent="True">
+            <ContentView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnAgregarCategoriaClicked"/>
+            </ContentView.GestureRecognizers>
+            <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
+                <Border HeightRequest="48" WidthRequest="48" BackgroundColor="#2E3842" StrokeThickness="1" Stroke="#A2D149" StrokeShape="RoundRectangle 24" HorizontalOptions="Center">
+                    <Image Source="config_icon.png" HeightRequest="24" WidthRequest="24" HorizontalOptions="Center" VerticalOptions="Center"/>
+                </Border>
+                <Label Text="Categoría" TextColor="White" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+        </ContentView>
+
+        <ContentView x:Name="BtnArticulo" 
+             Grid.Row="1" Grid.RowSpan="2" HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,10"
+             Scale="0" Opacity="0" InputTransparent="True">
+            <ContentView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnAgregarArticuloClicked"/>
+            </ContentView.GestureRecognizers>
+            <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
+                <Border HeightRequest="48" WidthRequest="48" BackgroundColor="#2E3842" StrokeThickness="1" Stroke="#A2D149" StrokeShape="RoundRectangle 24" HorizontalOptions="Center">
+                    <Image Source="inventario.png" HeightRequest="24" WidthRequest="24" HorizontalOptions="Center" VerticalOptions="Center"/>
+                </Border>
+                <Label Text="Artículo" TextColor="White" FontSize="12" FontAttributes="Bold" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+        </ContentView>
+
+        <ContentView Grid.Row="1" Grid.RowSpan="2" HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,10">
+            <ContentView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnMenuFlotanteClicked"/>
+            </ContentView.GestureRecognizers>
+            <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                <Border x:Name="CirculoPrincipal" HeightRequest="56" WidthRequest="56" BackgroundColor="#A2D149" StrokeThickness="0" StrokeShape="RoundRectangle 28" HorizontalOptions="Center">
+                    <Image Source="add_icon.png" HeightRequest="28" WidthRequest="28" HorizontalOptions="Center" VerticalOptions="Center"/>
+                </Border>
+                <Label x:Name="LblPrincipal" Text="Agregar" TextColor="White" FontSize="11" HorizontalOptions="Center" FontAttributes="Bold"/>
+            </VerticalStackLayout>
+        </ContentView>
+
+    </Grid>
+</ContentPage>

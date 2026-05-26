@@ -94,7 +94,7 @@
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="24"/>
                             </Border.StrokeShape>
-                            <Image Source="config.png"/>
+                            <Image Source="config_icon.png"/>
                         </Border>
                         <Label x:Name="TxtConfig" Text="Configuración" HorizontalOptions="Center" TextColor="Black" FontSize="12"/>
                     </VerticalStackLayout>
