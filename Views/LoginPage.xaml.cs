@@ -1,6 +1,5 @@
 namespace ControlInventarioMovil.Views;
-
-using ControlInventarioMovil.Models;
+using ControlInventario.Models;
 using ControlInventarioMovil.Services;
 
 public partial class LoginPage : ContentPage
@@ -14,7 +13,7 @@ public partial class LoginPage : ContentPage
 
     private async void OnForgot_Tapped(object sender, TappedEventArgs e)
     {
-        await DisplayAlert("Recuperar", "Pantalla de recuperación en construcción", "OK");
+        await DisplayAlertAsync("Recuperar", "Pantalla de recuperación en construcción", "OK");
     }
 
     private async void OnLoginClicked(object sender, EventArgs e)
@@ -55,7 +54,7 @@ public partial class LoginPage : ContentPage
         else
         {
             // Si el usuario es null, la API rechazó las credenciales
-            await DisplayAlert("Error", "Usuario o contraseña incorrectos", "Intentar de nuevo");
+            await DisplayAlertAsync("Error", "Usuario o contraseña incorrectos", "Intentar de nuevo");
         }
     }
 
@@ -96,13 +95,13 @@ public partial class LoginPage : ContentPage
 
         while (true)
         {
-            var moveMorado = orbMorado.TranslateTo(random.Next(-50, 150), random.Next(-50, 150), 8000, Easing.SinInOut);
-            var moveAzul = orbAzul.TranslateTo(random.Next(-150, 50), random.Next(-150, 50), 9000, Easing.SinInOut);
-            var moveCeleste = orbCeleste.TranslateTo(random.Next(-100, 100), random.Next(-100, 100), 7000, Easing.SinInOut);
+            var moveMorado = orbMorado.TranslateToAsync(random.Next(-50, 150), random.Next(-50, 150), 8000, Easing.SinInOut);
+            var moveAzul = orbAzul.TranslateToAsync(random.Next(-150, 50), random.Next(-150, 50), 9000, Easing.SinInOut);
+            var moveCeleste = orbCeleste.TranslateToAsync(random.Next(-100, 100), random.Next(-100, 100), 7000, Easing.SinInOut);
 
-            var scaleMorado = orbMorado.ScaleTo(random.NextDouble() * 0.5 + 1, 8000, Easing.SinInOut);
-            var scaleAzul = orbAzul.ScaleTo(random.NextDouble() * 0.5 + 1, 9000, Easing.SinInOut);
-            var scaleCeleste = orbCeleste.ScaleTo(random.NextDouble() * 0.5 + 1, 7000, Easing.SinInOut);
+            var scaleMorado = orbMorado.ScaleToAsync(random.NextDouble() * 0.5 + 1, 8000, Easing.SinInOut);
+            var scaleAzul = orbAzul.ScaleToAsync(random.NextDouble() * 0.5 + 1, 9000, Easing.SinInOut);
+            var scaleCeleste = orbCeleste.ScaleToAsync(random.NextDouble() * 0.5 + 1, 7000, Easing.SinInOut);
 
             await Task.WhenAll(moveMorado, moveAzul, moveCeleste, scaleMorado, scaleAzul, scaleCeleste);
         }

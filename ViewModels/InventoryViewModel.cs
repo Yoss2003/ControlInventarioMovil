@@ -1,5 +1,5 @@
 ﻿using System.Collections.ObjectModel;
-using ControlInventarioMovil.Models;
+using ControlInventario.Shared.Models;
 
 namespace ControlInventarioMovil.ViewModels
 {

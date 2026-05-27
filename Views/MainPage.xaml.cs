@@ -1,5 +1,5 @@
+using ControlInventario.Models;
 using System.Diagnostics;
-using ControlInventarioMovil.Models;
 
 namespace ControlInventarioMovil.Views
 {
@@ -60,7 +60,7 @@ namespace ControlInventarioMovil.Views
             {
                 string firstName = UserSession.CurrentUser.FirstName?.Trim() ?? "";
                 string lastName = UserSession.CurrentUser.LastName?.Trim() ?? "";
-                string userRole = UserSession.CurrentUser.RoleName?.Trim() ?? "Usuario";
+                string userRole = UserSession.CurrentUser.Role?.Name?.Trim() ?? "Usuario";
 
                 string apellido = "";
                 string nombre = "";
@@ -177,7 +177,7 @@ namespace ControlInventarioMovil.Views
                 _ => ""
             };
 
-            // TODO: Comenta el DisplayAlert y descomenta la línea de GoToAsync
+            // TODO: Comenta el DisplayAlertAsync y descomenta la línea de GoToAsync
             await Task.Delay(500);
             if (!string.IsNullOrEmpty(rutaDestino))
             {
@@ -349,7 +349,7 @@ namespace ControlInventarioMovil.Views
                 {
                     if (_botonesOrbitales[i].Scale != EscalaZoomZenit)
                     {
-                        _ = _botonesOrbitales[i].ScaleTo(EscalaZoomZenit, 100, Easing.Linear);
+                        _ = _botonesOrbitales[i].ScaleToAsync(EscalaZoomZenit, 100, Easing.Linear);
                     }
 
                     double opacidadCalculada = 1.0 - (diferenciaRad / umbralZenitRad);
@@ -359,7 +359,7 @@ namespace ControlInventarioMovil.Views
                 {
                     if (_botonesOrbitales[i].Scale != 1.0)
                     {
-                        _ = _botonesOrbitales[i].ScaleTo(1.0, 100, Easing.Linear);
+                        _ = _botonesOrbitales[i].ScaleToAsync(1.0, 100, Easing.Linear);
                     }
                     _textosOrbitales[i].Opacity = 0;
                 }

@@ -19,8 +19,8 @@ public partial class FooterView : ContentView
         string parametro = (e.Parameter as string) ?? string.Empty;
 
         // --- EFECTO PULSO PREMIUM ---
-        await botonSeleccionado.ScaleTo(0.9, 80, Easing.CubicIn);
-        _ = botonSeleccionado.ScaleTo(1.0, 120, Easing.CubicOut);
+        await botonSeleccionado.ScaleToAsync(0.9, 80, Easing.CubicIn);
+        _ = botonSeleccionado.ScaleToAsync(1.0, 120, Easing.CubicOut);
 
         _estaNavegando = true;
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
 using ControlInventarioMovil.Services;
-using ControlInventarioMovil.Models;
+using ControlInventario.Shared.Models;
 
 namespace ControlInventarioMovil.Views
 {
@@ -17,7 +17,7 @@ namespace ControlInventarioMovil.Views
 
         // Asumo que tienes modelos para estos (cámbialos por los nombres reales de tus clases)
         private List<Brand> _marcas = new List<Brand>();
-        private Brand _marcaEnEdicion = null;
+        private Brand? _marcaEnEdicion = null;
         private List<MeasurementUnit> _unidades = new List<MeasurementUnit>();
 
         public ArticleFormPage()
@@ -147,15 +147,15 @@ namespace ControlInventarioMovil.Views
             // 1. Validaciones básicas
             if (PkrCategory.SelectedIndex == -1 || string.IsNullOrWhiteSpace(TxtName.Text))
             {
-                await DisplayAlert("Faltan Datos", "Por favor, complete el nombre y seleccione una categoría.", "OK");
+                await DisplayAlertAsync("Faltan Datos", "Por favor, complete el nombre y seleccione una categoría.", "OK");
                 return;
             }
 
             var categoriaSeleccionada = _categoriasHijas[PkrCategory.SelectedIndex];
 
-            if (categoriaSeleccionada.TrackingMode == TrackingMode.Serialized && string.IsNullOrWhiteSpace(TxtSku.Text))
+            if (categoriaSeleccionada.TrackingMode == TrackingMode.Serialized.ToString() && string.IsNullOrWhiteSpace(TxtSku.Text))
             {
-                await DisplayAlert("Dato Obligatorio", "Al ser un producto Serializado, requiere ingresar un Código/Serie en el SKU.", "OK");
+                await DisplayAlertAsync("Dato Obligatorio", "Al ser un producto Serializado, requiere ingresar un Código/Serie en el SKU.", "OK");
                 return;
             }
 
@@ -174,7 +174,8 @@ namespace ControlInventarioMovil.Views
                 Barcode = TxtBarcode.Text,
                 Name = TxtName.Text,
                 Model = TxtModel.Text ?? "N/A",
-                Tracking = categoriaSeleccionada.TrackingMode ?? TrackingMode.Standard,
+                // Reemplaza esa línea por esta:
+                Tracking = Enum.TryParse<TrackingMode>(categoriaSeleccionada.TrackingMode, out var modo) ? modo : TrackingMode.Standard,
                 MeasurementUnit = PkrMeasurement.SelectedIndex >= 0 ? PkrMeasurement.SelectedItem.ToString() : "Unidades",
                 Stock = stockReal,
                 AcquisitionPrice = costoReal,
@@ -187,12 +188,12 @@ namespace ControlInventarioMovil.Views
 
             if (exito)
             {
-                await DisplayAlert("Éxito", $"Artículo '{TxtName.Text}' registrado correctamente.", "OK");
+                await DisplayAlertAsync("Éxito", $"Artículo '{TxtName.Text}' registrado correctamente.", "OK");
                 await Shell.Current.GoToAsync("..", false);
             }
             else
             {
-                await DisplayAlert("Error", "Ocurrió un problema al guardar en el servidor.", "OK");
+                await DisplayAlertAsync("Error", "Ocurrió un problema al guardar en el servidor.", "OK");
             }
         }
 
@@ -206,7 +207,7 @@ namespace ControlInventarioMovil.Views
 
         private async void OnCancelarClicked(object sender, EventArgs e)
         {
-            bool confirmar = await DisplayAlert("Cancelar", "¿Estás seguro de descartar los cambios?", "Sí", "No");
+            bool confirmar = await DisplayAlertAsync("Cancelar", "¿Estás seguro de descartar los cambios?", "Sí", "No");
             if (confirmar)
             {
                 await Shell.Current.GoToAsync("..", false);
@@ -215,7 +216,7 @@ namespace ControlInventarioMovil.Views
 
         private async void OnTomarFotoPrincipalClicked(object sender, EventArgs e)
         {
-            await DisplayAlert("Cámara", "Iniciando captura de imagen con la cámara nativa...", "OK");
+            await DisplayAlertAsync("Cámara", "Iniciando captura de imagen con la cámara nativa...", "OK");
         }
 
         // =========================================================
@@ -226,30 +227,30 @@ namespace ControlInventarioMovil.Views
             _marcaEnEdicion = null;
             OverlayMarcas.IsVisible = true;
             TxtNuevaMarca.Text = string.Empty;
-            await OverlayMarcas.FadeTo(1, 250, Easing.CubicOut);
+            await OverlayMarcas.FadeToAsync(1, 250, Easing.CubicOut);
             TxtNuevaMarca.Focus();
         }
 
         private async void OnCerrarOverlayMarcasClicked(object sender, EventArgs e)
         {
             // Animación de desaparición (Fade Out)
-            await OverlayMarcas.FadeTo(0, 200, Easing.CubicIn);
+            await OverlayMarcas.FadeToAsync(0, 200, Easing.CubicIn);
             OverlayMarcas.IsVisible = false;
         }
 
         private async void OnGuardarMarcaClicked(object sender, EventArgs e)
         {
-            string nombreMarca = TxtNuevaMarca.Text?.Trim();
+            string? nombreMarca = TxtNuevaMarca.Text?.Trim();
 
             if (string.IsNullOrEmpty(nombreMarca))
             {
-                await DisplayAlert("Atención", "Escribe el nombre de la marca.", "OK");
+                await DisplayAlertAsync("Atención", "Escribe el nombre de la marca.", "OK");
                 return;
             }
 
             if (PkrCategory.SelectedIndex == -1)
             {
-                await DisplayAlert("Atención", "Debes seleccionar una Categoría en el formulario principal primero.", "OK");
+                await DisplayAlertAsync("Atención", "Debes seleccionar una Categoría en el formulario principal primero.", "OK");
                 return;
             }
 
@@ -278,7 +279,7 @@ namespace ControlInventarioMovil.Views
                     PkrBrand.SelectedIndex = PkrBrand.Items.Count - 1;
                     OnCerrarOverlayMarcasClicked(sender, e);
                 }
-                else { await DisplayAlert("Error", "No se pudo guardar la marca.", "OK"); }
+                else { await DisplayAlertAsync("Error", "No se pudo guardar la marca.", "OK"); }
             }
             else
             {
@@ -297,7 +298,7 @@ namespace ControlInventarioMovil.Views
                     PkrBrand.Items[index] = nombreMarca; // Refrescamos el texto en el Picker
                     OnCerrarOverlayMarcasClicked(sender, e);
                 }
-                else { await DisplayAlert("Error", "No se pudo actualizar la marca.", "OK"); }
+                else { await DisplayAlertAsync("Error", "No se pudo actualizar la marca.", "OK"); }
             }
 
             btnGuardar.IsEnabled = true;
@@ -308,7 +309,7 @@ namespace ControlInventarioMovil.Views
             // Verificamos que haya seleccionado una marca primero
             if (PkrBrand.SelectedIndex == -1)
             {
-                await DisplayAlert("Atención", "Selecciona una marca del menú desplegable para poder editarla.", "OK");
+                await DisplayAlertAsync("Atención", "Selecciona una marca del menú desplegable para poder editarla.", "OK");
                 return;
             }
 
@@ -320,7 +321,7 @@ namespace ControlInventarioMovil.Views
 
             // Abrimos el modal
             OverlayMarcas.IsVisible = true;
-            await OverlayMarcas.FadeTo(1, 250, Easing.CubicOut);
+            await OverlayMarcas.FadeToAsync(1, 250, Easing.CubicOut);
             TxtNuevaMarca.Focus();
         }
     }

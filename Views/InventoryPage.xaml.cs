@@ -68,14 +68,14 @@ namespace ControlInventarioMovil.Views
 
             // 3. Lanzar animaciones de apertura en paralelo y esperar que terminen juntas
             await Task.WhenAll(
-                OverlayFondo.FadeTo(0.75, 250, Easing.CubicOut),
-                CirculoPrincipal.RotateTo(45, 250, Easing.SpringOut),
-                BtnCategoria.FadeTo(1, 200),
-                BtnCategoria.ScaleTo(1, 250, Easing.SpringOut),
-                BtnCategoria.TranslateTo(-85, -95, 250, Easing.SpringOut),
-                BtnArticulo.FadeTo(1, 200),
-                BtnArticulo.ScaleTo(1, 250, Easing.SpringOut),
-                BtnArticulo.TranslateTo(85, -95, 250, Easing.SpringOut)
+                OverlayFondo.FadeToAsync(0.75, 250, Easing.CubicOut),
+                CirculoPrincipal.RotateToAsync(45, 250, Easing.SpringOut),
+                BtnCategoria.FadeToAsync(1, 200),
+                BtnCategoria.ScaleToAsync(1, 250, Easing.SpringOut),
+                BtnCategoria.TranslateToAsync(-85, -95, 250, Easing.SpringOut),
+                BtnArticulo.FadeToAsync(1, 200),
+                BtnArticulo.ScaleToAsync(1, 250, Easing.SpringOut),
+                BtnArticulo.TranslateToAsync(85, -95, 250, Easing.SpringOut)
             );
         }
 
@@ -92,19 +92,19 @@ namespace ControlInventarioMovil.Views
             LblPrincipal.TextColor = Colors.White;
 
             // 2. ANIMACIONES SIMULTÁNEAS (Viajan al centro y se encogen a la vez)
-            var animGiro = CirculoPrincipal.RotateTo(0, 200, Easing.CubicInOut);
+            var animGiro = CirculoPrincipal.RotateToAsync(0, 200, Easing.CubicInOut);
 
-            var animCatMover = BtnCategoria.TranslateTo(0, 0, 200, Easing.CubicIn);
-            var animArtMover = BtnArticulo.TranslateTo(0, 0, 200, Easing.CubicIn);
+            var animCatMover = BtnCategoria.TranslateToAsync(0, 0, 200, Easing.CubicIn);
+            var animArtMover = BtnArticulo.TranslateToAsync(0, 0, 200, Easing.CubicIn);
 
-            var animCatEscala = BtnCategoria.ScaleTo(0.01, 200, Easing.CubicIn);
-            var animArtEscala = BtnArticulo.ScaleTo(0.01, 200, Easing.CubicIn);
+            var animCatEscala = BtnCategoria.ScaleToAsync(0.01, 200, Easing.CubicIn);
+            var animArtEscala = BtnArticulo.ScaleToAsync(0.01, 200, Easing.CubicIn);
 
-            var animCatFade = BtnCategoria.FadeTo(0, 150, Easing.Linear);
-            var animArtFade = BtnArticulo.FadeTo(0, 150, Easing.Linear);
+            var animCatFade = BtnCategoria.FadeToAsync(0, 150, Easing.Linear);
+            var animArtFade = BtnArticulo.FadeToAsync(0, 150, Easing.Linear);
 
             // El nuevo Grid de fondo se desvanece en perfecta armonía con los botones
-            var animFondo = OverlayFondo.FadeTo(0, 100, Easing.Linear);
+            var animFondo = OverlayFondo.FadeToAsync(0, 100, Easing.Linear);
 
             // 3. ESPERAR A QUE EL HILO GRÁFICO TERMINE EN PAZ
             await Task.WhenAll(animGiro, animCatMover, animArtMover, animCatEscala, animArtEscala, animCatFade, animArtFade, animFondo);
@@ -122,8 +122,8 @@ namespace ControlInventarioMovil.Views
 
         private async void OnAgregarCategoriaClicked(object sender, EventArgs e)
         {
-            await BtnCategoria.ScaleTo(1.2, 100);
-            await BtnCategoria.ScaleTo(1.0, 100);
+            await BtnCategoria.ScaleToAsync(1.2, 100);
+            await BtnCategoria.ScaleToAsync(1.0, 100);
 
             // 1. AHORA ESPERAMOS A QUE EL MENÚ SE CIERRE COMPLETAMENTE
             await CerrarMenuFlotante();
@@ -137,8 +137,8 @@ namespace ControlInventarioMovil.Views
 
         private async void OnAgregarArticuloClicked(object sender, EventArgs e)
         {
-            await BtnArticulo.ScaleTo(1.2, 100);
-            await BtnArticulo.ScaleTo(1.0, 100);
+            await BtnArticulo.ScaleToAsync(1.2, 100);
+            await BtnArticulo.ScaleToAsync(1.0, 100);
 
             // 1. ESPERAR CIERRE
             await CerrarMenuFlotante();
