@@ -1,10 +1,9 @@
-﻿using ControlInventarioMovil.Models;
+﻿using ControlInventario.Shared.Models;
 using Newtonsoft.Json;
 using System.Collections.ObjectModel;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace ControlInventarioMovil.Services
 {
@@ -203,16 +202,13 @@ namespace ControlInventarioMovil.Services
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Categories");
                 if (response.IsSuccessStatusCode)
                 {
-                    // 1. Configuramos las opciones de lectura
                     var opcionesJson = new JsonSerializerOptions
                     {
-                        PropertyNameCaseInsensitive = true // Ignora mayúsculas/minúsculas
+                        PropertyNameCaseInsensitive = true
                     };
-
-                    // 2. Le agregamos nuestro traductor
                     opcionesJson.Converters.Add(new IntToBoolConverter());
+                    opcionesJson.Converters.Add(new TrackingModeJsonConverter());
 
-                    // 3. Le pasamos las opciones al método que lee el JSON
                     return await response.Content.ReadFromJsonAsync<List<Category>>(opcionesJson) ?? new List<Category>();
                 }
             }
@@ -222,12 +218,12 @@ namespace ControlInventarioMovil.Services
             }
             return new List<Category>();
         }
+
         public async Task<bool> CreateCategoryAsync(Category newCategory)
         {
             try
             {
-                // TRADUCCIÓN AL VUELO: 
-                // Respetamos tu modelo MAUI, pero empaquetamos los datos como la API los exige
+                // Empaquetamos el payload alineado milimétricamente con la API
                 var payload = new
                 {
                     id = newCategory.Id,
@@ -235,14 +231,18 @@ namespace ControlInventarioMovil.Services
                     parentCategoryId = newCategory.ParentCategoryId,
                     name = newCategory.Name,
                     description = newCategory.Description,
-                    defaultTrackingMode = (int)newCategory.TrackingMode,
+
+                    // CORRECCIÓN 1: Enviamos el nombre exacto de la columna en string ("Standard", "Serialized")
+                    trackingMode = newCategory.TrackingMode?.ToString(),
+
                     namingMethod = newCategory.NamingMethod,
-                    isReturnable = newCategory.IsReturnable ? 1 : 0,
-                    creationDate = newCategory.CreationDate,
+                    isReturnable = newCategory.IsReturnable,
+
+                    // CORRECCIÓN 2: Pasamos el objeto DateTime nativo limpio para cumplir con el formato ISO
+                    creationDate = newCategory.CreationDate ?? DateTime.Now,
                     creationUser = newCategory.CreationUser
                 };
 
-                // Enviamos el 'payload' traducido en lugar del objeto crudo
                 var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Categories", payload);
 
                 if (!response.IsSuccessStatusCode)
@@ -259,11 +259,12 @@ namespace ControlInventarioMovil.Services
                 return false;
             }
         }
+
         public async Task<bool> UpdateCategoryAsync(Category updatedCategory)
         {
             try
             {
-                // Mantenemos el mismo traductor para respetar la BD
+                // Empaquetamos el payload para la actualización (PUT)
                 var payload = new
                 {
                     id = updatedCategory.Id,
@@ -271,14 +272,22 @@ namespace ControlInventarioMovil.Services
                     parentCategoryId = updatedCategory.ParentCategoryId,
                     name = updatedCategory.Name,
                     description = updatedCategory.Description,
-                    defaultTrackingMode = (int)updatedCategory.TrackingMode,
+
+                    // CORRECCIÓN 1: Enviamos el Enum convertido a String legible para la API
+                    trackingMode = updatedCategory.TrackingMode?.ToString(),
+
                     namingMethod = updatedCategory.NamingMethod,
-                    isReturnable = updatedCategory.IsReturnable ? 1 : 0,
+                    isReturnable = updatedCategory.IsReturnable,
+
+                    // Mantenemos la auditoría original pasando las fechas nativas sin alterar su estructura
+                    creationDate = updatedCategory.CreationDate,
+                    creationUser = updatedCategory.CreationUser,
+
+                    // CORRECCIÓN 2: Enviamos DateTime.Now puro. HttpClient le pondrá la "T" requerida por el servidor
                     modificationDate = DateTime.Now,
                     modificationUser = updatedCategory.ModificationUser
                 };
 
-                // Usamos PUT y le pasamos el ID en la URL
                 var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Categories/{updatedCategory.Id}", payload);
 
                 if (!response.IsSuccessStatusCode)
@@ -333,7 +342,7 @@ namespace ControlInventarioMovil.Services
             }
             return new List<Brand>();
         }
-        public async Task<Brand> CreateBrandAsync(Brand newBrand)
+        public async Task<Brand?> CreateBrandAsync(Brand newBrand)
         {
             try
             {
@@ -354,7 +363,7 @@ namespace ControlInventarioMovil.Services
             {
                 Console.WriteLine($"[API_ERROR] CreateBrand: {ex.Message}");
             }
-            return null; // Retorna null si falló
+            return null;
         }
         public async Task<bool> UpdateBrandAsync(Brand updatedBrand)
         {
@@ -399,6 +408,59 @@ namespace ControlInventarioMovil.Services
         public override void Write(Utf8JsonWriter writer, bool value, JsonSerializerOptions options)
         {
             writer.WriteNumberValue(value ? 1 : 0);
+        }
+    }
+    public class TrackingModeJsonConverter : System.Text.Json.Serialization.JsonConverter<TrackingMode?>
+    {
+        public override TrackingMode? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            // 1. Si el valor es null en el JSON, devolvemos null sin problemas
+            if (reader.TokenType == JsonTokenType.Null) return null;
+
+            // 2. Si el formato viene como número puro (ej: 0, 1, 2)
+            if (reader.TokenType == JsonTokenType.Number)
+            {
+                int num = reader.GetInt32();
+                if (Enum.IsDefined(typeof(TrackingMode), num)) return (TrackingMode)num;
+                return TrackingMode.Standard;
+            }
+
+            // 3. Si el formato viene como texto plano (ej: "Standard", "Serialized", "1")
+            if (reader.TokenType == JsonTokenType.String)
+            {
+                string? value = reader.GetString();
+                if (string.IsNullOrWhiteSpace(value)) return null;
+
+                // Intentar convertir si viene el nombre en inglés ("Standard", "Serialized")
+                if (Enum.TryParse<TrackingMode>(value, true, out var result)) return result;
+
+                // Intentar convertir si viene un número en un string (ej: "1", "0")
+                if (int.TryParse(value, out int numFromText))
+                {
+                    if (Enum.IsDefined(typeof(TrackingMode), numFromText)) return (TrackingMode)numFromText;
+                }
+
+                // Soporte para registros históricos en español para que no rompa el mapeo
+                if (value.Equals("Serializado", StringComparison.OrdinalIgnoreCase)) return TrackingMode.Serialized;
+                if (value.Equals("A Granel", StringComparison.OrdinalIgnoreCase)) return TrackingMode.Bulk;
+
+                return TrackingMode.Standard; // Plan de respaldo seguro
+            }
+
+            return null;
+        }
+
+        public override void Write(Utf8JsonWriter writer, TrackingMode? value, JsonSerializerOptions options)
+        {
+            if (value == null)
+            {
+                writer.WriteNullValue();
+            }
+            else
+            {
+                // Al guardar en la API, siempre mandamos el entero limpio
+                writer.WriteNumberValue((int)value.Value);
+            }
         }
     }
 }

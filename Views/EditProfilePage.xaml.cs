@@ -1,5 +1,6 @@
-using ControlInventarioMovil.Models;
+using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
+using ControlInventario.Models;
 using Plugin.Maui.ImageCropper;
 
 namespace ControlInventarioMovil.Views;
@@ -53,8 +54,8 @@ public partial class EditProfilePage : ContentPage
     //Metodo de preselección para Rol, Área, Puesto y Tipo de Contrato
     private void PreseleccionarValoresUsuario(User user)
     {
-        if (pckRole.ItemsSource is List<Role> rolesList && !string.IsNullOrEmpty(user.RoleName))
-            pckRole.SelectedItem = rolesList.FirstOrDefault(r => r.Name == user.RoleName);
+        if (pckRole.ItemsSource is List<Role> rolesList && !string.IsNullOrEmpty(user.Role?.Name))
+            pckRole.SelectedItem = rolesList.FirstOrDefault(r => r.Name == user.Role?.Name);
 
         if (pckArea.ItemsSource is List<Parameters> areasList)
             pckArea.SelectedItem = areasList.FirstOrDefault(a => a.Id == user.AreaId);
@@ -102,28 +103,28 @@ public partial class EditProfilePage : ContentPage
     {
         if (pckRole.SelectedItem is Role selected)
             AbrirPopup("Editar Rol", "Role", true, selected.Id, selected.Name);
-        else await DisplayAlert("Atención", "Seleccione primero un Rol de la lista para poder editarlo.", "OK");
+        else await DisplayAlertAsync("Atención", "Seleccione primero un Rol de la lista para poder editarlo.", "OK");
     }
 
     private async void OnEditAreaClicked(object sender, EventArgs e)
     {
         if (pckArea.SelectedItem is Parameters selected)
             AbrirPopup("Editar Área", "Area", true, selected.Id, selected.Name, selected.Description);
-        else await DisplayAlert("Atención", "Seleccione primero un Área de la lista para poder editarla.", "OK");
+        else await DisplayAlertAsync("Atención", "Seleccione primero un Área de la lista para poder editarla.", "OK");
     }
 
     private async void OnEditPositionClicked(object sender, EventArgs e)
     {
         if (pckPosition.SelectedItem is Parameters selected)
             AbrirPopup("Editar Puesto", "JobPosition", true, selected.Id, selected.Name, selected.Description);
-        else await DisplayAlert("Atención", "Seleccione primero un Puesto de la lista para poder editarlo.", "OK");
+        else await DisplayAlertAsync("Atención", "Seleccione primero un Puesto de la lista para poder editarlo.", "OK");
     }
 
     private async void OnEditContractTypeClicked(object sender, EventArgs e)
     {
         if (pckContractType.SelectedItem is Parameters selected)
             AbrirPopup("Editar Contrato", "ContractType", true, selected.Id, selected.Name, selected.Description);
-        else await DisplayAlert("Atención", "Seleccione primero un Contrato de la lista para poder editarlo.", "OK");
+        else await DisplayAlertAsync("Atención", "Seleccione primero un Contrato de la lista para poder editarlo.", "OK");
     }
 
     // Método para cerrar la ventana flotante sin guardar cambios
@@ -140,7 +141,7 @@ public partial class EditProfilePage : ContentPage
 
         if (string.IsNullOrWhiteSpace(nombre))
         {
-            await DisplayAlert("Atención", "El nombre es obligatorio.", "OK");
+            await DisplayAlertAsync("Atención", "El nombre es obligatorio.", "OK");
             return;
         }
 
@@ -183,11 +184,11 @@ public partial class EditProfilePage : ContentPage
             else if (_currentParameterType == "ContractType" && pckContractType.ItemsSource is List<Parameters> cList)
                 pckContractType.SelectedItem = cList.FirstOrDefault(p => p.Name == nombre);
 
-            await DisplayAlert("Éxito", _isEditing ? "Registro actualizado correctamente." : "Registro creado con éxito.", "OK");
+            await DisplayAlertAsync("Éxito", _isEditing ? "Registro actualizado correctamente." : "Registro creado con éxito.", "OK");
         }
         else
         {
-            await DisplayAlert("Error", "Ocurrió un problema en la comunicación con el servidor.", "OK");
+            await DisplayAlertAsync("Error", "Ocurrió un problema en la comunicación con el servidor.", "OK");
         }
     }
 
@@ -258,16 +259,20 @@ public partial class EditProfilePage : ContentPage
     // Método para manejar la selección de foto, ya sea desde la cámara o la galería, y luego recortarla
     private async void OnChangePhotoTapped(object sender, TappedEventArgs e)
     {
-        string action = await DisplayActionSheet("Seleccionar Foto", "Cancelar", null, "Tomar Foto (Cámara)", "Elegir de Galería");
+        string action = await DisplayActionSheetAsync("Seleccionar Foto", "Cancelar", null, "Tomar Foto (Cámara)", "Elegir de Galería");
         try
         {
             FileResult? tempPhoto = null;
             if (action == "Tomar Foto (Cámara)")
             {
                 if (MediaPicker.Default.IsCaptureSupported) tempPhoto = await MediaPicker.Default.CapturePhotoAsync();
-                else { await DisplayAlert("Error", "La cámara no está soportada.", "OK"); return; }
+                else { await DisplayAlertAsync("Error", "La cámara no está soportada.", "OK"); return; }
             }
-            else if (action == "Elegir de Galería") tempPhoto = await MediaPicker.Default.PickPhotoAsync();
+            else if (action == "Elegir de Galería")
+            {
+                var selection = await MediaPicker.Default.PickPhotosAsync();
+                tempPhoto = selection?.FirstOrDefault();
+            }
 
             if (tempPhoto != null)
             {
@@ -286,7 +291,7 @@ public partial class EditProfilePage : ContentPage
                 }
             }
         }
-        catch (PermissionException) { await DisplayAlert("Permisos", "Se necesitan permisos.", "OK"); }
+        catch (PermissionException) { await DisplayAlertAsync("Permisos", "Se necesitan permisos.", "OK"); }
         catch (Exception ex) { Console.WriteLine(ex.Message); }
     }
 
@@ -295,13 +300,13 @@ public partial class EditProfilePage : ContentPage
     {
         if (string.IsNullOrWhiteSpace(txtFirstName.Text) || string.IsNullOrWhiteSpace(txtLastName.Text))
         {
-            await DisplayAlert("Atención", "El nombre y el apellido son obligatorios.", "OK");
+            await DisplayAlertAsync("Atención", "El nombre y el apellido son obligatorios.", "OK");
             return;
         }
 
         if (pckRole.SelectedItem == null || pckArea.SelectedItem == null || pckPosition.SelectedItem == null)
         {
-            await DisplayAlert("Atención", "Debe seleccionar el Rol, Área y Puesto de trabajo.", "OK");
+            await DisplayAlertAsync("Atención", "Debe seleccionar el Rol, Área y Puesto de trabajo.", "OK");
             return;
         }
 
@@ -322,14 +327,15 @@ public partial class EditProfilePage : ContentPage
                 updatedUser.Password = txtPassword.Text.Trim();
             }
 
-            updatedUser.RoleName = (pckRole.SelectedItem as Role)?.Name ?? "";
+            updatedUser.Role = pckRole.SelectedItem as Role;
+            updatedUser.RoleId = (pckRole.SelectedItem as Role)?.Id ?? 0;
             updatedUser.AreaId = (pckArea.SelectedItem as Parameters)?.Id ?? 0;
             updatedUser.JobPositionId = (pckPosition.SelectedItem as Parameters)?.Id ?? 0;
             updatedUser.ContractTypeId = (pckContractType.SelectedItem as Parameters)?.Id ?? 0;
         }
         else
         {
-            await DisplayAlert("Error", "No hay una sesión activa.", "OK");
+            await DisplayAlertAsync("Error", "No hay una sesión activa.", "OK");
             btnSave.IsEnabled = true; return;
         }
 
@@ -375,12 +381,12 @@ public partial class EditProfilePage : ContentPage
         if (success)
         {
             UserSession.CurrentUser = updatedUser;
-            await DisplayAlert("Éxito", "Perfil actualizado correctamente.", "OK");
+            await DisplayAlertAsync("Éxito", "Perfil actualizado correctamente.", "OK");
             await Shell.Current.GoToAsync("..");
         }
         else
         {
-            await DisplayAlert("Error de Servidor", "El servidor rechazó la actualización.", "OK");
+            await DisplayAlertAsync("Error de Servidor", "El servidor rechazó la actualización.", "OK");
             btnSave.IsEnabled = true; btnSave.Text = "Guardar Cambios";
         }
     }

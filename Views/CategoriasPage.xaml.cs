@@ -6,7 +6,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.Maui.Controls;
 using ControlInventarioMovil.Services;
-using ControlInventarioMovil.Models;
+using ControlInventario.Shared.Models;
 
 namespace ControlInventarioMovil.Views
 {
@@ -116,13 +116,13 @@ namespace ControlInventarioMovil.Views
 
                 // Disparamos el estiramiento y el desvanecimiento (Fade) al mismo tiempo
                 animation.Commit(contenedorHijasVisual, "ExpandirAcordeon", 16, 250, Easing.CubicOut);
-                await contenedorHijasVisual.FadeTo(1, 250, Easing.CubicOut);
+                await contenedorHijasVisual.FadeToAsync(1, 250, Easing.CubicOut);
             }
             else
             {
                 // --- ANIMACIÓN DE CIERRE ---
                 // Desvanecemos la opacidad primero
-                _ = contenedorHijasVisual.FadeTo(0, 200, Easing.CubicIn);
+                _ = contenedorHijasVisual.FadeToAsync(0, 200, Easing.CubicIn);
 
                 // Encogemos la altura hasta 0
                 var animation = new Animation(v => contenedorHijasVisual.HeightRequest = v, contenedorHijasVisual.HeightRequest, 0);
@@ -176,15 +176,15 @@ namespace ControlInventarioMovil.Views
             }
 
             // 4. Seleccionar el Tracking Mode (0 = Serializado, 1 = Estándar, 2 = A Granel)
-            if (_categoriaEnEdicion.TrackingMode == TrackingMode.Serialized)
+            if (_categoriaEnEdicion.TrackingMode == TrackingMode.Serialized.ToString())
                 PkrTrackingMode.SelectedIndex = 0;
-            else if (_categoriaEnEdicion.TrackingMode == TrackingMode.Standard)
+            else if (_categoriaEnEdicion.TrackingMode == TrackingMode.Standard.ToString())
                 PkrTrackingMode.SelectedIndex = 1;
-            else if (_categoriaEnEdicion.TrackingMode == TrackingMode.Bulk)
+            else if (_categoriaEnEdicion.TrackingMode == TrackingMode.Bulk.ToString())
                 PkrTrackingMode.SelectedIndex = 2;
 
             // 5. Seleccionar si es Retornable
-            SwRetornable.IsToggled = _categoriaEnEdicion.IsReturnable;
+            SwRetornable.IsToggled = _categoriaEnEdicion.IsReturnable == 1;
 
             // 6. Configurar Naming Method (Si lo usas)
             if (!string.IsNullOrEmpty(_categoriaEnEdicion.NamingMethod))
@@ -211,7 +211,7 @@ namespace ControlInventarioMovil.Views
         {
             if (string.IsNullOrWhiteSpace(TxtNombreCat.Text))
             {
-                await DisplayAlert("Atención", "El nombre de la categoría es obligatorio.", "OK");
+                await DisplayAlertAsync("Atención", "El nombre de la categoría es obligatorio.", "OK");
                 return;
             }
 
@@ -219,7 +219,7 @@ namespace ControlInventarioMovil.Views
             if (SecContexto.IsVisible && PkrPadre.SelectedIndex >= 0)
                 parentId = _categoriasPadre[PkrPadre.SelectedIndex].Id;
 
-            string namingMethod = string.Empty;
+            string? namingMethod = string.Empty;
             if (SecReglas.IsVisible)
             {
                 if (ChkModoLibre.IsChecked) namingMethod = TxtNamingCustom.Text;
@@ -248,10 +248,10 @@ namespace ControlInventarioMovil.Views
                 InventoryId = 1,
                 Name = TxtNombreCat.Text,
                 ParentCategoryId = parentId,
-                TrackingMode = trackingModeEnum,
+                TrackingMode = trackingModeEnum.ToString(),
                 NamingMethod = namingMethod,
                 Description = TxtDescription.Text,
-                IsReturnable = esRetornable,
+                IsReturnable = esRetornable ? 1:0,
                 CreationDate = _categoriaEnEdicion != null ? _categoriaEnEdicion.CreationDate : DateTime.Now,
                 CreationUser = _categoriaEnEdicion != null ? _categoriaEnEdicion.CreationUser : "Admin"
             };
@@ -268,13 +268,13 @@ namespace ControlInventarioMovil.Views
 
             if (exito)
             {
-                await DisplayAlert("Éxito", "Categoría guardada correctamente.", "OK");
+                await DisplayAlertAsync("Éxito", "Categoría guardada correctamente.", "OK");
                 OnCerrarFormClicked(null, null);
                 await CargarCategoriasPadre();
             }
             else
             {
-                await DisplayAlert("Error", "Ocurrió un problema al guardar en el servidor.", "OK");
+                await DisplayAlertAsync("Error", "Ocurrió un problema al guardar en el servidor.", "OK");
             }
         }
 
@@ -304,12 +304,12 @@ namespace ControlInventarioMovil.Views
         private async void AbrirFormulario()
         {
             FormOverlay.IsVisible = true;
-            await FormOverlay.TranslateTo(0, 0, 300, Easing.CubicOut);
+            await FormOverlay.TranslateToAsync(0, 0, 300, Easing.CubicOut);
         }
 
-        private async void OnCerrarFormClicked(object sender, EventArgs e)
+        private async void OnCerrarFormClicked(object? sender, EventArgs? e)
         {
-            await FormOverlay.TranslateTo(0, 1000, 300, Easing.CubicIn);
+            await FormOverlay.TranslateToAsync(0, 1000, 300, Easing.CubicIn);
             FormOverlay.IsVisible = false;
             _categoriaEnEdicion = null;
 
@@ -409,13 +409,13 @@ namespace ControlInventarioMovil.Views
             Id = b.Id; InventoryId = b.InventoryId; ParentCategoryId = b.ParentCategoryId;
             Name = b.Name; Description = b.Description;
 
-            TrackingMode = b.TrackingMode ?? Models.TrackingMode.Standard;
+            TrackingMode = b.TrackingMode ?? ControlInventario.Shared.Models.TrackingMode.Standard.ToString();
 
             NamingMethod = b.NamingMethod; IsReturnable = b.IsReturnable;
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

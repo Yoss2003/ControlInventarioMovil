@@ -1,8 +1,5 @@
-using ControlInventarioMovil.Models;
+using ControlInventario.Models;
 using ControlInventarioMovil.Services;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace ControlInventarioMovil.Views;
 
@@ -29,7 +26,7 @@ public partial class ProfilePage : ContentPage
         {
             // 1. Datos Personales
             lblFullName.Text = $"{user.FirstName} {user.LastName}";
-            lblRole.Text = user.RoleName;
+            lblRole.Text = user.Role?.Name;
             lblUsername.Text = user.Username;
             lblEmail.Text = user.Email;
             lblPhone.Text = string.IsNullOrEmpty(user.PhoneNumber) ? "Sin registrar" : user.PhoneNumber;
@@ -95,7 +92,7 @@ public partial class ProfilePage : ContentPage
                 ? "Cuenta validada y activa en la plataforma."
                 : "La cuenta se encuentra deshabilitada temporalmente y sin acceso al sistema.";
 
-            await DisplayAlert("Detalles del Estado", $"Estado: {estadoTxt}\n\nDescripción: {descripcionTxt}", "Entendido");
+            await DisplayAlertAsync("Detalles del Estado", $"Estado: {estadoTxt}\n\nDescripción: {descripcionTxt}", "Entendido");
         }
     }
 
@@ -111,7 +108,7 @@ public partial class ProfilePage : ContentPage
 
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
-        bool confirmacion = await DisplayAlert("Cerrar Sesión", "¿Estás seguro de que deseas salir de tu cuenta?", "Sí, salir", "Cancelar");
+        bool confirmacion = await DisplayAlertAsync("Cerrar Sesión", "¿Estás seguro de que deseas salir de tu cuenta?", "Sí, salir", "Cancelar");
         if (confirmacion)
         {
             UserSession.CurrentUser = null;
