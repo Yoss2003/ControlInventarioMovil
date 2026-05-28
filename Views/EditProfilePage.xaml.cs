@@ -167,7 +167,7 @@ public partial class EditProfilePage : ContentPage
             };
 
             if (_isEditing) exito = await _apiService.UpdateParameterAsync(objetoParam);
-            else exito = await _apiService.CreateParameterAsync(objetoParam);
+            else exito = (await _apiService.CreateParameterAsync(objetoParam)) != null;
         }
 
         if (exito)
