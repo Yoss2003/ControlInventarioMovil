@@ -27,27 +27,24 @@ namespace ControlInventarioMovil.Services
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Parameters");
                 if (response.IsSuccessStatusCode)
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<List<Parameters>>(json) ?? new List<Parameters>();
+                    return await response.Content.ReadFromJsonAsync<List<Parameters>>() ?? new List<Parameters>();
                 }
             }
             catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetParameters: {ex.Message}"); }
             return new List<Parameters>();
         }
-        public async Task<bool> CreateParameterAsync(Parameters newParam)
+        public async Task<Parameters?> CreateParameterAsync(Parameters newParameter)
         {
             try
             {
-                var json = JsonConvert.SerializeObject(newParam);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"{BaseApiUrl}/Parameters", content);
-                return response.IsSuccessStatusCode;
+                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Parameters", newParameter);
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<Parameters>();
+                }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[API_ERROR] CreateParameter: {ex.Message}");
-                return false;
-            }
+            catch (Exception ex) { Console.WriteLine($"[API_ERROR] CreateParameter: {ex.Message}"); }
+            return null;
         }
         public async Task<bool> UpdateParameterAsync(Parameters param)
         {
@@ -218,7 +215,6 @@ namespace ControlInventarioMovil.Services
             }
             return new List<Category>();
         }
-
         public async Task<bool> CreateCategoryAsync(Category newCategory)
         {
             try
@@ -259,7 +255,6 @@ namespace ControlInventarioMovil.Services
                 return false;
             }
         }
-
         public async Task<bool> UpdateCategoryAsync(Category updatedCategory)
         {
             try
@@ -312,15 +307,85 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
-                // Agregamos el BaseApiUrl aquí
                 var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Articles", newArticle);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errorDetallado = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[API_ERROR_500] Detalles del rechazo en el Servidor: {errorDetallado}");
+                }
+
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[API_ERROR] CreateArticle: {ex.Message}");
+                Console.WriteLine($"[API_CRITICAL_EX] CreateArticle: {ex.Message}");
                 return false;
             }
+        }
+
+        // =======================================================
+        // CATÁLOGOS COMPLEMENTARIOS PARA ARTÍCULOS
+        // =======================================================
+        public async Task<List<Currency>> GetCurrenciesAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Currencies");
+                if (response.IsSuccessStatusCode) return await response.Content.ReadFromJsonAsync<List<Currency>>() ?? new List<Currency>();
+            }
+            catch (Exception ex) { Console.WriteLine($"[API_ERROR] Currencies: {ex.Message}"); }
+            return new List<Currency>();
+        }
+        public async Task<List<Supplier>> GetSuppliersAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Suppliers");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    return JsonConvert.DeserializeObject<List<Supplier>>(json) ?? new List<Supplier>();
+                }
+            }
+            catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetSuppliers: {ex.Message}"); }
+            return new List<Supplier>();
+        }
+        public async Task<Supplier?> CreateSupplierAsync(Supplier newSupplier)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Suppliers", newSupplier);
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<Supplier>();
+                }
+            }
+            catch (Exception ex) { Console.WriteLine($"[API_ERROR] CreateSupplier: {ex.Message}"); }
+            return null;
+        }
+        public async Task<List<Employee>> GetEmployeesAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Employees");
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<List<Employee>>() ?? new List<Employee>();
+                }
+            }
+            catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetEmployees: {ex.Message}"); }
+            return new List<Employee>();
+        }
+        public async Task<List<ActionItem>> GetActionsAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/ActionItems"); // O /Actions según tu ruta exacta
+                if (response.IsSuccessStatusCode) return await response.Content.ReadFromJsonAsync<List<ActionItem>>() ?? new List<ActionItem>();
+            }
+            catch (Exception ex) { Console.WriteLine($"[API_ERROR] Actions: {ex.Message}"); }
+            return new List<ActionItem>();
         }
 
         // =======================================================
@@ -385,6 +450,23 @@ namespace ControlInventarioMovil.Services
                 Console.WriteLine($"[API_ERROR] UpdateBrand: {ex.Message}");
                 return false;
             }
+        }
+
+        // =======================================================
+        // MÉTODOS PARA UNIDADES DE MEDIDA (MEASUREMENT UNITS)
+        // =======================================================
+        public async Task<List<MeasurementUnit>> GetMeasurementUnitsAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/MeasurementUnits");
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<List<MeasurementUnit>>() ?? new List<MeasurementUnit>();
+                }
+            }
+            catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetMeasurementUnits: {ex.Message}"); }
+            return new List<MeasurementUnit>();
         }
     }
 
