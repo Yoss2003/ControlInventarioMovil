@@ -1,10 +1,15 @@
 using ControlInventario.Models;
+using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Services;
+using ControlInventarioMovil.Views.Controls;
 using System.Diagnostics;
 
 namespace ControlInventarioMovil.Views
 {
+    [QueryProperty(nameof(ScannedCodeResult), "scannedCode")]
     public partial class MainPage : ContentPage
     {
+        private readonly ApiService _apiService;
         // ==========================================
         // CONFIGURACIÓN PREMIUM DEL DIAL ORBITAL
         // ==========================================
@@ -28,6 +33,7 @@ namespace ControlInventarioMovil.Views
         private IDispatcherTimer? _inactivityTimer;
         private List<Grid> _botonesOrbitales;
         private List<Label> _textosOrbitales;
+        private List<Inventory> _almacenesDisponibles = new();
 
         public MainPage()
         {
@@ -40,51 +46,112 @@ namespace ControlInventarioMovil.Views
             ActualizarPosicionesNodalesOnly(_anguloAcumuladoRad);
 
             _cts = new CancellationTokenSource();
-
             SetupInactivityTimer();
+
+            _apiService = new ApiService();
         }
 
+        public string ScannedCodeResult
+        {
+            set => Dispatcher.Dispatch(async () => await EntregarCódigoAlFooterAsync(value));
+        }
 
-        protected override void OnAppearing()
+        protected override async void OnAppearing()
         {
             base.OnAppearing();
             _estaNavegando = false;
 
+            // ====================================================================
+            // 🛡️ 1. ESCUDO DE SEGURIDAD AJUSTADO A TU CLASE APP
+            // ====================================================================
+            // Si se borraron los datos, expulsamos al usuario destruyendo el Shell
+            // y devolviendo la aplicación a su estado inicial nativo.
+            if (UserSession.CurrentUser == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[SEGURIDAD] Sesión vacía. Restableciendo LoginPage como raíz.");
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    // Cambiamos la raíz de la aplicación de vuelta a tu Login
+                    Application.Current.MainPage = new Views.LoginPage();
+                });
+                return;
+            }
+
+            // ====================================================================
+            // 🌀 2. ANIMACIÓN DEL RADAR ENERGÉTICO
+            // ====================================================================
             if (_radarCts == null || _radarCts.IsCancellationRequested)
             {
                 _radarCts = new CancellationTokenSource();
                 _ = AnimateAroEnergiaInfiniteSmooth(_radarCts.Token);
             }
 
-            if (UserSession.CurrentUser != null)
+            // ====================================================================
+            // 👤 3. FORMATEO DE BIENVENIDA AL USUARIO (Ej: Yossimar M.G.)
+            // ====================================================================
+            string firstName = UserSession.CurrentUser.FirstName?.Trim() ?? "";
+            string lastName = UserSession.CurrentUser.LastName?.Trim() ?? "";
+            string userRole = UserSession.CurrentUser.Role?.Name?.Trim() ?? "Usuario";
+
+            string apellido = "";
+            string nombre = "";
+
+            if (!string.IsNullOrEmpty(firstName))
             {
-                string firstName = UserSession.CurrentUser.FirstName?.Trim() ?? "";
-                string lastName = UserSession.CurrentUser.LastName?.Trim() ?? "";
-                string userRole = UserSession.CurrentUser.Role?.Name?.Trim() ?? "Usuario";
-
-                string apellido = "";
-                string nombre = "";
-
-                if (!string.IsNullOrEmpty(firstName))
-                {
-                    var parteDelNombre = firstName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parteDelNombre.Length > 0) nombre = parteDelNombre[0];
-                }
-
-                if (!string.IsNullOrWhiteSpace(lastName))
-                {
-                    var partesDelApellido = lastName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (partesDelApellido.Length >= 2)
-                        apellido = $"{partesDelApellido[0][0]}.{partesDelApellido[1][0]}.";
-                    else if (partesDelApellido.Length == 1)
-                        apellido = $"{partesDelApellido[0][0]}.";
-                }
-
-                lblNombre.Text = $"Hola, {nombre} {apellido}".Trim();
-                lblRol.Text = $"Rol: {userRole}";
+                var parteDelNombre = firstName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (parteDelNombre.Length > 0) nombre = parteDelNombre[0];
             }
+
+            if (!string.IsNullOrWhiteSpace(lastName))
+            {
+                var partesDelApellido = lastName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (partesDelApellido.Length >= 2)
+                    apellido = $"{partesDelApellido[0][0]}.{partesDelApellido[1][0]}.";
+                else if (partesDelApellido.Length == 1)
+                    apellido = $"{partesDelApellido[0][0]}.";
+            }
+
+            lblNombre.Text = $"Hola, {nombre} {apellido}".Trim();
+            lblRol.Text = $"Rol: {userRole}";
+
+            // ====================================================================
+            // 📦 4. VERIFICACIÓN Y CARGA DEL INVENTARIO ACTIVO
+            // ====================================================================
+            if (UserSession.CurrentInventory == null)
+            {
+                try
+                {
+                    var apiService = new ControlInventarioMovil.Services.ApiService();
+                    var listaInventarios = await apiService.GetInventoriesAsync();
+
+                    if (listaInventarios != null && listaInventarios.Any())
+                    {
+                        UserSession.CurrentInventory = listaInventarios.FirstOrDefault();
+                        System.Diagnostics.Debug.WriteLine($"[WORKSPACE] Entorno activo establecido: {UserSession.CurrentInventory?.InventoryName}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error al inicializar entornos: {ex.Message}");
+                }
+            }
+
+            // ====================================================================
+            // 🔄 5. REFRESH DE INTERFAZ Y PROCESAMIENTO DE STOCK TOTAL
+            // ====================================================================
+            await CargarAmbientesDeTrabajoAsync();
+            await ActualizarStockCircularAsync();
         }
 
+        private async Task EntregarCódigoAlFooterAsync(string codigo)
+        {
+            // 'MiFooterComponente' debe ser el x:Name de tu FooterView en el XAML de MainPage
+            if (!string.IsNullOrWhiteSpace(codigo))
+            {
+                await FooterView.ProcesarLógicaAvanzadaEscanerAsync(codigo);
+            }
+        }
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
@@ -92,6 +159,130 @@ namespace ControlInventarioMovil.Views
             _radarCts?.Dispose();
             _radarCts = null;
             StopOrbitalAnimation();
+        }
+        // Descarga de almacenes desde Somee al Picker de MAUI
+        private async Task CargarAmbientesDeTrabajoAsync()
+        {
+            try
+            {
+                PkrAmbienteTrabajo.Title = "Cargando...";
+
+                var apiService = new ControlInventarioMovil.Services.ApiService();
+                var lista = await apiService.GetInventoriesAsync();
+
+                if (lista != null)
+                {
+                    PkrAmbienteTrabajo.SelectedIndexChanged -= OnAmbienteTrabajoChanged; // Apagar evento temporalmente
+                    PkrAmbienteTrabajo.Items.Clear();
+
+                    // 👇 FILTRO SENIOR: Excluimos el inventario global de sistema (Id = 0) de la lista de memoria
+                    _almacenesDisponibles = lista.Where(i => i.Id != 0).ToList();
+
+                    // Llenamos el Picker mostrando el Alias limpio
+                    _almacenesDisponibles.ForEach(inv =>
+                        PkrAmbienteTrabajo.Items.Add(string.IsNullOrWhiteSpace(inv.Alias) ? inv.InventoryName : inv.Alias));
+
+                    // Si ya hay un almacén activo en la sesión y es válido, lo pre-seleccionamos
+                    if (UserSession.CurrentInventory != null && UserSession.CurrentInventory.Id != 0)
+                    {
+                        int index = _almacenesDisponibles.FindIndex(i => i.Id == UserSession.CurrentInventory.Id);
+                        if (index >= 0) PkrAmbienteTrabajo.SelectedIndex = index;
+                    }
+                    else if (_almacenesDisponibles.Any())
+                    {
+                        // Si la sesión tenía el ID 0 o estaba en null, forzamos el primer almacén real de la sucursal
+                        PkrAmbienteTrabajo.SelectedIndex = 0;
+                        UserSession.CurrentInventory = _almacenesDisponibles.First();
+                    }
+
+                    PkrAmbienteTrabajo.SelectedIndexChanged += OnAmbienteTrabajoChanged; // Re-encender evento
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[WORKSPACE_ERROR] {ex.Message}");
+            }
+            finally
+            {
+                PkrAmbienteTrabajo.Title = "";
+            }
+        }
+
+        // Evento que se dispara al cambiar de Almacén/Bodega en el Picker
+        private async void OnAmbienteTrabajoChanged(object? sender, EventArgs? e)
+        {
+            if (PkrAmbienteTrabajo.SelectedIndex == -1) return;
+
+            // Cambiamos el contexto del entorno activo globalmente en la sesión
+            UserSession.CurrentInventory = _almacenesDisponibles[PkrAmbienteTrabajo.SelectedIndex];
+
+            string nombreVisual = string.IsNullOrWhiteSpace(UserSession.CurrentInventory.Alias)
+                ? UserSession.CurrentInventory.InventoryName
+                : UserSession.CurrentInventory.Alias;
+
+            // 👇 Actualizado a .NET 10.0 utilizando la palabra Async al final
+            //await DisplayAlertAsync("Entorno Activo",
+            //    $"Cambiado a: {nombreVisual}\n\n(Todos los artículos ingresados ahora se guardarán con el ID real de este almacén: {UserSession.CurrentInventory.Id})",
+            //    "OK");
+
+            await ActualizarStockCircularAsync();
+        }
+
+        // Método elástico para crear un nuevo inventario usando prompts nativos
+        private async void OnCrearNuevoAlmacenClicked(object sender, EventArgs e)
+        {
+            string nombreIngresado = await DisplayPromptAsync("Nuevo Ambiente", "Escribe el nombre de la nueva Bodega o Almacén corporativo:", "Guardar", "Cancelar", "Ej. Almacén del Norte");
+
+            if (string.IsNullOrWhiteSpace(nombreIngresado)) return;
+
+            var now = DateTime.Now;
+            string username = UserSession.CurrentUser?.Username ?? "Admin";
+            string mmss = now.ToString("mmss");
+
+            var nuevoInventario = new Inventory
+            {
+                InventoryName = $"{username}_Invent_{mmss}",
+                CreationDate = now.ToString("yyyy-MM-dd HH:mm:ss"),
+                UserId = UserSession.CurrentUser?.Id ?? 1,
+                Username = username,
+                Alias = nombreIngresado.Trim()
+            };
+
+            var apiService = new ControlInventarioMovil.Services.ApiService();
+            bool creado = await apiService.CreateInventoryAsync(nuevoInventario);
+
+            if (creado)
+            {
+                // 👇 ASOCIACIÓN DINÁMICA DE MONEDA BASE EN SEGUNDO PLANO
+                try
+                {
+                    // Sincronizamos la lista local para pescar el ID autogenerado del nuevo almacén
+                    var listaActualizada = await apiService.GetInventoriesAsync();
+                    var almacenRegistrado = listaActualizada.FirstOrDefault(i => i.InventoryName == nuevoInventario.InventoryName);
+
+                    if (almacenRegistrado != null)
+                    {
+                        // Registramos un parámetro de configuración financiera amarrado a este almacén
+                        var parametroMoneda = new Parameters
+                        {
+                            InventoryId = almacenRegistrado.Id,
+                            ParameterType = "MonedaBase",
+                            Name = "1", // Inicializa de forma predeterminada en Soles (Id = 1)
+                            Description = $"Moneda base operativa del almacén: {almacenRegistrado.Alias}"
+                        };
+                        await apiService.CreateParameterAsync(parametroMoneda);
+                    }
+                }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MONEDA_ALMACEN_FAIL] {ex.Message}"); }
+
+                await DisplayAlertAsync("Éxito", $"El ambiente '{nuevoInventario.Alias}' ha sido creado con éxito.", "OK");
+                await CargarAmbientesDeTrabajoAsync();
+                PkrAmbienteTrabajo.SelectedIndex = PkrAmbienteTrabajo.Items.Count - 1;
+            }
+            else
+            {
+                await DisplayAlertAsync("Error", "No se pudo registrar el nuevo inventario en el servidor.", "OK");
+            }
         }
 
         // ==========================================
@@ -107,7 +298,6 @@ namespace ControlInventarioMovil.Views
                 _botonesOrbitales[i].GestureRecognizers.Add(tapGesture);
             }
         }
-
         private async void OnBotonOrbitalTapped(int index)
         {
             if (_estaNavegando) return;
@@ -177,7 +367,7 @@ namespace ControlInventarioMovil.Views
                 _ => ""
             };
 
-            // TODO: Comenta el DisplayAlertAsync y descomenta la línea de GoToAsync
+            // TODO: Comenta el DisplayAlertAsyncAsync y descomenta la línea de GoToAsync
             await Task.Delay(500);
             if (!string.IsNullOrEmpty(rutaDestino))
             {
@@ -199,12 +389,10 @@ namespace ControlInventarioMovil.Views
             _inactivityTimer.Tick += OnInactivityTimeout;
             ResetInactivityTimer();
         }
-
         private void OnPageInteraction(object sender, TappedEventArgs e)
         {
             if (!_estaNavegando) ResetInactivityTimer();
         }
-
         private void ResetInactivityTimer()
         {
             _inactivityTimer?.Stop();
@@ -222,7 +410,6 @@ namespace ControlInventarioMovil.Views
             else
                 _inactivityTimer?.Start();
         }
-
         private void OnInactivityTimeout(object? sender, EventArgs e)
         {
             _inactivityTimer?.Stop();
@@ -291,7 +478,6 @@ namespace ControlInventarioMovil.Views
                 });
             }
         }
-
         private void StopOrbitalAnimation()
         {
             _estaAnimando = false;
@@ -338,7 +524,7 @@ namespace ControlInventarioMovil.Views
                 double posX = RadioOrbita * Math.Cos(anguloTotalRad);
                 double posY = RadioOrbita * Math.Sin(anguloTotalRad);
 
-                _botonesOrbitales[i].TranslationX = posX;
+                    _botonesOrbitales[i].TranslationX = posX;
                 _botonesOrbitales[i].TranslationY = posY;
 
                 double anguloBotonCalculadoRad = Math.Atan2(posY, posX);
@@ -365,5 +551,87 @@ namespace ControlInventarioMovil.Views
                 }
             }
         }
+
+        private async void OnStockOkCardClicked(object sender, EventArgs e)
+        {
+            // Redirige al operador a un listado detallado filtrado por stock activo
+            await Shell.Current.GoToAsync("ActiveStockReportPage");
+        }
+
+        private async void OnFooterAddClicked(object sender, EventArgs e)
+        {
+            // 1. Preguntar la acción al operador
+            string accion = await DisplayActionSheetAsync("¿Qué deseas registrar?", "Cancelar", null, "📦 Agregar Producto Nuevo", "🔍 Escanear Código de Barras");
+
+            if (accion == "📦 Agregar Producto Nuevo")
+            {
+                UserSession.CurrentArticleToEdit = null; // Modo Alta Nueva
+                await Shell.Current.GoToAsync("ArticleFormPage");
+            }
+            else if (accion == "🔍 Escanear Código de Barras")
+            {
+                // 2. Disparar cámara de escaneo (Ej: usando ZXing o CommunityToolkit)
+                string codigoEscaneado = await DispararEscanerCamaraAsync();
+
+                if (string.IsNullOrWhiteSpace(codigoEscaneado)) return;
+
+                // 3. Consultar a la API si el Barcode ya existía en este almacén
+                var articuloExistente = await _apiService.GetArticleByBarcodeAsync(codigoEscaneado);
+
+                if (articuloExistente != null)
+                {
+                    // 4. ¡Existe! Pedimos la cantidad a sumar usando un Prompt nativo
+                    string cantidadTxt = await DisplayPromptAsync("Producto Detectado", $"El artículo '{articuloExistente.Name}' ya existe.\n\n¿Cuántas unidades vas a ingresar al stock?", "Aumentar Stock", "Cancelar", "1", -1, Keyboard.Numeric);
+
+                    if (decimal.TryParse(cantidadTxt, out decimal cantidadASumar) && cantidadASumar > 0)
+                    {
+                        articuloExistente.Stock += cantidadASumar;
+                        bool exito = await _apiService.UpdateArticleAsync(articuloExistente.Id, articuloExistente);
+
+                        if (exito) await DisplayAlertAsync("Stock Actualizado", $"Se añadieron {cantidadASumar} unidades. Stock total actual: {articuloExistente.Stock}", "OK");
+                    }
+                }
+                else
+                {
+                    // 5. NO EXISTE: Mandamos al formulario mandándole el código pre-cargado
+                    bool crear = await DisplayAlertAsync("Código Nuevo", "El código escaneado no está registrado en el inventario. ¿Deseas crear su ficha técnica desde cero?", "Sí, registrar", "No");
+                    if (crear)
+                    {
+                        UserSession.PreloadedBarcode = codigoEscaneado; // Guardamos en sesión para auto-rellenar
+                        await Shell.Current.GoToAsync("ArticleFormPage");
+                    }
+                }
+            }
+        }
+        
+        private async Task<string> DispararEscanerCamaraAsync()
+        {
+            // Muestra un input box en la pantalla para simular la lectura de la pistola de barras
+            string resultado = await DisplayPromptAsync("Escáner Simulado", "Digita o simula la lectura de un código de barras:", "Escanear", "Cancelar", "Ej. 7501000001", -1, Keyboard.Numeric);
+            return resultado?.Trim() ?? "";
+        }
+
+        public async Task ActualizarStockCircularAsync()
+        {
+            try
+            {
+                // 1. Tomamos el ID del inventario que esté seleccionado en la sesión en este milisegundo
+                int idInventarioSeleccionado = UserSession.CurrentInventory?.Id ?? 1;
+
+                // 2. Consultamos al servidor de Somee la suma del stock de ese almacén específico
+                int totalReal = await _apiService.GetArticleCountByInventoryAsync(idInventarioSeleccionado);
+
+                // 3. Pintamos el número en tu Label del círculo verde
+                MainThread.BeginInvokeOnMainThread(() => {
+                    LblTotalArticulos.Text = $"{totalReal:N0} artículos";
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error al actualizar stock circular: {ex.Message}");
+                LblTotalArticulos.Text = "0 artículos";
+            }
+        }
+
     }
 }

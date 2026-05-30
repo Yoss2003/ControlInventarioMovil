@@ -13,11 +13,59 @@
 
         <Grid RowDefinitions="Auto, Auto, *, Auto">
 
-            <Grid Grid.Row="0" BackgroundColor="#1B4F5F" Padding="15,20" ColumnDefinitions="Auto, *, Auto">
-                <Image Source="warehouse_icon.png" HeightRequest="25" WidthRequest="25" Grid.Column="0"/>
-                <Label Text="ControlInventario - Móvil" TextColor="White" FontSize="18" 
-                       VerticalOptions="Center" HorizontalOptions="Center" Grid.Column="1" />
-                <Image Source="user_outline.png" HeightRequest="25" WidthRequest="25" Grid.Column="2"/>
+            <Grid Grid.Row="0" 
+      BackgroundColor="#1B4F5F" 
+      Padding="15,10" 
+      ColumnDefinitions="*, Auto, *">
+                <Image Source="warehouse_icon.png" 
+           HeightRequest="25" 
+           WidthRequest="25" 
+           Grid.Column="0" 
+           HorizontalOptions="Start"
+           VerticalOptions="Center"/>
+
+                <Border Grid.Column="1"
+        StrokeShape="RoundRectangle 8"
+        Stroke="#2E3842"
+        BackgroundColor="#232B35"
+        HeightRequest="46" 
+        WidthRequest="220" 
+        VerticalOptions="Center"
+        HorizontalOptions="Center">
+
+                    <Picker x:Name="PkrAmbienteTrabajo" 
+            Title="Seleccionar Almacén" 
+            TitleColor="#A0E2FF" 
+            TextColor="White" 
+            FontAttributes="Bold" 
+            FontSize="14"
+            HorizontalOptions="Fill" 
+            VerticalOptions="Fill" 
+            Margin="15,0"
+            SelectedIndexChanged="OnAmbienteTrabajoChanged"/>
+                </Border>
+
+                <HorizontalStackLayout Grid.Column="2" 
+                           HorizontalOptions="End" 
+                           VerticalOptions="Center" 
+                           Spacing="5">
+
+                    <Button Text="+" 
+                TextColor="#A8D08D" 
+                BackgroundColor="Transparent" 
+                FontSize="22" 
+                FontAttributes="Bold"
+                WidthRequest="45"
+                HeightRequest="40"
+                VerticalOptions="Center"
+                Clicked="OnCrearNuevoAlmacenClicked"/>
+
+                    <Image Source="user_icon.png" 
+               HeightRequest="25" 
+               WidthRequest="25" 
+               VerticalOptions="Center"/>
+
+                </HorizontalStackLayout>
             </Grid>
 
             <VerticalStackLayout Grid.Row="1" HorizontalOptions="Center" Spacing="2" Margin="0,20,0,0">
@@ -100,20 +148,34 @@
                     </VerticalStackLayout>
                 </Grid>
 
-                <Border HeightRequest="120" WidthRequest="120" BackgroundColor="#A8D08D" StrokeThickness="0" TranslationY="-5">
+                <Border HeightRequest="120" 
+        WidthRequest="120" 
+        BackgroundColor="#A8D08D" 
+        StrokeThickness="0" 
+        TranslationY="-5">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="60"/>
                     </Border.StrokeShape>
                     <Border.Shadow>
                         <Shadow Brush="#A8D08D" Offset="0,0" Radius="15" Opacity="0.5"/>
                     </Border.Shadow>
+
                     <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
-                        <Label Text="Stock OK" FontSize="22" FontAttributes="Bold" TextColor="#1B4F5F" HorizontalOptions="Center"/>
-                        <Label Text="1,240 artículos" FontSize="14" TextColor="#1B4F5F" HorizontalOptions="Center"/>
+                        <Label Text="Stock OK" 
+               FontSize="22" 
+               FontAttributes="Bold" 
+               TextColor="#1B4F5F" 
+               HorizontalOptions="Center"/>
+
+                        <Label x:Name="LblTotalArticulos" 
+               Text="..." 
+               FontSize="14" 
+               TextColor="#1B4F5F" 
+               HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                 </Border>
             </Grid>
-            <controls:FooterView Grid.Row="3" />
+            <controls:FooterView x:Name="FooterView" Grid.Row="3" />
         </Grid>
     </ContentView>
 </ContentPage>

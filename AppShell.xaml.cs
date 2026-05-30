@@ -1,4 +1,5 @@
 ﻿using ControlInventarioMovil.Views;
+using ControlInventarioMovil.Views.Controls;
 
 namespace ControlInventarioMovil
 {
@@ -10,6 +11,7 @@ namespace ControlInventarioMovil
             Routing.RegisterRoute("InventoryPage", typeof(InventoryPage));
             Routing.RegisterRoute("ProfilePage", typeof(ProfilePage));
             Routing.RegisterRoute("EditProfilePage", typeof(EditProfilePage));
+            Routing.RegisterRoute("ScanBarcodePage", typeof(ScanBarcodePage));
             Routing.RegisterRoute(nameof(ArticleFormPage), typeof(ArticleFormPage));
             Routing.RegisterRoute(nameof(CategoriasPage), typeof(CategoriasPage));
         }

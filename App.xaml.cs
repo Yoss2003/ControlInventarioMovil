@@ -1,6 +1,4 @@
-﻿using Microsoft.Maui.Controls;
-
-namespace ControlInventarioMovil
+﻿namespace ControlInventarioMovil
 {
     public partial class App : Application
     {

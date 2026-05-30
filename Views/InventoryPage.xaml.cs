@@ -1,153 +1,124 @@
-using System;
-using System.Threading.Tasks;
-using ControlInventarioMovil.ViewModels;
-using Microsoft.Maui.Controls;
+using ControlInventario.Models;
+using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Services;
 
 namespace ControlInventarioMovil.Views
 {
     public partial class InventoryPage : ContentPage
     {
-        // Variable para rastrear si el menú está abierto o cerrado
-        private bool _isMenuOpen = false;
+        private readonly ApiService _apiService;
 
         public InventoryPage()
         {
             InitializeComponent();
-            BindingContext = new InventoryViewModel();
+            _apiService = new ApiService();
         }
 
-        private async void OnVolverClicked(object sender, EventArgs e) => await Shell.Current.GoToAsync("..", false);
-        private async void OnInicioClicked(object sender, EventArgs e) => await Shell.Current.GoToAsync("//MainPage", false);
-        private async void OnPerfilClicked(object sender, EventArgs e) => await Shell.Current.GoToAsync("ProfilePage", false);
-
-        // ========================================================
-        // LÓGICA DEL MENÚ FLOTANTE Y ANIMACIONES
-        // ========================================================
-
-        private async void OnMenuFlotanteClicked(object sender, EventArgs e)
+        protected override async void OnAppearing()
         {
-            if (!_isMenuOpen)
+            base.OnAppearing();
+            await SincronizarListadoArticulosAsync();
+        }
+
+        private async Task SincronizarListadoArticulosAsync()
+        {
+            // 1. CAPTURA DEL ENTORNO SELECCIONADO EN EL DASHBOARD
+            var almacenActivo = UserSession.CurrentInventory;
+            if (almacenActivo == null)
             {
-                AbrirMenuFlotante();
+                LblNombreAlmacen.Text = "SINOPSIS: ALMACÉN INDEFINIDO";
+                CvwArticulos.IsVisible = false;
+                SecEstadoVacio.IsVisible = true;
+                return;
             }
-            else
+
+            // Pintamos el Alias corporativo en el encabezado (si no tiene, usa el nombre interno)
+            LblNombreAlmacen.Text = string.IsNullOrWhiteSpace(almacenActivo.Alias)
+                ? almacenActivo.InventoryName.ToUpper()
+                : almacenActivo.Alias.ToUpper();
+
+            // 2. CONTROL DE FLUJO Y PETICIÓN HTTP
+            try
             {
-                await CerrarMenuFlotante();
+                // Encendemos el indicador de carga y ocultamos el contenedor
+                ActCargando.IsVisible = true;
+                ActCargando.IsRunning = true;
+                CvwArticulos.IsVisible = false;
+                SecEstadoVacio.IsVisible = false;
+
+                // Descarga masiva de artículos desde Somee
+                var todosLosArticulos = await _apiService.GetArticlesAsync();
+
+                if (todosLosArticulos != null)
+                {
+                    // 👇 FILTRO DE INTEGRIDAD MULTIAMBIENTE: Extrae estrictamente los del almacén activo
+                    var articulosFiltrados = todosLosArticulos
+                        .Where(a => a.InventoryId == almacenActivo.Id)
+                        .OrderByDescending(a => a.Id) // Ordena para ver los últimos ingresos arriba
+                        .ToList();
+
+                    // 3. EVALUACIÓN Y VOLCADO A LA INTERFAZ
+                    if (articulosFiltrados.Count > 0)
+                    {
+                        CvwArticulos.ItemsSource = articulosFiltrados;
+                        CvwArticulos.IsVisible = true;
+                    }
+                    else
+                    {
+                        // Si la lista viene en 0, activamos el panel informativo de estado vacío
+                        SecEstadoVacio.IsVisible = true;
+                    }
+                }
+                else
+                {
+                    SecEstadoVacio.IsVisible = true;
+                    // Cumpliendo con la convención .NET 10.0 de tu entorno
+                    await DisplayAlertAsync("Aviso Técnico", "El servidor respondió correctamente pero el catálogo global está en blanco.", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[API_FETCH_ARTICLES_FAIL] {ex.Message}");
+                await DisplayAlertAsync("Falla de Red", "No se pudo establecer conexión con el servidor en la nube de Somee. Revisa tu acceso a internet.", "OK");
+                SecEstadoVacio.IsVisible = true;
+            }
+            finally
+            {
+                // Apagamos los estados de carga de forma segura
+                ActCargando.IsRunning = false;
+                ActCargando.IsVisible = false;
             }
         }
-
-        private async void OnCerrarMenuTapped(object sender, EventArgs e)
-        {
-            if (_isMenuOpen) await CerrarMenuFlotante();
-        }
-
-        private async void AbrirMenuFlotante()
-        {
-            _isMenuOpen = true;
-
-            // 1. Resetear estados visuales iniciales en frío 
-            BtnCategoria.Scale = 0.01;
-            BtnArticulo.Scale = 0.01;
-            BtnCategoria.Opacity = 0;
-            BtnArticulo.Opacity = 0;
-            BtnCategoria.TranslationX = 0;
-            BtnCategoria.TranslationY = 0;
-            BtnArticulo.TranslationX = 0;
-            BtnArticulo.TranslationY = 0;
-
-            // 2. Hacerlos visibles ANTES de empezar a animar 
-            BtnCategoria.IsVisible = true;
-            BtnArticulo.IsVisible = true;
-            OverlayFondo.IsVisible = true;
-            OverlayFondo.InputTransparent = false;
-
-            LblPrincipal.Text = "Cerrar";
-            LblPrincipal.TextColor = Color.FromArgb("#727C84");
-            BtnCategoria.InputTransparent = false;
-            BtnArticulo.InputTransparent = false;
-
-            // 3. Lanzar animaciones de apertura en paralelo y esperar que terminen juntas
-            await Task.WhenAll(
-                OverlayFondo.FadeToAsync(0.75, 250, Easing.CubicOut),
-                CirculoPrincipal.RotateToAsync(45, 250, Easing.SpringOut),
-                BtnCategoria.FadeToAsync(1, 200),
-                BtnCategoria.ScaleToAsync(1, 250, Easing.SpringOut),
-                BtnCategoria.TranslateToAsync(-85, -95, 250, Easing.SpringOut),
-                BtnArticulo.FadeToAsync(1, 200),
-                BtnArticulo.ScaleToAsync(1, 250, Easing.SpringOut),
-                BtnArticulo.TranslateToAsync(85, -95, 250, Easing.SpringOut)
-            );
-        }
-
-        private async Task CerrarMenuFlotante()
-        {
-            _isMenuOpen = false;
-
-            // 1. Bloquear toques inmediatamente (NUNCA uses IsVisible aquí)
-            OverlayFondo.InputTransparent = true;
-            BtnCategoria.InputTransparent = true;
-            BtnArticulo.InputTransparent = true;
-
-            LblPrincipal.Text = "Agregar";
-            LblPrincipal.TextColor = Colors.White;
-
-            // 2. ANIMACIONES SIMULTÁNEAS (Viajan al centro y se encogen a la vez)
-            var animGiro = CirculoPrincipal.RotateToAsync(0, 200, Easing.CubicInOut);
-
-            var animCatMover = BtnCategoria.TranslateToAsync(0, 0, 200, Easing.CubicIn);
-            var animArtMover = BtnArticulo.TranslateToAsync(0, 0, 200, Easing.CubicIn);
-
-            var animCatEscala = BtnCategoria.ScaleToAsync(0.01, 200, Easing.CubicIn);
-            var animArtEscala = BtnArticulo.ScaleToAsync(0.01, 200, Easing.CubicIn);
-
-            var animCatFade = BtnCategoria.FadeToAsync(0, 150, Easing.Linear);
-            var animArtFade = BtnArticulo.FadeToAsync(0, 150, Easing.Linear);
-
-            // El nuevo Grid de fondo se desvanece en perfecta armonía con los botones
-            var animFondo = OverlayFondo.FadeToAsync(0, 100, Easing.Linear);
-
-            // 3. ESPERAR A QUE EL HILO GRÁFICO TERMINE EN PAZ
-            await Task.WhenAll(animGiro, animCatMover, animArtMover, animCatEscala, animArtEscala, animCatFade, animArtFade, animFondo);
-
-            // 4. SOLO CUANDO TODO ESTÁ OCULTO Y EN SILENCIO, APAGAMOS LA VISIBILIDAD
-            // Al hacerlo aquí, el motor gráfico no tiene nada que recalcular en caliente
-            OverlayFondo.IsVisible = false;
-            BtnCategoria.IsVisible = false;
-            BtnArticulo.IsVisible = false;
-        }
-
-        // ========================================================
-        // ACCIONES DE LOS NUEVOS BOTONES
-        // ========================================================
-
-        private async void OnAgregarCategoriaClicked(object sender, EventArgs e)
-        {
-            await BtnCategoria.ScaleToAsync(1.2, 100);
-            await BtnCategoria.ScaleToAsync(1.0, 100);
-
-            // 1. AHORA ESPERAMOS A QUE EL MENÚ SE CIERRE COMPLETAMENTE
-            await CerrarMenuFlotante();
-
-            // 2. EL TRUCO PARA ANDROID: Un micro-respiro al motor gráfico
-            await Task.Delay(100);
-
-            // 3. Navegación segura
-            await Shell.Current.GoToAsync(nameof(CategoriasPage), false);
-        }
-
         private async void OnAgregarArticuloClicked(object sender, EventArgs e)
         {
-            await BtnArticulo.ScaleToAsync(1.2, 100);
-            await BtnArticulo.ScaleToAsync(1.0, 100);
-
-            // 1. ESPERAR CIERRE
-            await CerrarMenuFlotante();
-
-            // 2. RESPIRO GRÁFICO
-            await Task.Delay(100);
-
-            // 3. NAVEGAR
+            // Navegación limpia usando la ruta registrada en el Shell
             await Shell.Current.GoToAsync(nameof(ArticleFormPage), false);
+        }
+        private async void OnEditarArticuloClicked(object sender, EventArgs e)
+        {
+            var button = sender as ImageButton;
+            // Capturamos el artículo completo que definimos en el CommandParameter del XAML
+            var articuloSeleccionado = button?.CommandParameter as Article;
+
+            if (articuloSeleccionado != null)
+            {
+                // 🌟 PUNTO DE CUSTODIA: Guardamos el artículo en la sesión para que el formulario sepa que es edición
+                UserSession.CurrentArticleToEdit = articuloSeleccionado;
+
+                // Navegación hacia el formulario elástico blindado (ArticleFormPage)
+                // No necesitamos pasar IDs en la URL porque el objeto está en la sesión
+                await Shell.Current.GoToAsync(nameof(ArticleFormPage), false);
+            }
+        }
+        private async void OnVolverClicked(object sender, EventArgs e)
+        {
+            await Shell.Current.GoToAsync("..", false);
+        }
+
+        private async void OnConfigCategoriesClicked(object sender, EventArgs e)
+        {
+            // Te manda directo a la vista de categorías dedicada
+            await Shell.Current.GoToAsync("CategoriasPage");
         }
     }
 }
