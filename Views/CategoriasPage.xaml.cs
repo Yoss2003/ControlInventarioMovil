@@ -1,12 +1,13 @@
+using ControlInventario.Models;
+using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Services;
+using Microsoft.Maui.Controls;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
-using Microsoft.Maui.Controls;
-using ControlInventarioMovil.Services;
-using ControlInventario.Shared.Models;
+using System.Threading.Tasks;
 
 namespace ControlInventarioMovil.Views
 {
@@ -245,7 +246,7 @@ namespace ControlInventarioMovil.Views
             var categoriaProcesada = new Category
             {
                 Id = _categoriaEnEdicion != null ? _categoriaEnEdicion.Id : 0,
-                InventoryId = 1,
+                InventoryId = UserSession.CurrentInventory?.Id ?? 1,
                 Name = TxtNombreCat.Text,
                 ParentCategoryId = parentId,
                 TrackingMode = trackingModeEnum.ToString(),

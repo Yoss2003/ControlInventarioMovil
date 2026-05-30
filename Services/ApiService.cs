@@ -9,8 +9,14 @@ namespace ControlInventarioMovil.Services
 {
     public class ApiService
     {
+        private readonly HttpClient _httpClient;    
         public static string BaseApiUrl = "http://db-inventario-api.somee.com/api";
-        private readonly HttpClient _httpClient;
+
+        private static List<Category>? _cacheCategorias = null;
+        private static List<Brand>? _cacheMarcas = null;
+        private static List<Currency>? _cacheMonedas = null;
+        private static List<Parameters>? _cacheParametros = null;
+
 
         public ApiService()
         {
@@ -22,6 +28,7 @@ namespace ControlInventarioMovil.Services
         // =======================================================
         public async Task<List<Parameters>> GetParametersAsync()
         {
+            if (_cacheParametros != null && _cacheParametros.Count > 0) return _cacheParametros;
             try
             {
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Parameters");
@@ -194,6 +201,7 @@ namespace ControlInventarioMovil.Services
         // =======================================================
         public async Task<List<Category>> GetCategoriesAsync()
         {
+            if (_cacheCategorias != null && _cacheCategorias.Count > 0) return _cacheCategorias;
             try
             {
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Categories");
@@ -303,6 +311,40 @@ namespace ControlInventarioMovil.Services
         // =======================================================
         // MÉTODOS PARA ARTICULOS (ARTICLES)
         // =======================================================
+        public async Task<List<Article>?> GetArticlesAsync()
+        {
+            try
+            {
+                // 🌟 Sincronizado con tu patrón exacto de rutas y BaseApiUrl
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Articles");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    // Leemos la respuesta exitosa del servidor
+                    string jsonResponse = await response.Content.ReadAsStringAsync();
+
+                    var options = new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    };
+
+                    return System.Text.Json.JsonSerializer.Deserialize<List<Article>>(jsonResponse, options);
+                }
+                else
+                {
+                    // Mismo espejo de auditoría que usas en el guardado
+                    string errorDetallado = await response.Content.ReadAsStringAsync();
+                    System.Diagnostics.Debug.WriteLine($"[API_ERROR_FETCH] Detalles del rechazo en el Servidor: {errorDetallado}");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Mismo estilo de logs críticos por consola
+                Console.WriteLine($"[API_CRITICAL_EX] GetArticles: {ex.Message}");
+                return null;
+            }
+        }
         public async Task<bool> CreateArticleAsync(Article newArticle)
         {
             try
@@ -312,7 +354,7 @@ namespace ControlInventarioMovil.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     string errorDetallado = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[API_ERROR_500] Detalles del rechazo en el Servidor: {errorDetallado}");
+                    System.Diagnostics.Debug.WriteLine($"[API_ERROR_500] Detalles del rechazo en el Servidor: {errorDetallado}");
                 }
 
                 return response.IsSuccessStatusCode;
@@ -323,12 +365,34 @@ namespace ControlInventarioMovil.Services
                 return false;
             }
         }
+        public async Task<bool> UpdateArticleAsync(int id, Article updatedArticle)
+        {
+            try
+            {
+                // 🌟 Sincronizado con tu patrón exacto de rutas y BaseApiUrl
+                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Articles/{id}", updatedArticle);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errorDetallado = await response.Content.ReadAsStringAsync();
+                    System.Diagnostics.Debug.WriteLine($"[API_ERROR_PUT] Detalles del rechazo en el Servidor: {errorDetallado}");
+                }
+
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[API_CRITICAL_EX] UpdateArticle: {ex.Message}");
+                return false;
+            }
+        }
 
         // =======================================================
         // CATÁLOGOS COMPLEMENTARIOS PARA ARTÍCULOS
         // =======================================================
         public async Task<List<Currency>> GetCurrenciesAsync()
         {
+            if (_cacheMonedas != null && _cacheMonedas.Count > 0) return _cacheMonedas;
             try
             {
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Currencies");
@@ -393,6 +457,7 @@ namespace ControlInventarioMovil.Services
         // =======================================================
         public async Task<List<Brand>> GetBrandsAsync()
         {
+            if (_cacheMarcas != null && _cacheMarcas.Count > 0) return _cacheMarcas;
             try
             {
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Brands");
@@ -411,12 +476,16 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Brands", newBrand);
+                string jsonRequest = System.Text.Json.JsonSerializer.Serialize(newBrand);
+                var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync($"{BaseApiUrl}/Brands", content);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Devolvemos la marca con su nuevo ID generado por la Base de Datos
-                    return await response.Content.ReadFromJsonAsync<Brand>();
+                    _cacheMarcas = null;
+                    string jsonResponse = await response.Content.ReadAsStringAsync();
+                    return System.Text.Json.JsonSerializer.Deserialize<Brand>(jsonResponse,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 }
                 else
                 {
@@ -468,6 +537,97 @@ namespace ControlInventarioMovil.Services
             catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetMeasurementUnits: {ex.Message}"); }
             return new List<MeasurementUnit>();
         }
+        public async Task<Supplier?> ConsultarRucAsync(string ruc)
+        {
+            try
+            {
+                // Apunta al controlador de proveedores modificado
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Suppliers/ruc/{ruc}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string jsonResponse = await response.Content.ReadAsStringAsync();
+
+                    var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+                    // 🌟 Devolvemos un Supplier real de la BD, solucionando los errores 1, 2 y 3 de golpe
+                    return System.Text.Json.JsonSerializer.Deserialize<Supplier>(jsonResponse, options);
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[API_CRITICAL_EX] ConsultarRuc: {ex.Message}");
+                return null;
+            }
+        }
+        public async Task<bool> UpdateSupplierAsync(int id, Supplier supplier)
+        {
+            try
+            {
+                // 1. Serializamos el objeto Supplier extendido (con teléfono, correo, etc.) a formato JSON
+                string jsonRequest = System.Text.Json.JsonSerializer.Serialize(supplier);
+
+                var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
+
+                // 2. Disparamos un PUT hacia la ruta del Scaffold de tu API: api/Suppliers/{id}
+                var response = await _httpClient.PutAsync($"{BaseApiUrl}/Suppliers/{id}", content);
+
+                // 3. El controlador del servidor (Somee) devuelve un código 204 (NoContent) si la actualización en SQL fue exitosa
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[API_CRITICAL_EX] UpdateSupplierAsync: {ex.Message}");
+                return false;
+            }
+        }
+        public async Task<Article?> GetArticleByBarcodeAsync(string barcode)
+        {
+            try
+            {
+                // Golpea el endpoint de tu controlador de artículos por código de barras
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Articles/barcode/{barcode}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string jsonString = await response.Content.ReadAsStringAsync();
+                    return System.Text.Json.JsonSerializer.Deserialize<Article>(jsonString,
+                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+                return null; // Si devuelve 404, significa que el código es nuevo
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[API_ERROR] GetArticleByBarcodeAsync: {ex.Message}");
+                return null;
+            }
+        }
+        public async Task<int> GetArticleCountByInventoryAsync(int inventoryId)
+        {
+            try
+            {
+                // Golpea el endpoint de conteo rápido en tu controlador de Somee
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Articles/count/inventory/{inventoryId}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string jsonString = await response.Content.ReadAsStringAsync();
+
+                    // Como el servidor devuelve un número plano, lo convertimos directamente a entero
+                    if (int.TryParse(jsonString, out int total))
+                    {
+                        return total;
+                    }
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[API_ERROR] GetArticleCountByInventoryAsync: {ex.Message}");
+                return 0; // Resguardo contable por si falla la red
+            }
+        }
     }
 
     public class IntToBoolConverter : System.Text.Json.Serialization.JsonConverter<bool>
@@ -492,47 +652,48 @@ namespace ControlInventarioMovil.Services
             writer.WriteNumberValue(value ? 1 : 0);
         }
     }
-    public class TrackingModeJsonConverter : System.Text.Json.Serialization.JsonConverter<TrackingMode?>
+    public class TrackingModeJsonConverter : System.Text.Json.Serialization.JsonConverter<string?>
     {
-        public override TrackingMode? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            // 1. Si el valor es null en el JSON, devolvemos null sin problemas
             if (reader.TokenType == JsonTokenType.Null) return null;
 
-            // 2. Si el formato viene como número puro (ej: 0, 1, 2)
+            // 1. Si la API en el servidor responde con un número puro (0, 1, 2)
             if (reader.TokenType == JsonTokenType.Number)
             {
                 int num = reader.GetInt32();
-                if (Enum.IsDefined(typeof(TrackingMode), num)) return (TrackingMode)num;
-                return TrackingMode.Standard;
+                return num switch
+                {
+                    (int)TrackingMode.Standard => "Standard",
+                    (int)TrackingMode.Serialized => "Serialized",
+                    (int)TrackingMode.Bulk => "Bulk",
+                    _ => "Standard"
+                };
             }
 
-            // 3. Si el formato viene como texto plano (ej: "Standard", "Serialized", "1")
+            // 2. Si la API responde con texto ("1", "Serializado", "Serialized")
             if (reader.TokenType == JsonTokenType.String)
             {
                 string? value = reader.GetString();
                 if (string.IsNullOrWhiteSpace(value)) return null;
 
-                // Intentar convertir si viene el nombre en inglés ("Standard", "Serialized")
-                if (Enum.TryParse<TrackingMode>(value, true, out var result)) return result;
+                // Estandarizamos las respuestas hacia el inglés que tus vistas ya comparan
+                if (value.Equals("Serializado", StringComparison.OrdinalIgnoreCase) || value.Equals("1") || value.Equals("Serialized", StringComparison.OrdinalIgnoreCase))
+                    return "Serialized";
 
-                // Intentar convertir si viene un número en un string (ej: "1", "0")
-                if (int.TryParse(value, out int numFromText))
-                {
-                    if (Enum.IsDefined(typeof(TrackingMode), numFromText)) return (TrackingMode)numFromText;
-                }
+                if (value.Equals("A Granel", StringComparison.OrdinalIgnoreCase) || value.Equals("2") || value.Equals("Bulk", StringComparison.OrdinalIgnoreCase))
+                    return "Bulk";
 
-                // Soporte para registros históricos en español para que no rompa el mapeo
-                if (value.Equals("Serializado", StringComparison.OrdinalIgnoreCase)) return TrackingMode.Serialized;
-                if (value.Equals("A Granel", StringComparison.OrdinalIgnoreCase)) return TrackingMode.Bulk;
+                if (value.Equals("Estándar", StringComparison.OrdinalIgnoreCase) || value.Equals("0") || value.Equals("Standard", StringComparison.OrdinalIgnoreCase))
+                    return "Standard";
 
-                return TrackingMode.Standard; // Plan de respaldo seguro
+                return value;
             }
 
             return null;
         }
 
-        public override void Write(Utf8JsonWriter writer, TrackingMode? value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
         {
             if (value == null)
             {
@@ -540,8 +701,8 @@ namespace ControlInventarioMovil.Services
             }
             else
             {
-                // Al guardar en la API, siempre mandamos el entero limpio
-                writer.WriteNumberValue((int)value.Value);
+                // Cuando MAUI envíe una categoría a la API, mandamos el texto limpio
+                writer.WriteStringValue(value);
             }
         }
     }

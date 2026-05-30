@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Plugin.Maui.ImageCropper;
+using ZXing.Net.Maui.Controls; // 🌟 1. Asegúrate de tener este using aquí arriba
 
 namespace ControlInventarioMovil
 {
@@ -11,6 +12,7 @@ namespace ControlInventarioMovil
             builder
                 .UseMauiApp<App>()
                 .UseImageCropper()
+                .UseBarcodeReader() // 🌟 2. INYECTA ESTA LÍNEA AQUÍ MISMITO
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -27,7 +29,7 @@ namespace ControlInventarioMovil
                 // Al ponerlo en null, eliminamos cualquier dibujo nativo (línea, sombra, etc.)
                 handler.PlatformView.Background = null;
                 handler.PlatformView.BackgroundTintList = Android.Content.Res.ColorStateList.ValueOf(Android.Graphics.Color.Transparent);
-#elif WINDOWS    
+#elif WINDOWS
                 handler.PlatformView.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
                 handler.PlatformView.Resources["TextControlBorderThemeThickness"] = new Microsoft.UI.Xaml.Thickness(0);
                 handler.PlatformView.Resources["TextControlBorderThemeThicknessFocused"] = new Microsoft.UI.Xaml.Thickness(0);

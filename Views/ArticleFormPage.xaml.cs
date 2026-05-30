@@ -1,421 +1,716 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
-using Microsoft.Maui.Controls;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Maui.Controls;
 
 namespace ControlInventarioMovil.Views
 {
     public partial class ArticleFormPage : ContentPage
     {
         private readonly ApiService _apiService;
-
-        // Memoria interna de catálogos vivos descargados de Somee
+        private Supplier? _currentMappedSupplier = null;
         private List<Category> _categoriasHijas = new();
         private List<Brand> _marcasGlobales = new();
         private List<Brand> _marcasFiltradas = new();
         private List<Parameters> _parametrosGlobales = new();
-        private List<Supplier> _proveedores = new();
+        private List<Currency> _monedasGlobales = new();
+        private List<Supplier> _proveedoresGlobales = new();
 
-        // Sublistas de parámetros filtradas dinámicamente por tipo (Punto 2)
-        private string _tipoParametroActual = "";
         private List<Parameters> _estadosParam = new();
         private List<Parameters> _ubicacionesParam = new();
         private List<Parameters> _condicionesParam = new();
 
         private string? _rutaFotoPrincipal = null;
-        private int _currentInventoryId = 1;
+        private string? _rutaFotoVoucher = null;
 
         public ArticleFormPage()
         {
             InitializeComponent();
             _apiService = new ApiService();
-
-            // Punto 3: Captura el Inventario Activo del usuario actual de la sesión
-            if (UserSession.CurrentUser != null)
-            {
-                // Mapeamos dinámicamente según la sucursal/perfil del usuario conectado
-                _currentInventoryId = UserSession.CurrentUser.JobPositionId > 0 ? UserSession.CurrentUser.JobPositionId : 1;
-            }
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            await CargarCatalogosSeguros();
+
+            // 1. Cargamos todos los catálogos base de la nube
+            await CargarCatalogosFormularioAsync();
+
+            // 2. 🌟 DETECTOR DE MODO (ALTA VS EDICIÓN)
+            if (UserSession.CurrentArticleToEdit != null)
+            {
+                HydrateFormularioParaEdicion(UserSession.CurrentArticleToEdit);
+            }
+            else
+            {
+                PrepararFormularioParaAltaNueva();
+            }
         }
 
-        // 🌟 Método corregido: Cada bloque corre aislado para evitar que errores en red bloqueen las categorías
-        private async Task CargarCatalogosSeguros()
+        private void ControlarColorPlaceholderPicker(Picker picker)
         {
-            PkrCategory.Title = PkrBrand.Title = PkrStatusParam.Title = PkrLocationParam.Title = PkrConditionParam.Title = "Cargando...";
+            picker.Dispatcher.Dispatch(() =>
+            {
+                if (picker.SelectedIndex <= 0)
+                {
+                    picker.TextColor = Color.FromArgb("#606A72");
+                }
+                else
+                {
+                    picker.TextColor = Colors.White;
+                }
+            });
+        }
 
-            // 1. Descargar Categorías Obligatorias
+        private async Task CargarCatalogosFormularioAsync()
+        {
             try
             {
+                int currentInventoryId = UserSession.CurrentInventory?.Id ?? 1;
+
                 var cats = await _apiService.GetCategoriesAsync();
                 _categoriasHijas = cats.Where(c => c.ParentCategoryId != null && c.ParentCategoryId != 0).ToList();
                 PkrCategory.Items.Clear();
                 _categoriasHijas.ForEach(c => PkrCategory.Items.Add(c.Name));
-            }
-            catch (Exception ex) { Console.WriteLine($"[NET_FAIL] Categorías: {ex.Message}"); }
 
-            // 2. Descargar Marcas
-            try
-            {
+                PkrCategory.SelectedIndex = -1;
+                LblPlaceholderCategory.IsVisible = true;
+
                 _marcasGlobales = await _apiService.GetBrandsAsync();
-            }
-            catch (Exception ex) { Console.WriteLine($"[NET_FAIL] Marcas: {ex.Message}"); }
+                _monedasGlobales = await _apiService.GetCurrenciesAsync();
 
-            // 3. Descargar y Mapear la Tabla Parameters (Punto 2)
-            try
-            {
+                // 🌟 MONEDAS
+                PkrCurrency.Items.Clear();
+                PkrCurrency.Items.Add("Seleccione moneda..."); // Índice 0
+                _monedasGlobales.ForEach(curr => PkrCurrency.Items.Add($"{curr.CurrencyName} ({(string.IsNullOrWhiteSpace(curr.CurrencyCode) ? "" : curr.CurrencyCode)})"));
+                PkrCurrency.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrCurrency);
+
                 _parametrosGlobales = await _apiService.GetParametersAsync();
-
-                // Filtramos los objetos reales de la tabla Parameters según su tipo (Igual a puestos de trabajo)
                 _estadosParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Estado", StringComparison.OrdinalIgnoreCase)).ToList();
                 _ubicacionesParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Ubicacion", StringComparison.OrdinalIgnoreCase)).ToList();
-                _condicionesParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Condicion", StringComparison.OrdinalIgnoreCase)).ToList();
+                _condicionesParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Condicion", StringComparison.OrdinalIgnoreCase)).ToList();                
 
-                // Poblamos el Picker visual de Estados
+                // 🌟 ESTADOS
                 PkrStatusParam.Items.Clear();
+                PkrStatusParam.Items.Add("Seleccione estado...");
                 _estadosParam.ForEach(p => PkrStatusParam.Items.Add(p.Name));
-                if (PkrStatusParam.Items.Count > 0) PkrStatusParam.SelectedIndex = 0;
+                PkrStatusParam.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrStatusParam);
 
-                // Poblamos el Picker visual de Ubicaciones
+                // 🌟 UBICACIONES
                 PkrLocationParam.Items.Clear();
+                PkrLocationParam.Items.Add("Seleccione ubicación...");
                 _ubicacionesParam.ForEach(p => PkrLocationParam.Items.Add(p.Name));
-                if (PkrLocationParam.Items.Count > 0) PkrLocationParam.SelectedIndex = 0;
+                PkrLocationParam.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrLocationParam);
 
-                // Poblamos el Picker visual de Condiciones
+                // 🌟 CONDICIONES
                 PkrConditionParam.Items.Clear();
+                PkrConditionParam.Items.Add("Seleccione condición...");
                 _condicionesParam.ForEach(p => PkrConditionParam.Items.Add(p.Name));
-                if (PkrConditionParam.Items.Count > 0) PkrConditionParam.SelectedIndex = 0;
-            }
-            catch (Exception ex) { Console.WriteLine($"[NET_FAIL] Parámetros: {ex.Message}"); }
+                PkrConditionParam.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrConditionParam);
 
-            // 4. Descargar Proveedores de Contrato ligados al Inventario (Observación 3)
-            try
-            {
+                // 🌟 PROVEEDORES
                 var sups = await _apiService.GetSuppliersAsync();
-                _proveedores = sups.Where(p => p.InventoryId == _currentInventoryId).ToList();
-                RefrescarPickerProveedores();
+                _proveedoresGlobales = sups ?? new List<Supplier>();
+                PkrSupplier.Items.Clear();
+                PkrSupplier.Items.Add("Selecciona un distribuidor...");
+                _proveedoresGlobales.ForEach(s => PkrSupplier.Items.Add(s.BusinessName));
+                PkrSupplier.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrSupplier);
+                
+                var paramMonedaBase = _parametrosGlobales.FirstOrDefault(p => p.InventoryId == currentInventoryId && p.ParameterType == "MonedaBase");
+                if (paramMonedaBase != null && int.TryParse(paramMonedaBase.Name, out int currencyIdAsociado))
+                {
+                    int indexMoneda = _monedasGlobales.FindIndex(m => m.Id == currencyIdAsociado);
+                    if (indexMoneda >= 0)
+                    {
+                        PkrCurrency.SelectedIndex = indexMoneda + 1; // +1 por el placeholder
+                        ControlarColorPlaceholderPicker(PkrCurrency);
+                    }
+                }
+                else if (PkrCurrency.Items.Count > 0) PkrCurrency.SelectedIndex = 0;
             }
-            catch (Exception ex) { Console.WriteLine($"[NET_FAIL] Proveedores o Endpoint inexistente: {ex.Message}"); }
-
-            // Limpiamos los títulos de espera
-            PkrCategory.Title = PkrBrand.Title = PkrStatusParam.Title = PkrLocationParam.Title = PkrConditionParam.Title = "";
+            catch (Exception ex) { Console.WriteLine($"[CATALOG_FAIL] {ex.Message}"); }
         }
 
-        private void RefrescarPickerProveedores()
+        
+        private void HydrateFormularioParaEdicion(Article art)
         {
-            PkrSupplier.Items.Clear();
-            _proveedores.ForEach(p => PkrSupplier.Items.Add($"{p.Ruc} - {p.BusinessName}"));
+            LblTituloFormulario.Text = "EDICIÓN DE ARTÍCULO CORPORATIVO";
+            BtnGuardar.Text = "ACTUALIZAR CAMBIOS";
+            BtnGuardar.BackgroundColor = Color.FromArgb("#EFA72F"); // Color naranja preventivo para edición
+            BtnGuardar.TextColor = Color.FromArgb("#1C262E");
+
+            // 🌟 REGLA SENIOR: Congelamos la categoría para impedir mutar el TrackingMode
+            PkrCategory.SelectedIndex = _categoriasHijas.FindIndex(c => c.Id == art.CategoryId);
+            PkrCategory.IsEnabled = false;
+
+            // Rellenar textos básicos removiendo los placeholders preventivos de BD antigua
+            TxtName.Text = art.Name;
+            TxtModel.Text = art.Model == "N/A" || art.Model == "Empacado de Fábrica" ? "" : art.Model;
+            TxtBarcode.Text = art.Barcode;
+
+            // Si el código nace con el prefijo "BAR-", limpiamos la UI para el operador
+            TxtSku.Text = art.Code.StartsWith("BAR-") ? "" : art.Code;
+            TxtSerialNumber.Text = art.SerialNumber;
+            TxtStock.Text = art.Stock.ToString("0.##");
+            TxtObservation.Text = art.Observation;
+            TxtCharacteristics.Text = art.Characteristics;
+
+            // Rellenar selectores de catálogos
+            if (art.BrandId > 0) PkrBrand.SelectedIndex = _marcasFiltradas.FindIndex(m => m.Id == art.BrandId) + 1;
+            if (art.StatusId.HasValue) PkrStatusParam.SelectedIndex = _estadosParam.FindIndex(p => p.Id == art.StatusId.Value) + 1;
+            if (art.LocationId.HasValue) PkrLocationParam.SelectedIndex = _ubicacionesParam.FindIndex(p => p.Id == art.LocationId.Value) + 1;
+            if (art.ConditionId.HasValue) PkrConditionParam.SelectedIndex = _condicionesParam.FindIndex(p => p.Id == art.ConditionId.Value) + 1;
+
+            ControlarColorPlaceholderPicker(PkrBrand);
+            ControlarColorPlaceholderPicker(PkrStatusParam);
+            ControlarColorPlaceholderPicker(PkrLocationParam);
+            ControlarColorPlaceholderPicker(PkrConditionParam);
+
+            // Precios y monedas originales
+            TxtAcquisitionPrice.Text = art.AcquisitionPrice?.ToString("F2");
+            TxtSalePrice.Text = art.SalePrice?.ToString("F2");
+
+            if (!string.IsNullOrWhiteSpace(art.AcquisitionCurrency))
+            {
+                int idxMon = _monedasGlobales.FindIndex(m => m.CurrencyCode == art.AcquisitionCurrency);
+                if (idxMon >= 0) PkrCurrency.SelectedIndex = idxMon;
+            }
+
+            if (art.AcquisitionDate.HasValue) DtpAcquisitionDate.Date = art.AcquisitionDate.Value;
+            if (art.WarrantyEndDate.HasValue) DtpWarranty.Date = art.WarrantyEndDate.Value;
+            TxtUsefulLife.Text = art.UsefulLifeMonths?.ToString();
+
+            // Guardar el rastro multimedia original de la nube
+            _rutaFotoPrincipal = art.MainPhotoPath;
+            _rutaFotoVoucher = art.MainVoucherPath;
+
+            if (!string.IsNullOrWhiteSpace(_rutaFotoPrincipal))
+            {
+                ImgArticuloPreview.Source = ImageSource.FromUri(new Uri(_rutaFotoPrincipal));
+                ImgArticuloPreview.IsVisible = true;
+                PlaceholderArticulo.IsVisible = false;
+                BtnBorrarFotoPrincipal.IsVisible = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_rutaFotoVoucher))
+            {
+                ImgVoucherPreview.Source = ImageSource.FromUri(new Uri(_rutaFotoVoucher));
+                ImgVoucherPreview.IsVisible = true;
+                PlaceholderVoucher.IsVisible = false;
+                BtnBorrarFotoVoucher.IsVisible = true;
+            }
+
+            if (art.SupplierId.HasValue && art.SupplierId.Value > 0)
+            {
+                int idxSup = _proveedoresGlobales.FindIndex(s => s.Id == art.SupplierId.Value);
+                if (idxSup >= 0) PkrSupplier.SelectedIndex = idxSup + 1; // +1 por el placeholder
+            }
         }
 
-        // Evento que escucha cambios en SKU o Serie para concatenar el Nombre en vivo (Observación 1)
-        private void OnAutoNameTriggerChanged(object sender, TextChangedEventArgs e)
+        private void PrepararFormularioParaAltaNueva()
         {
-            if (PkrCategory.SelectedIndex == -1) return;
+            LblTituloFormulario.Text = "INGRESO DE ARTÍCULO MULTIAMBIENTE";
+            BtnGuardar.Text = "GUARDAR INGRESO";
+            BtnGuardar.BackgroundColor = Color.FromArgb("#A2D149");
+            PkrCategory.IsEnabled = true;
+        }
+
+        private void OnCategoryChanged(object sender, EventArgs e)
+        {
+            // 1. Controlamos la visibilidad del placeholder flotante de la Categoría
+            // Si el índice es -1 (nada seleccionado), el texto gris se muestra; si elige algo, se oculta.
+            LblPlaceholderCategory.IsVisible = (PkrCategory.SelectedIndex == -1);
+
+            // 🌟 ESCENARIO DE CONTINGENCIA: Si no hay selección real, limpiamos sub-catálogos y salimos
+            if (PkrCategory.SelectedIndex == -1)
+            {
+                ContenedorNombre.IsVisible = false;
+                SecBarcode.IsVisible = false;
+                SecSku.IsVisible = false;
+                SecModelSerie.IsVisible = false;
+                BloqueSerializadoCondicional.IsVisible = false;
+                LblTrackingInfo.Text = "Modo de Rastreo: Pendiente...";
+
+                // Reseteamos Unidad de Medida a su estado inicial gris
+                PkrMeasurement.Items.Clear();
+                PkrMeasurement.SelectedIndex = -1;
+                LblPlaceholderMeasurement.IsVisible = true;
+
+                // Reseteamos Marca a su estado inicial gris
+                PkrBrand.Items.Clear();
+                PkrBrand.SelectedIndex = -1;
+                LblPlaceholderBrand.IsVisible = true;
+
+                return; // Salida segura del hilo de ejecución
+            }
+
+            // 2. ESCENARIO REAL: Extraemos la categoría seleccionada limpiamente (Índice base 0 oficial)
             var catSel = _categoriasHijas[PkrCategory.SelectedIndex];
 
-            if (catSel.NamingMethod != "Libre" && !string.IsNullOrEmpty(catSel.NamingMethod))
+            LblTrackingInfo.Text = $"Modo de Rastreo: {catSel.TrackingMode}";
+            ContenedorNombre.IsVisible = true;
+
+            // 3. RE-CONFIGURACIÓN DINÁMICA DE UNIDADES DE MEDIDA
+            PkrMeasurement.Items.Clear();
+
+            if (catSel.TrackingMode == "Stackable" || catSel.TrackingMode == "Serialized")
             {
+                PkrMeasurement.Items.Add("Unidades");
+                PkrMeasurement.Items.Add("Piezas");
+
+                // Ajuste de visibilidades según reglas corporativas de empaque o activos serializados
+                SecBarcode.IsVisible = (catSel.TrackingMode == "Stackable");
+                SecSku.IsVisible = (catSel.TrackingMode == "Serialized");
+                SecModelSerie.IsVisible = (catSel.TrackingMode == "Serialized");
+                BloqueSerializadoCondicional.IsVisible = (catSel.TrackingMode == "Serialized");
+
+                // Si es serializado (activo fijo), el nombre se bloquea para que lo arme el algoritmo automático
+                TxtName.IsReadOnly = (catSel.TrackingMode == "Serialized");
+                TxtName.BackgroundColor = catSel.TrackingMode == "Serialized" ? Color.FromArgb("#1C232A") : Color.FromArgb("#232B35");
+
+                // Disparamos el auto-nombre únicamente si estamos registrando un alta nueva
+                if (catSel.TrackingMode == "Serialized" && UserSession.CurrentArticleToEdit == null)
+                {
+                    OnAutoNameTriggerChanged(sender, null!);
+                }
+            }
+            else
+            {
+                // Configuraciones estándar para productos generales (Líquidos, cables, insumos sueltos, etc.)
+                SecBarcode.IsVisible = false;
+                SecSku.IsVisible = true;
+                SecModelSerie.IsVisible = false;
+                BloqueSerializadoCondicional.IsVisible = false;
+
+                TxtName.IsReadOnly = false;
+                TxtName.BackgroundColor = Color.FromArgb("#232B35");
+
+                PkrMeasurement.Items.Add("Unidades");
+                PkrMeasurement.Items.Add("Metros");
+                PkrMeasurement.Items.Add("Kilos");
+            }
+
+            // Pre-seleccionamos el índice 0 del nuevo catálogo y apagamos su etiqueta flotante
+            PkrMeasurement.SelectedIndex = 0;
+            LblPlaceholderMeasurement.IsVisible = false;
+
+            // 4. RE-FILTRADO DINÁMICO DE MARCAS ASOCIADAS A LA CATEGORÍA
+            PkrBrand.Items.Clear();
+
+            // Filtramos en memoria local usando LINQ las marcas que correspondan al ID de la categoría elegida
+            _marcasFiltradas = _marcasGlobales.Where(m => m.CategoryId == catSel.Id).ToList();
+            _marcasFiltradas.ForEach(m => PkrBrand.Items.Add(m.Name));
+
+            // Evaluamos si el catálogo resultante contiene elementos comerciales
+            if (_marcasFiltradas.Count > 0)
+            {
+                // Si hay marcas disponibles, pre-seleccionamos la primera y ocultamos el texto flotante
+                PkrBrand.SelectedIndex = 0;
+                LblPlaceholderBrand.IsVisible = false;
+            }
+            else
+            {
+                // Si la categoría es nueva y no tiene marcas registradas, dejamos el control listo para usar el botón "+"
+                PkrBrand.SelectedIndex = -1;
+                LblPlaceholderBrand.IsVisible = true;
+            }
+        }
+
+        private void OnAutoNameTriggerChanged(object sender, EventArgs e)
+        {
+            LblPlaceholderBrand.IsVisible = (PkrBrand.SelectedIndex == -1);
+
+            if (PkrCategory.SelectedIndex == -1 || UserSession.CurrentArticleToEdit != null) return;
+
+            var catSel = _categoriasHijas[PkrCategory.SelectedIndex]; // Limpio, sin resta
+
+            if (catSel.TrackingMode == "Serialized")
+            {
+                // Si el índice es mayor o igual a 0 hay marca, sino es genérico
                 string brandTxt = PkrBrand.SelectedIndex >= 0 ? PkrBrand.SelectedItem.ToString()! : "Genérico";
                 string skuTxt = !string.IsNullOrWhiteSpace(TxtSku.Text) ? TxtSku.Text.Trim() : "S/K";
                 string serieTxt = !string.IsNullOrWhiteSpace(TxtSerialNumber.Text) ? TxtSerialNumber.Text.Trim() : "S/S";
 
-                // Regla corporativa automatizada
                 TxtName.Text = $"{catSel.Name} {brandTxt} [{skuTxt}-{serieTxt}]";
             }
         }
 
-        // Mutación Contextual de la Vista según la categoría elegida
-        private void OnCategoryChanged(object sender, EventArgs e)
-        {
-            if (PkrCategory.SelectedIndex == -1) return;
-            var catSel = _categoriasHijas[PkrCategory.SelectedIndex];
-
-            LblTrackingInfo.Text = $"Modo de Rastreo: {catSel.TrackingMode}";
-
-            // Corrección 2: El campo del nombre aparece ÚNICAMENTE después de seleccionar una categoría
-            ContenedorNombre.IsVisible = true;
-
-            // Observación 1: Evaluamos si es de Solo Lectura o entrada manual según NamingMethod
-            if (catSel.NamingMethod != "Libre" && !string.IsNullOrEmpty(catSel.NamingMethod))
-            {
-                TxtName.IsReadOnly = true;
-                TxtName.BackgroundColor = Color.FromArgb("#1C232A"); // Tono gris de bloqueo
-                OnAutoNameTriggerChanged(sender, null!); // Calcular de inmediato
-            }
-            else
-            {
-                TxtName.IsReadOnly = false;
-                TxtName.BackgroundColor = Color.FromArgb("#232B35"); // Editable
-                TxtName.Text = string.Empty;
-            }
-
-            // Observación 2: El bloque de Empleados y Características solo aparece si es SERIALIZED
-            bool esSerializado = catSel.TrackingMode == TrackingMode.Serialized.ToString();
-            BloqueSerializadoCondicional.IsVisible = esSerializado;
-
-            // Punto 7: Ajuste dinámico de Unidad de medida e impacto visual
-            PkrMeasurement.Items.Clear();
-            if (esSerializado)
-            {
-                PkrMeasurement.Items.Add("Unidades");
-                PkrMeasurement.Items.Add("Piezas");
-                PkrMeasurement.SelectedIndex = 0;
-            }
-            else
-            {
-                PkrMeasurement.Items.Add("Unidades");
-                PkrMeasurement.Items.Add("Metros");
-                PkrMeasurement.Items.Add("Kilos");
-                PkrMeasurement.SelectedIndex = 0;
-            }
-
-            // Filtrado de Marcas ligadas a la categoría activa
-            PkrBrand.Items.Clear();
-            _marcasFiltradas = _marcasGlobales.Where(m => m.CategoryId == catSel.Id).ToList();
-            _marcasFiltradas.ForEach(m => PkrBrand.Items.Add(m.Name));
-        }
-
         private async void OnGuardarClicked(object sender, EventArgs e)
         {
-            if (PkrCategory.SelectedIndex == -1 || string.IsNullOrWhiteSpace(TxtSku.Text) || string.IsNullOrWhiteSpace(TxtName.Text))
+            int idAlmacenActivo = UserSession.CurrentInventory?.Id ?? 1;
+
+            if (PkrCategory.SelectedIndex == -1)
             {
-                await DisplayAlertAsync("Validación", "Los campos Código SKU, Categoría y Nombre son mandatorios.", "OK");
+                await DisplayAlertAsync("Validación", "Debes seleccionar una Categoría para clasificar el artículo.", "OK");
                 return;
             }
 
             var catSel = _categoriasHijas[PkrCategory.SelectedIndex];
+
+            if (catSel.TrackingMode == "Stackable" && string.IsNullOrWhiteSpace(TxtBarcode.Text))
+            {
+                await DisplayAlertAsync("Validación", "El Código de Barras de fábrica es mandatorio para artículos en empaque.", "OK");
+                return;
+            }
+            if (catSel.TrackingMode != "Stackable" && string.IsNullOrWhiteSpace(TxtSku.Text))
+            {
+                await DisplayAlertAsync("Validación", "El campo Código SKU Interno es mandatorio.", "OK");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(TxtName.Text))
+            {
+                await DisplayAlertAsync("Validación", "El Nombre del artículo no puede estar vacío.", "OK");
+                return;
+            }
+            
+
+            decimal? acqPrice = string.IsNullOrWhiteSpace(TxtAcquisitionPrice.Text) ? null : Convert.ToDecimal(TxtAcquisitionPrice.Text.Trim());
+            decimal? salePrice = string.IsNullOrWhiteSpace(TxtSalePrice.Text) ? null : Convert.ToDecimal(TxtSalePrice.Text.Trim());
+
+            if (acqPrice.HasValue && salePrice.HasValue && salePrice.Value <= acqPrice.Value)
+            {
+                decimal perdida = acqPrice.Value - salePrice.Value;
+                bool continuar = await DisplayAlertAsync("Advertencia de Pérdida",
+                    $"El precio de venta ingresado genera una pérdida total estimada de S/. {perdida:F2} por unidad.\n\n" +
+                    "¿Deseas guardar este registro a pérdida de todas formas?", "Sí, guardar", "No, corregir");
+
+                if (!continuar) return;
+            }
+            if (catSel.TrackingMode == "Stackable" && (!acqPrice.HasValue || !salePrice.HasValue))
+            {
+                await DisplayAlertAsync("Validación Financiera", "Para artículos masivos (Stackable), el Costo de Adquisición y el Precio de Venta estimado son obligatorios.", "Corregir");
+                return;
+            }
+
+            int brandIdFinal = _marcasFiltradas.Count > 0 && PkrBrand.SelectedIndex > 0 ? _marcasFiltradas[PkrBrand.SelectedIndex - 1].Id : 0;
+            int? statusIdFinal = PkrStatusParam.SelectedIndex > 0 ? _estadosParam[PkrStatusParam.SelectedIndex - 1].Id : null;
+            int? locationIdFinal = PkrLocationParam.SelectedIndex > 0 ? _ubicacionesParam[PkrLocationParam.SelectedIndex - 1].Id : null;
+            int? conditionIdFinal = PkrConditionParam.SelectedIndex > 0 ? _condicionesParam[PkrConditionParam.SelectedIndex - 1].Id : null;
+            int? supplierIdFinal = PkrSupplier.SelectedIndex > 0 ? _proveedoresGlobales[PkrSupplier.SelectedIndex - 1].Id : null;
+            string? currencyFinal = PkrCurrency.SelectedIndex > 0 ? _monedasGlobales[PkrCurrency.SelectedIndex - 1].CurrencyCode : null;
+
             decimal.TryParse(TxtStock.Text, out decimal stockReal);
 
-            // Mapeo relacional exacto de IDs de la tabla Parameters (Punto 2)
-            int statusIdFinal = PkrStatusParam.SelectedIndex >= 0 ? _estadosParam[PkrStatusParam.SelectedIndex].Id : 1;
-            int locationIdFinal = PkrLocationParam.SelectedIndex >= 0 ? _ubicacionesParam[PkrLocationParam.SelectedIndex].Id : 1;
-            int conditionIdFinal = PkrConditionParam.SelectedIndex >= 0 ? _condicionesParam[PkrConditionParam.SelectedIndex].Id : 1;
-            int brandIdFinal = _marcasFiltradas.Count > 0 && PkrBrand.SelectedIndex >= 0 ? _marcasFiltradas[PkrBrand.SelectedIndex].Id : 1;
+            string codeEnvio = catSel.TrackingMode == "Stackable" ? $"BAR-{TxtBarcode.Text.Trim()}" : TxtSku.Text.Trim();
+            string modelEnvio = catSel.TrackingMode == "Stackable" ? "Empacado de Fábrica" : (string.IsNullOrWhiteSpace(TxtModel.Text) ? "N/A" : TxtModel.Text.Trim());
 
-            // Construir el Modelo unificado listo para Somee
-            var nuevoArticulo = new Article
+            // Construcción del objeto Article unificado
+            var articuloData = new Article
             {
-                InventoryId = _currentInventoryId, // Punto 3: Vinculado al inventario activo de la sesión
+                InventoryId = idAlmacenActivo,
+                Code = codeEnvio,
+                Barcode = catSel.TrackingMode == "Stackable" ? TxtBarcode.Text.Trim() : null,
+                Name = TxtName.Text.Trim(),
+                Model = modelEnvio,
                 CategoryId = catSel.Id,
                 BrandId = brandIdFinal,
-
-                Code = TxtSku.Text.Trim(),
-                Model = TxtModel.Text?.Trim() ?? "N/A",
-                SerialNumber = TxtSerialNumber.Text?.Trim(),
-                Name = TxtName.Text.Trim(),
-
-                Tracking = Enum.TryParse<TrackingMode>(catSel.TrackingMode, out var modo) ? modo : TrackingMode.Standard,
-                MeasurementUnit = PkrMeasurement.SelectedIndex >= 0 ? PkrMeasurement.SelectedItem.ToString() : "Unidades",
+                Tracking = catSel.TrackingMode == "Stackable" ? TrackingMode.Standard :
+                           (catSel.TrackingMode == "Serialized" ? TrackingMode.Serialized : TrackingMode.Standard),
+                MeasurementUnit = PkrMeasurement.SelectedItem?.ToString() ?? "Unidades",
                 Stock = stockReal,
-
-                Characteristics = BloqueSerializadoCondicional.IsVisible ? TxtCharacteristics.Text?.Trim() : null,
-                MainPhotoPath = _rutaFotoPrincipal,
-                RegistrationDate = DateTime.Now,
-
-                // Inyección de llaves foráneas dinámicas de los Parámetros (Punto 2)
+                SerialNumber = catSel.TrackingMode == "Serialized" ? TxtSerialNumber.Text?.Trim() : null,
+                CurrentEmployeeId = null,
+                PreviousEmployeeId = null,
+                FixedAsset = null,
+                AcquisitionPrice = acqPrice,
+                SalePrice = salePrice,
+                AcquisitionCurrency = currencyFinal,
+                AcquisitionDate = DtpAcquisitionDate.Date,
+                UsefulLifeMonths = catSel.TrackingMode == "Serialized" ? (string.IsNullOrWhiteSpace(TxtUsefulLife.Text) ? null : Convert.ToInt32(TxtUsefulLife.Text.Trim())) : null,
+                WarrantyEndDate = catSel.TrackingMode == "Serialized" ? DtpWarranty.Date : null,
+                Characteristics = catSel.TrackingMode == "Serialized" ? TxtCharacteristics.Text?.Trim() : null,
+                Observation = !string.IsNullOrWhiteSpace(TxtObservation.Text) ? TxtObservation.Text.Trim() : null,
                 StatusId = statusIdFinal,
                 LocationId = locationIdFinal,
                 ConditionId = conditionIdFinal,
+                SupplierId = supplierIdFinal,
+                MainPhotoPath = _rutaFotoPrincipal,
+                MainVoucherPath = _rutaFotoVoucher,
 
-                // Punto 9: Alta de inventario mapea automáticamente la acción "Ingreso" (ID = 1)
-                ActionId = 1
+                // Si es edición conserva la fecha y acción original, si es nuevo inyecta el alta inicial (Action 1)
+                ActionId = UserSession.CurrentArticleToEdit != null ? UserSession.CurrentArticleToEdit.ActionId : 1,
+                RegistrationDate = UserSession.CurrentArticleToEdit != null ? UserSession.CurrentArticleToEdit.RegistrationDate : DateTime.Now,
+
+                // Mapeo del historial operativo
+                ModificationDate = UserSession.CurrentArticleToEdit != null ? DateTime.Now : null,
+                DecommissionDate = UserSession.CurrentArticleToEdit?.DecommissionDate,
+                DepartureDate = UserSession.CurrentArticleToEdit?.DepartureDate
             };
 
-            bool completado = await _apiService.CreateArticleAsync(nuevoArticulo);
-            if (completado)
+            bool exito = false;
+
+            // 🌟 DISPARADOR SELECTIVO DE ACCIÓN DE API
+            if (UserSession.CurrentArticleToEdit != null)
             {
-                await DisplayAlertAsync("Éxito", $"Artículo '{nuevoArticulo.Name}' registrado en Somee.", "OK");
-                await Shell.Current.GoToAsync("..", false);
+                articuloData.Id = UserSession.CurrentArticleToEdit.Id; // Sincronizamos la Llave Primaria
+                exito = await _apiService.UpdateArticleAsync(articuloData.Id, articuloData);
             }
             else
             {
-                await DisplayAlertAsync("Error 500", "No se pudo insertar en Somee. Verifica las restricciones de base de datos.", "OK");
-            }
-        }
-
-        // =========================================================
-        // CONTROLADORES DE POPUP DE PROVEEDORES (Observación 3)
-        // =========================================================
-        private async void OnAbrirPopUpProveedorClicked(object sender, EventArgs e)
-        {
-            OverlayProveedor.IsVisible = true;
-            TxtPopUpRuc.Text = TxtPopUpBusinessName.Text = string.Empty;
-            await OverlayProveedor.FadeToAsync(1, 220, Easing.CubicOut);
-            TxtPopUpRuc.Focus();
-        }
-
-        private async void OnCerrarPopUpProveedorClicked(object sender, EventArgs e)
-        {
-            await OverlayProveedor.FadeToAsync(0, 180, Easing.CubicIn);
-            OverlayProveedor.IsVisible = false;
-        }
-
-        private async void OnGuardarProveedorPopUpClicked(object sender, EventArgs e)
-        {
-            string ruc = TxtPopUpRuc.Text?.Trim() ?? "";
-            string razonSocial = TxtPopUpBusinessName.Text?.Trim() ?? "";
-
-            if (ruc.Length != 11 || string.IsNullOrEmpty(razonSocial))
-            {
-                await DisplayAlertAsync("Validación", "El RUC requiere 11 dígitos y la Razón Social es mandatoria.", "OK");
-                return;
+                exito = await _apiService.CreateArticleAsync(articuloData);
             }
 
-            var nuevoProveedor = new Supplier
+            if (exito)
             {
-                InventoryId = _currentInventoryId, // Asociado exclusivamente al inventario activo
-                Ruc = ruc,
-                BusinessName = razonSocial,
-                StatusId = 1 // Estado por defecto
-            };
+                string msg = UserSession.CurrentArticleToEdit != null ? "actualizado" : "dado de alta";
+                await DisplayAlertAsync("Éxito", $"Artículo '{articuloData.Name}' {msg} correctamente en la nube.", "OK");
 
-            // Enviamos el post de forma manual a Somee
-            var creado = await _apiService.CreateSupplierAsync(nuevoProveedor);
-
-            if (creado != null)
-            {
-                _proveedores.Add(creado);
-                RefrescarPickerProveedores();
-
-                // Lo dejamos seleccionado de inmediato en el formulario principal
-                PkrSupplier.SelectedIndex = PkrSupplier.Items.Count - 1;
-
-                await DisplayAlertAsync("Éxito", "Proveedor de contrato guardado con éxito.", "OK");
-                OnCerrarPopUpProveedorClicked(sender, e);
+                CleanupSessionAndLeave();
             }
             else
             {
-                await DisplayAlertAsync("Error", "No se pudo sincronizar el nuevo proveedor con Somee.", "OK");
+                await DisplayAlertAsync("Error de Servidor", "No se pudo sincronizar el artículo. Comprueba el log extendido de tu Web API.", "OK");
             }
         }
 
-        // Métodos de apoyo Multimedia, Cierre y Marcas estándar
+        private void CleanupSessionAndLeave()
+        {
+            // 🌟 CRUCIAL: Limpiamos el puente para que el siguiente artículo que se abra no se mezcle
+            UserSession.CurrentArticleToEdit = null;
+            Shell.Current.GoToAsync("..", false);
+        }
+
+        private void OnVolverClicked(object sender, EventArgs e) => CleanupSessionAndLeave();
+        private void OnCancelarClicked(object sender, EventArgs e) => CleanupSessionAndLeave();
+
         private async void OnTomarFotoPrincipalClicked(object sender, EventArgs e)
         {
             try
             {
                 if (MediaPicker.Default.IsCaptureSupported)
                 {
-                    var foto = await MediaPicker.Default.CapturePhotoAsync();
-                    if (foto != null) _rutaFotoPrincipal = foto.FullPath;
+                    var f = await MediaPicker.Default.CapturePhotoAsync();
+                    if (f != null)
+                    {
+                        _rutaFotoPrincipal = f.FullPath;
+                        ImgArticuloPreview.Source = ImageSource.FromFile(_rutaFotoPrincipal);
+                        ImgArticuloPreview.IsVisible = true;
+                        PlaceholderArticulo.IsVisible = false;
+                        BtnBorrarFotoPrincipal.IsVisible = true; // Muestra el botón de eliminar
+                    }
                 }
             }
-            catch (Exception ex) { Console.WriteLine($"Cámara: {ex.Message}"); }
+            catch (Exception ex) { Console.WriteLine(ex.Message); }
         }
 
-        private async void OnVolverClicked(object sender, EventArgs e) => await Shell.Current.GoToAsync("..", false);
-        private async void OnCancelarClicked(object sender, EventArgs e)
+        private async void OnTomarFotoComprobanteClicked(object sender, EventArgs e)
         {
-            if (await DisplayAlertAsync("Salir", "¿Descartar el formulario?", "Sí", "No")) await Shell.Current.GoToAsync("..", false);
+            try
+            {
+                if (MediaPicker.Default.IsCaptureSupported)
+                {
+                    var f = await MediaPicker.Default.CapturePhotoAsync();
+                    if (f != null)
+                    {
+                        _rutaFotoVoucher = f.FullPath;
+                        ImgVoucherPreview.Source = ImageSource.FromFile(_rutaFotoVoucher);
+                        ImgVoucherPreview.IsVisible = true;
+                        PlaceholderVoucher.IsVisible = false;
+                        BtnBorrarFotoVoucher.IsVisible = true; // 🌟 INYECTAR AQUÍ: Enciende el botón "X"
+                    }
+                }
+            }
+            catch (Exception ex) { Console.WriteLine(ex.Message); }
         }
 
-        private async void OnAdministrarMarcasClicked(object sender, EventArgs e)
-        {
-            OverlayMarcas.IsVisible = true; TxtNuevaMarca.Text = "";
-            await OverlayMarcas.FadeToAsync(1, 200, Easing.CubicOut);
-        }
-        private async void OnCerrarOverlayMarcasClicked(object sender, EventArgs e)
-        {
-            await OverlayMarcas.FadeToAsync(0, 150, Easing.CubicIn); OverlayMarcas.IsVisible = false;
-        }
+        private async void OnAdministrarMarcasClicked(object sender, EventArgs e) { OverlayMarcas.IsVisible = true; TxtNuevaMarca.Text = ""; await OverlayMarcas.FadeToAsync(1, 200); }
+        private async void OnCerrarOverlayMarcasClicked(object sender, EventArgs e) { await OverlayMarcas.FadeToAsync(0, 150); OverlayMarcas.IsVisible = false; }
         private async void OnGuardarMarcaClicked(object sender, EventArgs e)
         {
             if (PkrCategory.SelectedIndex == -1 || string.IsNullOrEmpty(TxtNuevaMarca.Text)) return;
-            var nuevaM = new Brand { InventoryId = _currentInventoryId, CategoryId = _categoriasHijas[PkrCategory.SelectedIndex].Id, Name = TxtNuevaMarca.Text.Trim() };
-            var res = await _apiService.CreateBrandAsync(nuevaM);
-            if (res != null)
+            var nM = new Brand { InventoryId = UserSession.CurrentInventory?.Id ?? 1, CategoryId = _categoriasHijas[PkrCategory.SelectedIndex].Id, Name = TxtNuevaMarca.Text.Trim() };
+            var res = await _apiService.CreateBrandAsync(nM);
+            if (res != null) { _marcasGlobales.Add(res); _marcasFiltradas.Add(res); PkrBrand.Items.Add(res.Name); PkrBrand.SelectedIndex = PkrBrand.Items.Count - 1; OnCerrarOverlayMarcasClicked(sender, e); }
+        }
+
+        // 1. Despierta el PopUp de proveedores con una transición suave de opacidad
+        private async void OnAdministrarProveedoresClicked(object sender, EventArgs e)
+        {
+            OverlayProveedores.IsVisible = true;
+            _currentMappedSupplier = null;
+            TxtPopupRuc.Text = "";
+            TxtPopupBusinessName.Text = "";
+            TxtPopupAddress.Text = "";
+            TxtPopupContactName.Text = "";
+            TxtPopupPhone.Text = "";
+            TxtPopupEmail.Text = "";
+            await OverlayProveedores.FadeToAsync(1, 200);
+        }
+
+        // 2. Cierra el PopUp limpiamente
+        private async void OnCerrarOverlayProveedoresClicked(object sender, EventArgs e)
+        {
+            await OverlayProveedores.FadeToAsync(0, 150);
+            OverlayProveedores.IsVisible = false;
+        }
+
+        // 3. El método de búsqueda SUNAT (El que interactúa con tu SuppliersController)
+        private async void OnBuscarRucPopupClicked(object sender, EventArgs e)
+        {
+            string ruc = TxtPopupRuc.Text?.Trim() ?? "";
+            if (ruc.Length != 11) { await DisplayAlertAsync("Validación", "El RUC debe tener 11 dígitos.", "OK"); return; }
+
+            try
             {
-                _marcasGlobales.Add(res); _marcasFiltradas.Add(res);
-                PkrBrand.Items.Add(res.Name); PkrBrand.SelectedIndex = PkrBrand.Items.Count - 1;
-                OnCerrarOverlayMarcasClicked(sender, e);
+                ActCargandoRuc.IsVisible = true;
+                ActCargandoRuc.IsRunning = true;
+
+                var prov = await _apiService.ConsultarRucAsync(ruc);
+                if (prov != null)
+                {
+                    _currentMappedSupplier = prov;
+                    TxtPopupBusinessName.Text = prov.BusinessName;
+                    TxtPopupAddress.Text = prov.Address;
+
+                    // 🛡️ CONTROL DE RIESGO COMERCIAL (Inyectado aquí):
+                    if (prov.Estado != "ACTIVO" || prov.Condicion != "HABIDO")
+                    {
+                        await DisplayAlertAsync("Riesgo Comercial",
+                            $"⚠️ ¡Atención! Este proveedor figura en SUNAT como [{prov.Estado}] y su condición legal es [{prov.Condicion}]. Evite emitir pagos contables.",
+                            "Entendido");
+                    }
+                }
+                else
+                {
+                    _currentMappedSupplier = null;
+                    await DisplayAlertAsync("Aviso", "No localizado en SUNAT. Ingresa los datos manualmente.", "OK");
+                }
             }
+            catch { await DisplayAlertAsync("Error", "Falla de red.", "OK"); }
+            finally { ActCargandoRuc.IsRunning = false; ActCargandoRuc.IsVisible = false; }
         }
 
-        private void RefrescarPickersDeParametros()
+        // 4. Guarda el proveedor nuevo en tu tabla 'suppliers' mediante la API
+        private async void OnGuardarProveedorClicked(object sender, EventArgs e)
         {
-            // Limpiamos los selectores visuales
-            PkrStatusParam.Items.Clear();
-            PkrLocationParam.Items.Clear();
-            PkrConditionParam.Items.Clear();
+            if (string.IsNullOrEmpty(TxtPopupBusinessName.Text)) return;
 
-            // Filtramos la lista maestra de _parametrosGlobales extraída de Somee
-            _estadosParam = _parametrosGlobales.Where(p => p.ParameterType == "Estado").ToList();
-            _ubicacionesParam = _parametrosGlobales.Where(p => p.ParameterType == "Ubicacion").ToList();
-            _condicionesParam = _parametrosGlobales.Where(p => p.ParameterType == "Condicion").ToList();
+            // Recolectamos lo que el operador haya digitado manualmente en los nuevos campos
+            string contacto = TxtPopupContactName.Text?.Trim() ?? "";
+            string telefono = TxtPopupPhone.Text?.Trim() ?? "";
+            string correo = TxtPopupEmail.Text?.Trim() ?? "";
 
-            // Llenamos la UI con el campo Name
-            _estadosParam.ForEach(p => PkrStatusParam.Items.Add(p.Name));
-            _ubicacionesParam.ForEach(p => PkrLocationParam.Items.Add(p.Name));
-            _condicionesParam.ForEach(p => PkrConditionParam.Items.Add(p.Name));
-        }
-
-        private async void OnAbrirPopUpParametroClicked(object sender, EventArgs e)
-        {
-            var btn = (Button)sender;
-            _tipoParametroActual = btn.CommandParameter?.ToString() ?? ""; // Captura "Estado", "Ubicacion" o "Condicion"
-
-            LblTituloPopUpParametro.Text = $"NUEVO REGISTRO DE {_tipoParametroActual.ToUpper()}";
-            TxtPopUpNombreParametro.Text = string.Empty;
-
-            OverlayParametro.IsVisible = true;
-            await OverlayParametro.FadeToAsync(1, 220, Easing.CubicOut);
-            TxtPopUpNombreParametro.Focus();
-        }
-
-        private async void OnCerrarPopUpParametroClicked(object sender, EventArgs e)
-        {
-            await OverlayParametro.FadeToAsync(0, 180, Easing.CubicIn);
-            OverlayParametro.IsVisible = false;
-        }
-
-        private async void OnGuardarParametroPopUpClicked(object sender, EventArgs e)
-        {
-            string nombreIngresado = TxtPopUpNombreParametro.Text?.Trim() ?? "";
-
-            if (string.IsNullOrEmpty(nombreIngresado))
+            // 🌟 ESCENARIO A: Si el proveedor vino de SUNAT, complementamos sus datos comerciales
+            if (_currentMappedSupplier != null)
             {
-                await DisplayAlertAsync("Validación", "Debes escribir un nombre para guardar.", "OK");
+                _currentMappedSupplier.ContactName = contacto;
+                _currentMappedSupplier.Phone = telefono;
+                _currentMappedSupplier.Email = correo;
+
+                bool actualizado = await _apiService.UpdateSupplierAsync(_currentMappedSupplier.Id, _currentMappedSupplier);
+                if (actualizado)
+                {
+                    if (!PkrSupplier.Items.Contains(_currentMappedSupplier.BusinessName))
+                    {
+                        // 🌟 Sincronizamos la memoria local
+                        _proveedoresGlobales.Add(_currentMappedSupplier);
+                        PkrSupplier.Items.Add(_currentMappedSupplier.BusinessName);
+                    }
+                    PkrSupplier.SelectedItem = _currentMappedSupplier.BusinessName;
+                    OnCerrarOverlayProveedoresClicked(sender, e);
+                }
+                else
+                {
+                    await DisplayAlertAsync("Error", "No se pudieron complementar los datos comerciales en el servidor.", "OK");
+                }
                 return;
             }
 
-            var nuevoParametro = new Parameters
+            // 📝 ESCENARIO B: Registro manual completo (Si SUNAT falló o no había internet)
+            var nP = new Supplier
             {
-                InventoryId = _currentInventoryId, // Se asocia al inventario actual de la sesión
-                ParameterType = _tipoParametroActual, // Inyecta la clasificación correcta
-                Name = nombreIngresado,
-                Description = $"Creado desde app móvil el {DateTime.Now:dd/MM/yyyy}"
+                InventoryId = 0,
+                Ruc = TxtPopupRuc.Text.Trim(),
+                BusinessName = TxtPopupBusinessName.Text.Trim(),
+                Address = TxtPopupAddress.Text?.Trim(),
+                ContactName = contacto,
+                Phone = telefono,
+                Email = correo,
+                StatusId = 1
             };
 
-            var parametroCreado = await _apiService.CreateParameterAsync(nuevoParametro);
-
-            if (parametroCreado != null)
+            var proveedorRegistrado = await _apiService.CreateSupplierAsync(nP);
+            if (proveedorRegistrado != null)
             {
-                // 1. Lo agregamos a la lista maestra general
-                _parametrosGlobales.Add(parametroCreado);
-
-                // 2. Refrescamos los Pickers visuales
-                RefrescarPickersDeParametros();
-
-                // 3. Dejamos el nuevo valor seleccionado automáticamente
-                if (_tipoParametroActual == "Estado") PkrStatusParam.SelectedIndex = PkrStatusParam.Items.Count - 1;
-                if (_tipoParametroActual == "Ubicacion") PkrLocationParam.SelectedIndex = PkrLocationParam.Items.Count - 1;
-                if (_tipoParametroActual == "Condicion") PkrConditionParam.SelectedIndex = PkrConditionParam.Items.Count - 1;
-
-                await DisplayAlertAsync("Éxito", $"{_tipoParametroActual} guardado correctamente.", "OK");
-                OnCerrarPopUpParametroClicked(sender, e);
+                _proveedoresGlobales.Add(proveedorRegistrado);
+                PkrSupplier.Items.Add(nP.BusinessName);
+                PkrSupplier.SelectedItem = nP.BusinessName;
+                OnCerrarOverlayProveedoresClicked(sender, e);
             }
-            else
+        }
+        private void OnPickerIndexChanged(object sender, EventArgs e)
+        {
+            if (sender is Picker picker)
             {
-                await DisplayAlertAsync("Error", $"No se pudo sincronizar el(la) {_tipoParametroActual} con el servidor.", "OK");
+                ControlarColorPlaceholderPicker(picker);
+            }
+        }
+
+        private void OnBorrarFotoPrincipalClicked(object sender, EventArgs e)
+        {
+            _rutaFotoPrincipal = null;
+            ImgArticuloPreview.Source = null;
+            ImgArticuloPreview.IsVisible = false;
+            BtnBorrarFotoPrincipal.IsVisible = false; // Oculta el botón de eliminar
+            PlaceholderArticulo.IsVisible = true;
+        }
+
+        private void OnBorrarFotoVoucherClicked(object sender, EventArgs e)
+        {
+            // 1. Limpiamos el rastro de la ruta en memoria
+            _rutaFotoVoucher = null;
+            ImgVoucherPreview.Source = null;
+            ImgVoucherPreview.IsVisible = false;
+            BtnBorrarFotoVoucher.IsVisible = false; // Oculta el botón de eliminar
+            PlaceholderVoucher.IsVisible = true;
+        }
+
+        private async void OnVerFotoPrincipalClicked(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_rutaFotoPrincipal)) return;
+
+            try
+            {
+                // Si el artículo viene de la nube de Somee, abrirá el navegador web nativo
+                if (_rutaFotoPrincipal.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                {
+                    await Launcher.Default.OpenAsync(new Uri(_rutaFotoPrincipal));
+                }
+                else // Si es una foto local recién tomada con la cámara, abre la galería del celular
+                {
+                    await Launcher.Default.OpenAsync(new OpenFileRequest("Visualizar Foto de Producto", new ReadOnlyFile(_rutaFotoPrincipal)));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PREVIEW_FAIL] {ex.Message}");
+                await DisplayAlertAsync("Vista Previa", "No se dispone de una aplicación nativa para abrir esta imagen.", "OK");
+            }
+        }
+
+        private async void OnVerFotoVoucherClicked(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_rutaFotoVoucher)) return;
+
+            try
+            {
+                if (_rutaFotoVoucher.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                {
+                    await Launcher.Default.OpenAsync(new Uri(_rutaFotoVoucher));
+                }
+                else
+                {
+                    await Launcher.Default.OpenAsync(new OpenFileRequest("Visualizar Comprobante", new ReadOnlyFile(_rutaFotoVoucher)));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PREVIEW_FAIL] {ex.Message}");
+                await DisplayAlertAsync("Vista Previa", "No se dispone de una aplicación nativa para abrir esta imagen.", "OK");
             }
         }
     }

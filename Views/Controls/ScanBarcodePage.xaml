@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.Maui.Controls"
+             x:Class="ControlInventarioMovil.Views.Controls.ScanBarcodePage"
+             BackgroundColor="#1C262E"
+             Title="ESCANEO ACTIVO">
+
+    <Grid>
+        <zxing:CameraBarcodeReaderView x:Name="barcodeReader"
+                                      BarcodesDetected="OnBarcodesDetected"/>
+
+        <Border Margin="30"
+                StrokeShape="RoundRectangle 20"
+                StrokeThickness="3"
+                Stroke="#A2D149"
+                BackgroundColor="Transparent"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                WidthRequest="250"
+                HeightRequest="150"
+                InputTransparent="True"/>
+
+        <HorizontalStackLayout VerticalOptions="End" 
+                               HorizontalOptions="Center" 
+                               Spacing="15" 
+                               Margin="20">
+
+            <Button Text="Cancelar"
+                    BackgroundColor="#2E3842"
+                    TextColor="White"
+                    WidthRequest="130"
+                    HeightRequest="45"
+                    Clicked="OnCloseClicked"/>
+
+            <Button Text="Subir de Galería"
+                    BackgroundColor="#A2D149"
+                    TextColor="#1C262E"
+                    FontAttributes="Bold"
+                    WidthRequest="160"
+                    HeightRequest="45"
+                    Clicked="OnPickImageClicked"/>
+        </HorizontalStackLayout>
+    </Grid>
+</ContentPage>
