@@ -166,13 +166,27 @@
 
                     <VerticalStackLayout Spacing="15">
                         <Label Text="INFORMACIÓN FINANCIERA DE TRANSACCIÓN" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+
                         <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
                             <VerticalStackLayout Grid.Column="0" Spacing="5">
                                 <Label Text="Costo Adquisición" TextColor="#939CA5" FontSize="12"/>
                                 <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <Entry x:Name="TxtAcquisitionPrice" TextColor="White" Placeholder="0.00" Keyboard="Numeric" HeightRequest="40"/>
+                                    <Entry x:Name="TxtAcquisitionPrice" 
+                       TextColor="White" 
+                       Placeholder="0.00" 
+                       Keyboard="Numeric" 
+                       HeightRequest="40"
+                       TextChanged="OnAcquisitionPriceChanged"/>
                                 </Border>
+
+                                <Label x:Name="LblConversionEquivalente" 
+                   TextColor="#A2D149" 
+                   FontSize="11" 
+                   FontAttributes="Bold" 
+                   Margin="5,2,0,0" 
+                   IsVisible="False"/>
                             </VerticalStackLayout>
+
                             <VerticalStackLayout Grid.Column="1" Spacing="5">
                                 <Label Text="Precio Venta Estimado" TextColor="#939CA5" FontSize="12"/>
                                 <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
@@ -180,13 +194,19 @@
                                 </Border>
                             </VerticalStackLayout>
                         </Grid>
+
                         <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
                             <VerticalStackLayout Grid.Column="0" Spacing="5">
                                 <Label Text="Moneda Adquisición" TextColor="#939CA5" FontSize="12"/>
                                 <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <Picker x:Name="PkrCurrency" TextColor="White" BackgroundColor="Transparent" HeightRequest="40" SelectedIndexChanged="OnPickerIndexChanged"/>
+                                    <Picker x:Name="PkrCurrency" 
+                        TextColor="White" 
+                        BackgroundColor="Transparent" 
+                        HeightRequest="40" 
+                        SelectedIndexChanged="OnMonedaChanged"/>
                                 </Border>
                             </VerticalStackLayout>
+
                             <VerticalStackLayout Grid.Column="1" Spacing="5">
                                 <Label Text="Fecha Adquisición" TextColor="#939CA5" FontSize="12"/>
                                 <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">

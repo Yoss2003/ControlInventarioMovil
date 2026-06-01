@@ -74,9 +74,10 @@ public partial class LoginPage : ContentPage
                 chkRememberMe.IsChecked = true;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Si el usuario denegó permisos de Keystore en su celular, fallará silenciosamente
+            System.Diagnostics.Debug.WriteLine($"[KEYSTORE RESET]: {ex.Message}");
+            SecureStorage.Default.RemoveAll(); // <-- Esta es la línea evitará crasheos
         }
 
         await AnimarFondo();
