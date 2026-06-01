@@ -628,6 +628,88 @@ namespace ControlInventarioMovil.Services
                 return 0; // Resguardo contable por si falla la red
             }
         }
+
+        public async Task<ExchangeRate?> GetTodayExchangeRateAsync(string currency = "USD")
+        {
+            try
+            {
+                // Añadimos la variable currency al final de la ruta
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/ExchangeRates/today/{currency}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    return JsonConvert.DeserializeObject<ExchangeRate>(json);
+                }
+            }
+            catch (Exception ex) { Console.WriteLine($"[API_ERROR] {ex.Message}"); }
+            return null;
+        }
+
+        // ====================================================================
+        // 🌟 MÉTODOS DE CONSUMO PARA PERFIL Y CONFIGURACIONES (PROFILE)
+        // ====================================================================
+
+        /// <summary>
+        /// Descarga la lista de perfiles de Somee y extrae la configuración amarrada al usuario activo.
+        /// </summary>
+        public async Task<ControlInventario.Shared.Models.Profile?> GetUserProfileConfigAsync(string username)
+        {
+            try
+            {
+                // Golpeamos el endpoint GET general de tu ProfilesController
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Profiles");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+
+                    // Deserializamos la lista completa de configuraciones
+                    var listaPerfiles = JsonConvert.DeserializeObject<List<ControlInventario.Shared.Models.Profile>>(json);
+
+                    // Buscamos el registro específico que le pertenece al usuario logueado
+                    return listaPerfiles?.FirstOrDefault(p => p.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[API_ERROR] GetUserProfileConfigAsync: {ex.Message}");
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Guarda o actualiza de forma inteligente las preferencias del usuario en SQL Server a través de la API.
+        /// </summary>
+        public async Task<bool> SaveUserProfileConfigAsync(ControlInventario.Shared.Models.Profile profileConfig)
+        {
+            try
+            {
+                // Convertimos el objeto C# a texto JSON limpio
+                string json = JsonConvert.SerializeObject(profileConfig);
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+                HttpResponseMessage response;
+
+                if (profileConfig.Id > 0)
+                {
+                    // Si el perfil ya existe en la BD (Id mayor a 0), ejecutamos una actualización (PUT)
+                    response = await _httpClient.PutAsync($"{BaseApiUrl}/Profiles/{profileConfig.Id}", content);
+                }
+                else
+                {
+                    // Si es la primera vez que el usuario guarda configuraciones, creamos el registro (POST)
+                    response = await _httpClient.PostAsync($"{BaseApiUrl}/Profiles", content);
+                }
+
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[API_ERROR] SaveUserProfileConfigAsync: {ex.Message}");
+                return false;
+            }
+        }
     }
 
     public class IntToBoolConverter : System.Text.Json.Serialization.JsonConverter<bool>

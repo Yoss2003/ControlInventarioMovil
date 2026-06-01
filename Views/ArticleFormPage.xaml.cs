@@ -713,5 +713,69 @@ namespace ControlInventarioMovil.Views
                 await DisplayAlertAsync("Vista Previa", "No se dispone de una aplicación nativa para abrir esta imagen.", "OK");
             }
         }
+
+        // ====================================================================
+        // 🪙 MOTOR INTELIGENTE DE TIPO DE CAMBIO SUNAT (AUTOMÁTICO)
+        // ====================================================================
+
+        // Se dispara cada vez que tu mamá o tú escriben o borran un número en el costo
+        private void OnAcquisitionPriceChanged(object sender, TextChangedEventArgs e)
+        {
+            CalcularEquivalenteMoneda();
+        }
+
+        // Se dispara cuando eligen entre Soles o Dólares en el Picker
+        private void OnMonedaChanged(object sender, EventArgs e)
+        {
+            ControlarColorPlaceholderPicker(PkrCurrency); // Mantenemos tu estilo estético original
+            CalcularEquivalenteMoneda();
+        }
+
+        private void CalcularEquivalenteMoneda()
+        {
+            try
+            {
+                if (PkrCurrency.SelectedIndex <= 0 || _monedasGlobales == null || _monedasGlobales.Count == 0)
+                {
+                    LblConversionEquivalente.IsVisible = false;
+                    return;
+                }
+
+                var monedaSeleccionada = _monedasGlobales[PkrCurrency.SelectedIndex - 1];
+                string codigoMoneda = monedaSeleccionada.CurrencyCode?.ToUpper() ?? "";
+
+                if (decimal.TryParse(TxtAcquisitionPrice.Text, out decimal costoExtranjero) && costoExtranjero > 0)
+                {
+                    decimal tipoCambioVenta = 0;
+
+                    // Evaluamos dinámicamente cuál de los dos almacenes de caché usar
+                    if (codigoMoneda == "USD" && UserSession.TodayExchangeRateUSD != null)
+                    {
+                        tipoCambioVenta = UserSession.TodayExchangeRateUSD.SellPrice;
+                    }
+                    else if (codigoMoneda == "EUR" && UserSession.TodayExchangeRateEUR != null)
+                    {
+                        tipoCambioVenta = UserSession.TodayExchangeRateEUR.SellPrice;
+                    }
+
+                    // Si encontramos un tipo de cambio válido, proyectamos la conversión en soles
+                    if (tipoCambioVenta > 0)
+                    {
+                        decimal totalSoles = costoExtranjero * tipoCambioVenta;
+                        LblConversionEquivalente.Text = $"≈ S/. {totalSoles:N2} (TC {codigoMoneda}: {tipoCambioVenta:F3})";
+                        LblConversionEquivalente.IsVisible = true;
+                        return;
+                    }
+                }
+
+                // Si es Soles o no hay datos, se oculta limpiamente la etiqueta
+                LblConversionEquivalente.IsVisible = false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[CONVERSION_ERROR] {ex.Message}");
+                LblConversionEquivalente.IsVisible = false;
+            }
+        }
     }
 }

@@ -2,6 +2,7 @@ using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
 using ControlInventarioMovil.Views.Controls;
+using ControlInventarioMovil.Helpers;
 using System.Diagnostics;
 
 namespace ControlInventarioMovil.Views
@@ -9,6 +10,7 @@ namespace ControlInventarioMovil.Views
     [QueryProperty(nameof(ScannedCodeResult), "scannedCode")]
     public partial class MainPage : ContentPage
     {
+        private bool _isAnimating = false;
         private readonly ApiService _apiService;
         // ==========================================
         // CONFIGURACIÓN PREMIUM DEL DIAL ORBITAL
@@ -61,35 +63,28 @@ namespace ControlInventarioMovil.Views
             base.OnAppearing();
             _estaNavegando = false;
 
-            // ====================================================================
-            // 🛡️ 1. ESCUDO DE SEGURIDAD AJUSTADO A TU CLASE APP
-            // ====================================================================
-            // Si se borraron los datos, expulsamos al usuario destruyendo el Shell
-            // y devolviendo la aplicación a su estado inicial nativo.
+            // 1. ESCUDO DE SEGURIDAD 
             if (UserSession.CurrentUser == null)
             {
-                System.Diagnostics.Debug.WriteLine("[SEGURIDAD] Sesión vacía. Restableciendo LoginPage como raíz.");
-
+                Debug.WriteLine("[SEGURIDAD] Sesión vacía. Restableciendo LoginPage como raíz.");
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    // Cambiamos la raíz de la aplicación de vuelta a tu Login
-                    Application.Current.MainPage = new Views.LoginPage();
+                    if (Application.Current?.Windows.Count > 0)
+                    {
+                        Application.Current.Windows[0].Page = new Views.LoginPage();
+                    }
                 });
                 return;
             }
 
-            // ====================================================================
-            // 🌀 2. ANIMACIÓN DEL RADAR ENERGÉTICO
-            // ====================================================================
+            // 2. ANIMACIÓN DEL RADAR ENERGÉTICO
             if (_radarCts == null || _radarCts.IsCancellationRequested)
             {
                 _radarCts = new CancellationTokenSource();
                 _ = AnimateAroEnergiaInfiniteSmooth(_radarCts.Token);
             }
 
-            // ====================================================================
-            // 👤 3. FORMATEO DE BIENVENIDA AL USUARIO (Ej: Yossimar M.G.)
-            // ====================================================================
+            // 3. FORMATEO DE BIENVENIDA AL USUARIO
             string firstName = UserSession.CurrentUser.FirstName?.Trim() ?? "";
             string lastName = UserSession.CurrentUser.LastName?.Trim() ?? "";
             string userRole = UserSession.CurrentUser.Role?.Name?.Trim() ?? "Usuario";
@@ -115,33 +110,76 @@ namespace ControlInventarioMovil.Views
             lblNombre.Text = $"Hola, {nombre} {apellido}".Trim();
             lblRol.Text = $"Rol: {userRole}";
 
-            // ====================================================================
-            // 📦 4. VERIFICACIÓN Y CARGA DEL INVENTARIO ACTIVO
-            // ====================================================================
+            // 4. VERIFICACIÓN Y CARGA DEL INVENTARIO ACTIVO
             if (UserSession.CurrentInventory == null)
             {
                 try
                 {
-                    var apiService = new ControlInventarioMovil.Services.ApiService();
-                    var listaInventarios = await apiService.GetInventoriesAsync();
-
+                    var listaInventarios = await _apiService.GetInventoriesAsync();
                     if (listaInventarios != null && listaInventarios.Any())
                     {
                         UserSession.CurrentInventory = listaInventarios.FirstOrDefault();
-                        System.Diagnostics.Debug.WriteLine($"[WORKSPACE] Entorno activo establecido: {UserSession.CurrentInventory?.InventoryName}");
+                        Debug.WriteLine($"[WORKSPACE] Entorno activo establecido: {UserSession.CurrentInventory?.InventoryName}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error al inicializar entornos: {ex.Message}");
+                    Debug.WriteLine($"Error al inicializar entornos: {ex.Message}");
                 }
             }
 
-            // ====================================================================
-            // 🔄 5. REFRESH DE INTERFAZ Y PROCESAMIENTO DE STOCK TOTAL
-            // ====================================================================
+            // 5. REFRESH DE INTERFAZ Y PROCESAMIENTO DE STOCK TOTAL
             await CargarAmbientesDeTrabajoAsync();
             await ActualizarStockCircularAsync();
+
+            _ = Task.Run(async () =>
+            {
+                if (UserSession.TodayExchangeRateUSD == null)
+                {
+                    var usd = await _apiService.GetTodayExchangeRateAsync("USD");
+                    if (usd != null) UserSession.TodayExchangeRateUSD = usd;
+                }
+
+                if (UserSession.TodayExchangeRateEUR == null)
+                {
+                    var eur = await _apiService.GetTodayExchangeRateAsync("EUR");
+                    if (eur != null) UserSession.TodayExchangeRateEUR = eur;
+                }
+            });
+
+            // 6. ENCENDIDO DE LA ANIMACIÓN DE FONDO
+            _isAnimating = true;
+            _ = AnimarFondo();
+
+            // Reanuda el contador para que la animación empiece de nuevo
+            ResetInactivityTimer();
+        }
+
+        private async Task AnimarFondo()
+        {
+            // El bucle verificará constantemente la bandera
+            while (_isAnimating)
+            {
+                try
+                {
+                    // EJEMPLO: Efecto de "respiración" o "flotación" sutil en tu elemento de fondo.
+                    // ⚠️ NOTA: Cambia "imgFondo" por el nombre exacto de la imagen o layout que quieras animar en tu XAML.
+                    // Si no tienes una imagen de fondo específica a animar, puedes omitir estas líneas.
+
+                    /* DESCOMENTAR SI TIENES UN ELEMENTO LLAMADO imgFondo:
+                    await imgFondo.ScaleTo(1.02, 2000, Easing.SinInOut);
+                    await imgFondo.ScaleTo(1.00, 2000, Easing.SinInOut);
+                    */
+
+                    // Pausa vital de rendimiento (evita que el bucle while consuma el 100% del procesador)
+                    await Task.Delay(100);
+                }
+                catch (Exception)
+                {
+                    // Si el usuario cambia de pantalla a mitad de la animación, salimos del bucle sin crashear
+                    break;
+                }
+            }
         }
 
         private async Task EntregarCódigoAlFooterAsync(string codigo)
@@ -155,11 +193,31 @@ namespace ControlInventarioMovil.Views
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            _radarCts?.Cancel();
-            _radarCts?.Dispose();
-            _radarCts = null;
+
+            _isAnimating = false;
+
+            // 1. Apagar el Radar
+            if (_radarCts != null && !_radarCts.IsCancellationRequested)
+            {
+                _radarCts.Cancel();
+                _radarCts.Dispose();
+                _radarCts = null;
+            }
+
+            // 2. Apagar el motor del Dial Orbital (Esto detiene el giro)
             StopOrbitalAnimation();
+            this.AbortAnimation("GiroOrbital");
+
+            // 3. Limpiar página base
+            this.CancelAnimations();
+
+            // 4. Limpiar botones
+            foreach (var boton in _botonesOrbitales)
+            {
+                boton.CancelAnimations();
+            }
         }
+
         // Descarga de almacenes desde Somee al Picker de MAUI
         private async Task CargarAmbientesDeTrabajoAsync()
         {
@@ -306,7 +364,6 @@ namespace ControlInventarioMovil.Views
             StopOrbitalAnimation();
             _inactivityTimer?.Stop();
 
-            // 1. EFECTO PULSE AL TOCAR
             if (_botonesOrbitales[index].Children[0] is VerticalStackLayout vsl && vsl.Children[0] is Border borde)
             {
                 borde.Stroke = Colors.Black;
@@ -314,50 +371,42 @@ namespace ControlInventarioMovil.Views
                 borde.Stroke = Color.FromArgb("#d3d3d3");
             }
 
-            // 2. MATEMÁTICA DE LA RUTA MÁS CORTA
             int pasoBase = (int)Math.Round(_anguloAcumuladoRad / (Math.PI / 2));
-
-            // Obtenemos dónde está físicamente el botón ahora mismo (0=Arriba, 1=Der, 2=Abajo, 3=Izq)
             int posFisica = ((index + pasoBase) % 4 + 4) % 4;
 
             int offsetPasos = 0;
-            if (posFisica == 1) offsetPasos = -1;      // Si está a las 3, retrocedemos 1 paso
-            else if (posFisica == 2) offsetPasos = 2;  // Si está a las 6, avanzamos 2 pasos (180°)
-            else if (posFisica == 3) offsetPasos = 1;  // Si está a las 9, avanzamos 1 paso
+            if (posFisica == 1) offsetPasos = -1;
+            else if (posFisica == 2) offsetPasos = 2;
+            else if (posFisica == 3) offsetPasos = 1;
 
             int pasoObjetivo = pasoBase + offsetPasos;
             double anguloInicial = _anguloAcumuladoRad;
             double anguloObjetivo = pasoObjetivo * (Math.PI / 2);
             double distancia = anguloObjetivo - anguloInicial;
 
-            // 3. ANIMACIÓN FLUIDA (CUBIC IN-OUT) HACIA EL ZENIT
+            // 🎯 NUEVO: Hacemos que la animación sea "awaitable"
             if (Math.Abs(distancia) > 0.01)
             {
-                var stopwatch = new Stopwatch();
-                stopwatch.Start();
-
-                // Tiempo dinámico: Si viaja de lado a lado (180°) le damos 800ms, si es 90° le damos 600ms
+                var tcs = new TaskCompletionSource<bool>();
                 int duracionVelozMs = Math.Abs(offsetPasos) == 2 ? 800 : 600;
+
                 var animacionOrbital = new Animation(v =>
                 {
-                    double progresoConEasing = v < 0.5
-                        ? 4 * Math.Pow(v, 3)
-                        : 1 - Math.Pow(-2 * v + 2, 3) / 2;
-
+                    double progresoConEasing = v < 0.5 ? 4 * Math.Pow(v, 3) : 1 - Math.Pow(-2 * v + 2, 3) / 2;
                     _anguloAcumuladoRad = anguloInicial + (distancia * progresoConEasing);
                     ActualizarPosicionesNodalesOnly(_anguloAcumuladoRad);
                 });
 
-                animacionOrbital.Commit(this, "GiroOrbital", length: (uint)duracionVelozMs, easing: Easing.Linear);
-                stopwatch.Stop();
+                animacionOrbital.Commit(this, "GiroOrbital", length: (uint)duracionVelozMs, easing: Easing.Linear,
+                    finished: (v, c) => tcs.SetResult(true)); // Avisa cuando termine
+
+                await tcs.Task; // Espera estrictamente a que el botón llegue al Zenit (12 en punto)
             }
 
-            // Fijación geométrica exacta
             _pasoActual = pasoObjetivo;
             _anguloAcumuladoRad = pasoObjetivo * (Math.PI / 2);
             ActualizarPosicionesNodalesOnly(_anguloAcumuladoRad);
 
-            // 4. REDIRECCIÓN A LA VISTA CORRESPONDIENTE
             string rutaDestino = index switch
             {
                 0 => "RegistrosPage",
@@ -367,16 +416,12 @@ namespace ControlInventarioMovil.Views
                 _ => ""
             };
 
-            // TODO: Comenta el DisplayAlertAsyncAsync y descomenta la línea de GoToAsync
-            await Task.Delay(500);
+            await Task.Delay(500); // Pausa solicitada antes de viajar
+
             if (!string.IsNullOrEmpty(rutaDestino))
             {
                 await Shell.Current.GoToAsync(rutaDestino);
             }
-            // await Shell.Current.GoToAsync(rutaDestino); 
-
-            _estaNavegando = false;
-            _inactivityTimer?.Start();
         }
 
         // ==========================================
@@ -443,6 +488,9 @@ namespace ControlInventarioMovil.Views
 
                     while (tiempoPasado < DuracionGiroMs)
                     {
+                        // 🛡️ CORTACIRCUITOS: Detiene el bucle interno inmediatamente si se hace click
+                        if (token.IsCancellationRequested) break;
+
                         tiempoPasado = stepStopwatch.Elapsed.TotalMilliseconds;
                         double progresoLineal = Math.Min(tiempoPasado / DuracionGiroMs, 1.0);
                         double progresoConEasing = 1 - Math.Pow(1 - progresoLineal, 3);
@@ -450,19 +498,22 @@ namespace ControlInventarioMovil.Views
                         _anguloAcumuladoRad = anguloInicial + (anguloObjetivo - anguloInicial) * progresoConEasing;
                         ActualizarPosicionesNodalesOnly(_anguloAcumuladoRad);
 
-                        await Task.Delay(16);
+                        // El token permite cancelar este milisegundo de pausa
+                        await Task.Delay(16, token);
                     }
+
+                    if (token.IsCancellationRequested) break;
 
                     _pasoActual++;
                     _anguloAcumuladoRad = _pasoActual * (Math.PI / 2);
                     ActualizarPosicionesNodalesOnly(_anguloAcumuladoRad);
                     _faseDeMovimientoActiva = false;
 
-                    if (_solicitudDetenerDespuesDelPaso || token.IsCancellationRequested) break;
+                    if (_solicitudDetenerDespuesDelPaso) break;
                     await Task.Delay(TiempoExposicionMs, token);
                 }
             }
-            catch (OperationCanceledException) { }
+            catch (OperationCanceledException) { } // Captura silenciosa si cortas la animación
             finally
             {
                 stepStopwatch.Stop();
@@ -513,42 +564,55 @@ namespace ControlInventarioMovil.Views
         // ==========================================
         private void ActualizarPosicionesNodalesOnly(double anguloRotacionAdicionalRad)
         {
-            double anguloZenitRad = -Math.PI / 2;
-            double umbralZenitRad = Math.PI / 4;
-
-            for (int i = 0; i < _botonesOrbitales.Count; i++)
+            try
             {
-                double anguloBaseBotonRad = anguloZenitRad + (i * Math.PI / 2);
-                double anguloTotalRad = anguloBaseBotonRad + anguloRotacionAdicionalRad;
+                double anguloZenitRad = -Math.PI / 2;
+                double umbralZenitRad = Math.PI / 4;
 
-                double posX = RadioOrbita * Math.Cos(anguloTotalRad);
-                double posY = RadioOrbita * Math.Sin(anguloTotalRad);
+                for (int i = 0; i < _botonesOrbitales.Count; i++)
+                {
+                    double anguloBaseBotonRad = anguloZenitRad + (i * Math.PI / 2);
+                    double anguloTotalRad = anguloBaseBotonRad + anguloRotacionAdicionalRad;
+
+                    double posX = RadioOrbita * Math.Cos(anguloTotalRad);
+                    double posY = RadioOrbita * Math.Sin(anguloTotalRad);
 
                     _botonesOrbitales[i].TranslationX = posX;
-                _botonesOrbitales[i].TranslationY = posY;
+                    _botonesOrbitales[i].TranslationY = posY;
 
-                double anguloBotonCalculadoRad = Math.Atan2(posY, posX);
-                double diferenciaRad = Math.Abs(anguloBotonCalculadoRad - (-Math.PI / 2));
-                if (diferenciaRad > Math.PI) diferenciaRad = 2 * Math.PI - diferenciaRad;
+                    double anguloBotonCalculadoRad = Math.Atan2(posY, posX);
+                    double diferenciaRad = Math.Abs(anguloBotonCalculadoRad - (-Math.PI / 2));
+                    if (diferenciaRad > Math.PI) diferenciaRad = 2 * Math.PI - diferenciaRad;
 
-                if (diferenciaRad < umbralZenitRad)
-                {
-                    if (_botonesOrbitales[i].Scale != EscalaZoomZenit)
+                    if (diferenciaRad < umbralZenitRad)
                     {
-                        _ = _botonesOrbitales[i].ScaleToAsync(EscalaZoomZenit, 100, Easing.Linear);
-                    }
+                        if (_botonesOrbitales[i].Scale != EscalaZoomZenit)
+                        {
+                            if (this.Window != null)
+                                _ = _botonesOrbitales[i].ScaleToAsync(EscalaZoomZenit, 100, Easing.Linear);
+                            else
+                                _botonesOrbitales[i].Scale = EscalaZoomZenit;
+                        }
 
-                    double opacidadCalculada = 1.0 - (diferenciaRad / umbralZenitRad);
-                    _textosOrbitales[i].Opacity = Math.Clamp(Math.Pow(opacidadCalculada, 2), 0, 1);
-                }
-                else
-                {
-                    if (_botonesOrbitales[i].Scale != 1.0)
-                    {
-                        _ = _botonesOrbitales[i].ScaleToAsync(1.0, 100, Easing.Linear);
+                        double opacidadCalculada = 1.0 - (diferenciaRad / umbralZenitRad);
+                        _textosOrbitales[i].Opacity = Math.Clamp(Math.Pow(opacidadCalculada, 2), 0, 1);
                     }
-                    _textosOrbitales[i].Opacity = 0;
+                    else
+                    {
+                        if (_botonesOrbitales[i].Scale != 1.0)
+                        {
+                            if (this.Window != null)
+                                _ = _botonesOrbitales[i].ScaleToAsync(1.0, 100, Easing.Linear);
+                            else
+                                _botonesOrbitales[i].Scale = 1.0;
+                        }
+                        _textosOrbitales[i].Opacity = 0;
+                    }
                 }
+            }
+            catch (Exception)
+            {
+                // Se ignora silenciosamente porque la app se está cerrando o el objeto ya se desechó
             }
         }
 
