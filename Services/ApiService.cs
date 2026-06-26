@@ -710,6 +710,32 @@ namespace ControlInventarioMovil.Services
                 return false;
             }
         }
+
+        // Obtener el catálogo maestro de permisos
+        public async Task<List<Permission>> GetPermissionsAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Permissions");
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<List<Permission>>() ?? new List<Permission>();
+                }
+            }
+            catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetPermissions: {ex.Message}"); }
+            return new List<Permission>();
+        }
+
+        // Actualizar los permisos de un rol específico
+        public async Task<bool> UpdateRolePermissionsAsync(int roleId, List<int> permissionIds)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Roles/{roleId}/permissions", permissionIds);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) { Console.WriteLine($"[API_ERROR] UpdateRolePermissions: {ex.Message}"); return false; }
+        }
     }
 
     public class IntToBoolConverter : System.Text.Json.Serialization.JsonConverter<bool>

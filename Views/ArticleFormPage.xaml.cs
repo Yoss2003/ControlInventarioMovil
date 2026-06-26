@@ -270,10 +270,27 @@ namespace ControlInventarioMovil.Views
             PkrCurrency.SelectedIndex = 0;
             PkrSaleCurrency.SelectedIndex = 0;
 
-            if (UserSession.CurrentInventory != null)
+            if (UserSession.CurrentProfile != null)
             {
-                int indexWarehouse = _ubicacionesParam.FindIndex(l => l.Id == UserSession.CurrentInventory.Id);
-                PkrLocationParam.SelectedIndex = indexWarehouse >= 0 ? indexWarehouse + 1 : 0;
+                if (UserSession.CurrentProfile.MeasurementUnitId.HasValue)
+                {
+                    var unidadPreferida = _todasLasUnidades.FirstOrDefault(u => u.Id == UserSession.CurrentProfile.MeasurementUnitId.Value);
+                    if (unidadPreferida != null)
+                    {
+                        int indexUnidad = _unidadesFiltradas.FindIndex(u => u.Id == unidadPreferida.Id);
+                        if (indexUnidad >= 0) PkrMeasurement.SelectedIndex = indexUnidad + 1;
+                    }
+                }
+
+                if (UserSession.CurrentProfile.CurrencyId.HasValue)
+                {
+                    int indexMoneda = _monedasGlobales.FindIndex(m => m.Id == UserSession.CurrentProfile.CurrencyId.Value);
+                    if (indexMoneda >= 0)
+                    {
+                        PkrCurrency.SelectedIndex = indexMoneda + 1;
+                        PkrSaleCurrency.SelectedIndex = indexMoneda + 1;
+                    }
+                }
             }
             else
             {
@@ -296,7 +313,6 @@ namespace ControlInventarioMovil.Views
             PkrMeasurement.Items.Clear();
             PkrMeasurement.SelectedIndex = -1;
 
-            // 🌟 CONTINGENCIA: Si eligen el índice 0 (Seleccione...) o no hay nada, reseteamos sub-catálogos
             if (PkrCategory.SelectedIndex <= 0)
             {
                 ContenedorNombre.IsVisible = false;
@@ -327,21 +343,21 @@ namespace ControlInventarioMovil.Views
             // 🎯 3. RE-CONFIGURACIÓN DINÁMICA Y FILTRADO TÁCTICO DE UNIDADES
             // ====================================================================
             PkrMeasurement.Items.Clear();
-            PkrMeasurement.Items.Add("Seleccione una unidad..."); // Inyectamos texto base en el índice 0
+            PkrMeasurement.Items.Add("Seleccione una unidad...");
 
             string[] abreviaturasPermitidas;
 
             if (string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase))
             {
-                abreviaturasPermitidas = new[] { "UND", "PAR", "JGO" };
+                abreviaturasPermitidas = ["UND", "PAR", "JGO"];
             }
             else if (string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase))
             {
-                abreviaturasPermitidas = new[] { "UND", "BOX", "MCTN", "PKT", "DOC", "BLST", "TRM", "CONT", "PAR", "JGO" };
+                abreviaturasPermitidas = ["UND", "BOX", "MCTN", "PKT", "DOC", "BLST", "TRM", "CONT", "PAR", "JGO"];
             }
             else
             {
-                abreviaturasPermitidas = new[] { "KGS", "TON", "LTS", "GAL", "ML", "GRS", "MTS", "CM", "MLN", "M2", "M3", "LBS", "OZ" };
+                abreviaturasPermitidas = ["KGS", "TON", "LTS", "GAL", "ML", "GRS", "MTS", "CM", "MLN", "M2", "M3", "LBS", "OZ"];
             }
 
             if (_todasLasUnidades != null && _todasLasUnidades.Count > 0)
@@ -362,10 +378,9 @@ namespace ControlInventarioMovil.Views
                 DisplayAlertAsync("Error de datos", "El catálogo maestro de unidades no ha cargado desde el servidor Somee.", "OK");
             }
 
-            PkrMeasurement.SelectedIndex = 0; // Apunta al "Seleccione..."
+            PkrMeasurement.SelectedIndex = 0;
             ControlarColorPlaceholderPicker(PkrMeasurement);
 
-            // Visibilidades condicionales
             SecBarcode.IsVisible = string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase);
             SecSku.IsVisible = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase);
             SecModelSerie.IsVisible = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase);
@@ -392,12 +407,24 @@ namespace ControlInventarioMovil.Views
             // 🗃️ 4. RE-FILTRADO DINÁMICO DE MARCAS
             // ====================================================================
             PkrBrand.Items.Clear();
-            PkrBrand.Items.Add("Seleccione una marca..."); // Inyectamos texto base en el índice 0
+            PkrBrand.Items.Add("Seleccione una marca...");
 
             if (_marcasGlobales != null)
             {
                 _marcasFiltradas = _marcasGlobales.Where(m => m.CategoryId == catSel.Id).ToList();
                 _marcasFiltradas.ForEach(m => PkrBrand.Items.Add(m.Name));
+            }
+
+            if (UserSession.CurrentProfile != null && UserSession.CurrentProfile.GenerateCodes)
+            {
+                if (!string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (string.IsNullOrWhiteSpace(TxtSku.Text))
+                    {
+                        string randomSuffix = Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper();
+                        TxtSku.Text = $"SKU-{DateTime.Now:yyMM}-{randomSuffix}";
+                    }
+                }
             }
 
             PkrBrand.SelectedIndex = 0;

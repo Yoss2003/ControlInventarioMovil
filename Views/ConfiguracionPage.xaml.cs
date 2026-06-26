@@ -10,10 +10,13 @@ namespace ControlInventarioMovil.Views
         private readonly ApiService _apiService;
         private Profile _currentProfile = new Profile();
 
+        public System.Collections.ObjectModel.ObservableCollection<PermissionToggleUI> ListaPermisosDinamicos { get; set; } = new();
+
         public ConfiguracionPage()
         {
             InitializeComponent();
             _apiService = new ApiService();
+            BindingContext = this;
         }
 
         protected override async void OnAppearing()
@@ -124,13 +127,59 @@ namespace ControlInventarioMovil.Views
                 SwShowThumbnails.IsToggled = Preferences.Default.Get("UI_ShowThumbnails", true);
                 SwCompactView.IsToggled = Preferences.Default.Get("UI_CompactView", false);
 
-                PkrRolesPermisos.Items.Clear();
-                PkrRolesPermisos.Items.Add(UserSession.CurrentUser.Role?.Name ?? "Administrador");
-                PkrRolesPermisos.SelectedIndex = 0;
+                var permisosGlobales = await _apiService.GetPermissionsAsync();
+                ListaPermisosDinamicos.Clear();
+                foreach (var p in permisosGlobales)
+                {
+                    ListaPermisosDinamicos.Add(new PermissionToggleUI
+                    {
+                        PermissionId = p.Id,
+                        Name = p.Name,
+                        SystemCode = p.SystemCode,
+                        HasPermission = false
+                    });
+                }
+
+                var rolesDisponibles = await _apiService.GetRolesAsync();
+                if (rolesDisponibles != null && rolesDisponibles.Any())
+                {
+                    PkrRolesPermisos.ItemsSource = rolesDisponibles;
+                    PkrRolesPermisos.ItemDisplayBinding = new Binding("Name");
+                    PkrRolesPermisos.SelectedIndexChanged -= OnRolPermisosChanged;
+
+                    int indexRolActual = rolesDisponibles.FindIndex(r => r.Name == (UserSession.CurrentUser.Role?.Name ?? "Administrador"));
+                    PkrRolesPermisos.SelectedIndex = indexRolActual >= 0 ? indexRolActual : 0;
+
+                    PkrRolesPermisos.SelectedIndexChanged += OnRolPermisosChanged;
+                    OnRolPermisosChanged(null, EventArgs.Empty);
+                }
             }
             catch (Exception ex)
             {
                 await DisplayAlertAsync("Fallo de Carga", $"Error al estructurar el perfil: {ex.Message}", "OK");
+            }
+        }
+
+        private void OnRolPermisosChanged(object? sender, EventArgs e)
+        {
+            if (PkrRolesPermisos.SelectedItem is Role rolSeleccionado)
+            {
+                foreach (var permisoUi in ListaPermisosDinamicos)
+                {
+                    permisoUi.HasPermission = false;
+                }
+
+                if (rolSeleccionado.RolePermissions != null)
+                {
+                    foreach (var rp in rolSeleccionado.RolePermissions)
+                    {
+                        var uiMatch = ListaPermisosDinamicos.FirstOrDefault(p => p.PermissionId == rp.PermissionId);
+                        if (uiMatch != null)
+                        {
+                            uiMatch.HasPermission = true;
+                        }
+                    }
+                }
             }
         }
 
@@ -199,6 +248,17 @@ namespace ControlInventarioMovil.Views
                 _currentProfile.MeasurementUnitId = PkrMeasurementUnit.SelectedIndex + 1;
                 _currentProfile.ThemeId = SwDarkMode.IsToggled ? 1 : 2;
 
+                if (PkrRolesPermisos.SelectedItem is Role rolGuardar)
+                {
+                    // Extraemos solo los IDs de los switches que están encendidos
+                    var permisosActivos = ListaPermisosDinamicos
+                        .Where(p => p.HasPermission)
+                        .Select(p => p.PermissionId)
+                        .ToList();
+
+                    await _apiService.UpdateRolePermissionsAsync(rolGuardar.Id, permisosActivos);
+                }
+
                 // 3. Sincronizar con Somee
                 bool exito = await _apiService.SaveUserProfileConfigAsync(_currentProfile);
 
@@ -228,4 +288,27 @@ namespace ControlInventarioMovil.Views
 
         private async void OnVolverClicked(object sender, EventArgs e) => await Shell.Current.GoToAsync("..");
     }
+}
+
+public class PermissionToggleUI : System.ComponentModel.INotifyPropertyChanged
+{
+    public int PermissionId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string SystemCode { get; set; } = string.Empty;
+
+    private bool _hasPermission;
+    public bool HasPermission
+    {
+        get => _hasPermission;
+        set
+        {
+            if (_hasPermission != value)
+            {
+                _hasPermission = value;
+                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(HasPermission)));
+            }
+        }
+    }
+
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
 }
