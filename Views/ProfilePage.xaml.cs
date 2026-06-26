@@ -112,7 +112,7 @@ public partial class ProfilePage : ContentPage
         if (confirmacion)
         {
             UserSession.CurrentUser = null;
-            await Shell.Current.GoToAsync("//LoginPage");
+            await Shell.Current.GoToAsync("LoginPage");
         }
     }
 }

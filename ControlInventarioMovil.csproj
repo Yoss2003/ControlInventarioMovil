@@ -90,6 +90,7 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.70" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.8" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+		<PackageReference Include="Otp.NET" Version="1.4.1" />
 		<PackageReference Include="Plugin.Maui.ImageCropper" Version="3.0.0" />
 		<PackageReference Include="ZXing.Net" Version="0.16.11" />
 		<PackageReference Include="ZXing.Net.Maui" Version="0.7.4" />
@@ -107,6 +108,9 @@
 	<ItemGroup>
 	  <Compile Update="Views\MainPage.xaml.cs">
 	    <DependentUpon>MainPage.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Views\UserManagementPage.xaml.cs">
+	    <DependentUpon>UserManagementPage.xaml</DependentUpon>
 	  </Compile>
 	</ItemGroup>
 
@@ -139,6 +143,12 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\ProfilePage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\UserFormPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\UserManagementPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	</ItemGroup>

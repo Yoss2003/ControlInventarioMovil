@@ -53,7 +53,6 @@ namespace ControlInventarioMovil.Views
 
             try
             {
-                // 1. Población estructural de Pickers
                 PkrLanguage.Items.Clear();
                 PkrLanguage.Items.Add("Español (PE)");
                 PkrLanguage.Items.Add("English (US)");
@@ -89,16 +88,15 @@ namespace ControlInventarioMovil.Views
                 PkrMeasurementUnit.Items.Add("Kilogramos (KGS)");
                 PkrMeasurementUnit.Items.Add("Litros (LTS)");
 
+                // Renderizar Tasas de Cambio en los labels informativos
                 if (UserSession.TodayExchangeRateUSD != null)
                     LblTcDolar.Text = $"S/. {UserSession.TodayExchangeRateUSD.SellPrice:F3}";
                 if (UserSession.TodayExchangeRateEUR != null)
                     LblTcEuro.Text = $"S/. {UserSession.TodayExchangeRateEUR.SellPrice:F3}";
 
-                // 2. Descarga desde Somee
                 var configServer = await _apiService.GetUserProfileConfigAsync(UserSession.CurrentUser.Username);
                 _currentProfile = configServer ?? new Profile { Username = UserSession.CurrentUser.Username, Id = 0 };
 
-                // 3. Asignación de booleanos
                 SwApplyLateFee.IsToggled = _currentProfile.ApplyLateFee;
                 SwUseAuthentication.IsToggled = _currentProfile.UseAuthentication;
                 SwSharedActivity.IsToggled = _currentProfile.SharedActivity;
@@ -109,11 +107,9 @@ namespace ControlInventarioMovil.Views
                 TxtGraceDays.Text = _currentProfile.GraceDays?.ToString() ?? "0";
                 TxtLateFeePercentage.Text = _currentProfile.LateFeePercentage?.ToString("F2") ?? "0.00";
 
-                // 🎯 CORRECCIÓN: Si es nulo, dejamos vacío ("") para que se muestre el Placeholder del XAML
                 TxtSmtpEmail.Text = _currentProfile.SmtpEmail ?? string.Empty;
                 TxtSmtpPassword.Text = _currentProfile.SmtpPassword ?? string.Empty;
 
-                // Índices de Pickers
                 PkrLanguage.SelectedIndex = (_currentProfile.LanguageId != null) ? _currentProfile.LanguageId.Value - 1 : 0;
                 PkrDateFormat.SelectedIndex = (_currentProfile.DateFormatId != null) ? _currentProfile.DateFormatId.Value - 1 : 0;
                 PkrTimeZone.SelectedIndex = (_currentProfile.TimeZoneId != null) ? _currentProfile.TimeZoneId.Value - 1 : 0;
@@ -143,15 +139,23 @@ namespace ControlInventarioMovil.Views
                 var rolesDisponibles = await _apiService.GetRolesAsync();
                 if (rolesDisponibles != null && rolesDisponibles.Any())
                 {
-                    PkrRolesPermisos.ItemsSource = rolesDisponibles;
-                    PkrRolesPermisos.ItemDisplayBinding = new Binding("Name");
                     PkrRolesPermisos.SelectedIndexChanged -= OnRolPermisosChanged;
 
-                    int indexRolActual = rolesDisponibles.FindIndex(r => r.Name == (UserSession.CurrentUser.Role?.Name ?? "Administrador"));
+                    PkrRolesPermisos.ItemsSource = rolesDisponibles;
+                    PkrRolesPermisos.ItemDisplayBinding = new Binding("Name");
+
+                    int indexRolActual = rolesDisponibles.FindIndex(r => r.Id == (UserSession.CurrentUser.RoleId));
                     PkrRolesPermisos.SelectedIndex = indexRolActual >= 0 ? indexRolActual : 0;
 
                     PkrRolesPermisos.SelectedIndexChanged += OnRolPermisosChanged;
                     OnRolPermisosChanged(null, EventArgs.Empty);
+                }
+
+                if (UserSession.CurrentUser != null)
+                {
+                    SwGoogle2FA.Toggled -= OnGoogle2FAToggled;
+                    SwGoogle2FA.IsToggled = UserSession.CurrentUser.IsTwoFactorEnabled;
+                    SwGoogle2FA.Toggled += OnGoogle2FAToggled;
                 }
             }
             catch (Exception ex)
@@ -287,6 +291,83 @@ namespace ControlInventarioMovil.Views
         }
 
         private async void OnVolverClicked(object sender, EventArgs e) => await Shell.Current.GoToAsync("..");
+
+        private async void OnGoogle2FAToggled(object? sender, ToggledEventArgs e)
+        {
+            if (UserSession.CurrentUser == null) return;
+            int userId = UserSession.CurrentUser.Id;
+
+            if (e.Value) // El usuario encendió el Switch
+            {
+                // 1. Solicitamos a la API el secreto y la URI criptográfica
+                var setupData = await _apiService.Generate2FAAsync(userId);
+                if (setupData != null)
+                {
+                    // Usamos un generador de QR público vía HTTPS pasando la URI codificada en URL
+                    string urlEncoderUri = System.Net.WebUtility.UrlEncode(setupData.Value.QrUri);
+                    ImgQrCode.Source = ImageSource.FromUri(new Uri($"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={urlEncoderUri}"));
+
+                    // Mostramos el panel de configuración
+                    SecQrSetup.IsVisible = true;
+                }
+                else
+                {
+                    // Si falla, apagamos el switch por seguridad
+                    SwGoogle2FA.IsToggled = false;
+                    await DisplayAlertAsync("Error", "No se pudo conectar con el módulo de seguridad de la API.", "OK");
+                }
+            }
+            else // El usuario apagó el Switch
+            {
+                bool confirmarApagado = await DisplayAlertAsync("Desactivar Seguridad", "¿Estás seguro de que deseas remover la protección de Google Authenticator de tu cuenta?", "Sí, remover", "Cancelar");
+                if (confirmarApagado)
+                {
+                    bool exito = await _apiService.Disable2FAAsync(userId);
+                    if (exito)
+                    {
+                        UserSession.CurrentUser.IsTwoFactorEnabled = false;
+                        SecQrSetup.IsVisible = false;
+                        await DisplayAlertAsync("Seguridad", "2FA Desactivado correctamente.", "OK");
+                    }
+                }
+                else
+                {
+                    // Si se arrepiente, volvemos a encender el switch visualmente sin disparar el evento de nuevo
+                    SwGoogle2FA.Toggled -= OnGoogle2FAToggled;
+                    SwGoogle2FA.IsToggled = true;
+                    SwGoogle2FA.Toggled += OnGoogle2FAToggled;
+                }
+            }
+        }
+
+        private async void OnConfirmar2FAClicked(object? sender, EventArgs e)
+        {
+            if (UserSession.CurrentUser == null) return;
+            string token = TxtTokenConfirmar.Text?.Trim() ?? "";
+
+            if (token.Length != 6)
+            {
+                await DisplayAlertAsync("Validación", "El token debe ser de exactamente 6 dígitos numéricos.", "OK");
+                return;
+            }
+
+            // Enviamos el token a la API para confirmar el amarre
+            bool activadoExitosamente = await _apiService.Enable2FAAsync(UserSession.CurrentUser.Id, token);
+
+            if (activadoExitosamente)
+            {
+                // Actualizamos la sesión móvil en vivo
+                UserSession.CurrentUser.IsTwoFactorEnabled = true;
+                SecQrSetup.IsVisible = false;
+                TxtTokenConfirmar.Text = "";
+
+                await DisplayAlertAsync("🔒 Cuenta Protegida", "¡Excelente! Google Authenticator ha sido enlazado con éxito a tu cuenta contable.", "Perfecto");
+            }
+            else
+            {
+                await DisplayAlertAsync("Error de Validación", "El código ingresado no coincide con el QR o ya expiró. Inténtalo de nuevo.", "OK");
+            }
+        }
     }
 }
 

@@ -726,7 +726,6 @@ namespace ControlInventarioMovil.Services
             return new List<Permission>();
         }
 
-        // Actualizar los permisos de un rol específico
         public async Task<bool> UpdateRolePermissionsAsync(int roleId, List<int> permissionIds)
         {
             try
@@ -735,6 +734,109 @@ namespace ControlInventarioMovil.Services
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex) { Console.WriteLine($"[API_ERROR] UpdateRolePermissions: {ex.Message}"); return false; }
+        }
+
+        public async Task<(string Secret, string QrUri)?> Generate2FAAsync(int userId)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsync($"{BaseApiUrl}/Users/{userId}/generate-2fa", null);
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var data = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(json);
+
+                    string secret = (string?)data?.secret ?? string.Empty;
+                    string qrUri = (string?)data?.qrUri ?? string.Empty;
+
+                    return (secret, qrUri);
+                }
+            }
+            catch (Exception ex) { Console.WriteLine($"[2FA_ERR] Generate: {ex.Message}"); }
+            return null;
+        }
+
+        public async Task<bool> Enable2FAAsync(int userId, string code)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Users/{userId}/enable-2fa", code);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) { Console.WriteLine($"[2FA_ERR] Enable: {ex.Message}"); return false; }
+        }
+
+        public async Task<bool> Disable2FAAsync(int userId)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsync($"{BaseApiUrl}/Users/{userId}/disable-2fa", null);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) { Console.WriteLine($"[2FA_ERR] Disable: {ex.Message}"); return false; }
+        }
+
+        public async Task<bool> SaveUserAsync(User user)
+        {
+            try
+            {
+                HttpResponseMessage response;
+
+                if (user.Id == 0)
+                {
+                    // ID 0 = Registro Nuevo (POST)
+                    response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Users", user);
+                }
+                else
+                {
+                    // ID > 0 = Edición (PUT)
+                    response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Users/{user.Id}", user);
+                }
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return true;
+                }
+                else
+                {
+                    // 🚨 ¡AQUÍ ATRAPAMOS AL CULPABLE!
+                    // Leemos el texto de error exacto que envía Somee
+                    string errorDetail = await response.Content.ReadAsStringAsync();
+
+                    // Lo imprimimos en la consola de Visual Studio (Ventana de Salida / Output)
+                    System.Diagnostics.Debug.WriteLine("=========================================");
+                    System.Diagnostics.Debug.WriteLine($"[API RECHAZADA] Código: {response.StatusCode}");
+                    System.Diagnostics.Debug.WriteLine($"[DETALLE]: {errorDetail}");
+                    System.Diagnostics.Debug.WriteLine("=========================================");
+
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EXCEPCIÓN CRÍTICA] SaveUserAsync: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<List<User>?> GetUsersAsync()
+        {
+            try
+            {
+                // Consumimos el endpoint GET estándar de tu controlador de usuarios
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Users");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    return Newtonsoft.Json.JsonConvert.DeserializeObject<List<User>>(json);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[API_ERR] GetUsers: {ex.Message}");
+            }
+            return null;
         }
     }
 

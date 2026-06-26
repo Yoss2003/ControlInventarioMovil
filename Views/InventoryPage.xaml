@@ -128,7 +128,7 @@
 
         <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="12" Padding="15,12,15,15" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
             <Button Grid.Column="0" Text="PANEL PRINCIPAL" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=#939CA5}" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" FontSize="12" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVolverClicked"/>
-            <Button Grid.Column="1" Text="+ NUEVO ARTÍCULO" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" FontSize="12" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAgregarArticuloClicked"/>
+            <Button x:Name="BtnNuevoArticulo" Grid.Column="1" Text="+ NUEVO ARTÍCULO" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" FontSize="12" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAgregarArticuloClicked"/>
         </Grid>
 
     </Grid>

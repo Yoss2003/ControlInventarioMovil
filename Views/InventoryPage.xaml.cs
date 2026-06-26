@@ -22,13 +22,21 @@ namespace ControlInventarioMovil.Views
 
             if (UserSession.CurrentProfile != null)
             {
-                // Cambiar dinámicamente un texto descriptivo basado en el idioma de la BD 
                 LblNombreAlmacen.Text = UserSession.CurrentProfile.LanguageId == 2 ? "ACTIVE WAREHOUSE" : "ALMACÉN ACTIVO";
-
-                // Modificar el padding del CONTENEDOR del CollectionView según el modo compactado
                 bool modoCompacto = Preferences.Default.Get("UI_CompactView", false);
                 ContenedorLista.Padding = modoCompacto ? new Thickness(5, 4) : new Thickness(15, 12);
             }
+
+            bool puedeCrear = false;
+            var userRole = UserSession.CurrentUser?.Role;
+
+            if (userRole?.Name == "Administrador" ||
+               (userRole?.RolePermissions != null && userRole.RolePermissions.Any(rp => rp.Permission?.SystemCode == "CREATE_ARTICLES")))
+            {
+                puedeCrear = true;
+            }
+
+            BtnNuevoArticulo.IsVisible = puedeCrear;
         }
 
         private async Task SincronizarListadoArticulosAsync()
