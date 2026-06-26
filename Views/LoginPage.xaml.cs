@@ -1,6 +1,8 @@
 namespace ControlInventarioMovil.Views;
 using ControlInventario.Models;
+using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
+using Newtonsoft.Json;
 
 public partial class LoginPage : ContentPage
 {
@@ -18,43 +20,80 @@ public partial class LoginPage : ContentPage
 
     private async void OnLoginClicked(object sender, EventArgs e)
     {
+        if (string.IsNullOrWhiteSpace(txtUsername.Text) || string.IsNullOrWhiteSpace(txtPassword.Text))
+        {
+            await DisplayAlertAsync("Validación", "Ingresa tu usuario y contraseña.", "OK");
+            return;
+        }
+
         loading.IsRunning = true;
 
-        // Llamada real a tu API
-        var user = await _apiService.LoginAsync(txtUsername.Text, txtPassword.Text);
+        var loginData = new { Username = txtUsername.Text.Trim(), Password = txtPassword.Text.Trim(), TwoFactorCode = (string?)null };
+        
+        using var client = new HttpClient();
+        string jsonContent = JsonConvert.SerializeObject(loginData);
+        var httpContent = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/Login", httpContent);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            string resString = await response.Content.ReadAsStringAsync();
+            if (resString.Contains("requires2FA") || resString.Contains("Código 2FA requerido"))
+            {
+                loading.IsRunning = false;
+                
+                string tokenIngresado = await DisplayPromptAsync(
+                    "Seguridad de Dos Pasos (2FA)",
+                    "Tu cuenta está protegida. Ingresa el código de 6 dígitos de tu aplicación Google Authenticator:",
+                    "Verificar e Ingresar",
+                    "Cancelar",
+                    placeholder: "000000",
+                    maxLength: 6,
+                    keyboard: Keyboard.Numeric);
+
+                if (string.IsNullOrWhiteSpace(tokenIngresado) || tokenIngresado.Length != 6)
+                {
+                    await DisplayAlertAsync("Cancelado", "Inicio de sesión cancelado o código incompleto.", "OK");
+                    return;
+                }
+
+                loading.IsRunning = true;
+
+                var loginDataWith2FA = new { Username = txtUsername.Text.Trim(), Password = txtPassword.Text.Trim(), TwoFactorCode = tokenIngresado.Trim() };
+                string jsonContent2FA = JsonConvert.SerializeObject(loginDataWith2FA);
+                var httpContent2FA = new StringContent(jsonContent2FA, System.Text.Encoding.UTF8, "application/json");
+
+                response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/Login", httpContent2FA);
+            }
+        }
 
         loading.IsRunning = false;
 
-        // Si user no es null, el login fue exitoso en la base de datos
-        if (user != null)
+        if (response.IsSuccessStatusCode)
         {
-            // 1. Asignamos el usuario real a la sesión
-            UserSession.CurrentUser = user;
+            var responseString = await response.Content.ReadAsStringAsync();
+            var user = JsonConvert.DeserializeObject<User>(responseString);
 
-            // 2. === LÓGICA DE RECUÉRDAME ===
-            if (chkRememberMe.IsChecked)
+            if (user != null)
             {
-                // Guardamos en la bóveda segura del teléfono
-                await SecureStorage.Default.SetAsync("saved_username", txtUsername.Text);
-                await SecureStorage.Default.SetAsync("saved_password", txtPassword.Text);
-            }
-            else
-            {
-                // Si la desmarcó, limpiamos el rastro por seguridad
-                SecureStorage.Default.Remove("saved_username");
-                SecureStorage.Default.Remove("saved_password");
-            }
+                UserSession.CurrentUser = user;
 
-            // 3. === NAVEGACIÓN ===
-            if (Application.Current?.Windows.Count > 0)
-            {
-                Application.Current.Windows[0].Page = new AppShell();
+                if (chkRememberMe.IsChecked)
+                {
+                    await SecureStorage.Default.SetAsync("saved_username", txtUsername.Text);
+                    await SecureStorage.Default.SetAsync("saved_password", txtPassword.Text);
+                }
+
+                if (Application.Current?.Windows.Count > 0)
+                {
+                    Application.Current.Windows[0].Page = new AppShell();
+                }
             }
         }
         else
         {
-            // Si el usuario es null, la API rechazó las credenciales
-            await DisplayAlertAsync("Error", "Usuario o contraseña incorrectos", "Intentar de nuevo");
+            await DisplayAlertAsync("Error de Acceso", "Usuario, contraseña o código de seguridad incorrectos.", "Intentar de nuevo");
         }
     }
 

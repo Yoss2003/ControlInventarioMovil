@@ -39,13 +39,13 @@ namespace ControlInventarioMovil.Views
         {
             base.OnAppearing();
 
-            // 1. Cargamos todos los catálogos base de la nube
             await CargarCatalogosFormularioAsync();
 
             if (UserSession.CurrentProfile != null)
                 SecBarcode.IsVisible = UserSession.CurrentProfile.UseBarcodes;
 
-            // 2. 🌟 DETECTOR DE MODO (ALTA VS EDICIÓN)
+            AplicarSeguridadDeCostos();
+
             if (UserSession.CurrentArticleToEdit != null)
                 HydrateFormularioParaEdicion(UserSession.CurrentArticleToEdit);
             else
@@ -945,7 +945,7 @@ namespace ControlInventarioMovil.Views
         }
 
         // ====================================================================
-        // 🚚 MÉTODOS PARA PROVEEDORES
+        // MÉTODOS PARA PROVEEDORES
         // ====================================================================
         private async void OnEditarProveedorClicked(object sender, EventArgs e)
         {
@@ -955,7 +955,6 @@ namespace ControlInventarioMovil.Views
                 return;
             }
 
-            // 🎯 MAGIA: Reutilizamos tu ventana Overlay inyectando los datos actuales
             var proveedorSeleccionado = _proveedoresGlobales[PkrSupplier.SelectedIndex - 1];
             _currentMappedSupplier = proveedorSeleccionado; // Tu método de guardar ya sabe qué hacer si esto no es null!
 
@@ -971,14 +970,13 @@ namespace ControlInventarioMovil.Views
         }
 
         // ====================================================================
-        // 🟢 MÉTODOS PARA ESTADOS
+        // MÉTODOS PARA ESTADOS
         // ====================================================================
         private async void OnAdministrarEstadoClicked(object sender, EventArgs e)
         {
             string nuevoEstado = await DisplayPromptAsync("Nuevo Estado", "Ingrese el nombre del nuevo estado:");
             if (!string.IsNullOrWhiteSpace(nuevoEstado))
             {
-                // 🚀 API: var paramRegistrado = await _apiService.CreateParameterAsync(...);
                 var nuevoParam = new Parameters { Id = _estadosParam.Count + 1, Name = nuevoEstado.Trim(), ParameterType = "Estado" };
 
                 _estadosParam.Add(nuevoParam);
@@ -997,13 +995,12 @@ namespace ControlInventarioMovil.Views
             if (!string.IsNullOrWhiteSpace(nuevoNombre) && nuevoNombre != estadoSel.Name)
             {
                 estadoSel.Name = nuevoNombre.Trim();
-                // 🚀 API: await _apiService.UpdateParameterAsync(...);
                 PkrStatusParam.Items[PkrStatusParam.SelectedIndex] = estadoSel.Name;
             }
         }
 
         // ====================================================================
-        // 🏢 MÉTODOS PARA UBICACIONES / ALMACÉN
+        // MÉTODOS PARA UBICACIONES / ALMACÉN
         // ====================================================================
         private async void OnAdministrarUbicacionClicked(object sender, EventArgs e)
         {
@@ -1059,6 +1056,33 @@ namespace ControlInventarioMovil.Views
             {
                 condicionSel.Name = nuevoNombre.Trim();
                 PkrConditionParam.Items[PkrConditionParam.SelectedIndex] = condicionSel.Name;
+            }
+        }
+
+        private void AplicarSeguridadDeCostos()
+        {
+            bool puedeVerCostos = false;
+            var userRole = UserSession.CurrentUser?.Role;
+
+            if (userRole?.Name == "Administrador" ||
+               (userRole?.RolePermissions != null && userRole.RolePermissions.Any(rp => rp.Permission?.SystemCode == "EDIT_COSTS")))
+            {
+                puedeVerCostos = true;
+            }
+
+            if (!puedeVerCostos)
+            {
+                TxtAcquisitionPrice.IsReadOnly = true;
+
+                TxtAcquisitionPrice.IsPassword = true;
+
+                PkrCurrency.IsEnabled = false;
+            }
+            else
+            {
+                TxtAcquisitionPrice.IsReadOnly = false;
+                TxtAcquisitionPrice.IsPassword = false;
+                PkrCurrency.IsEnabled = true;
             }
         }
     }

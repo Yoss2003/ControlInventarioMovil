@@ -1,4 +1,5 @@
-﻿using ControlInventarioMovil.Views;
+﻿using ControlInventario.Models;
+using ControlInventarioMovil.Views;
 using ControlInventarioMovil.Views.Controls;
 
 namespace ControlInventarioMovil
@@ -8,6 +9,15 @@ namespace ControlInventarioMovil
         public AppShell()
         {
             InitializeComponent();
+
+            var role = UserSession.CurrentUser?.Role;
+            bool puedeGestionar = role?.Name == "Admin" ||
+                                 role?.RolePermissions?.Any(rp => rp.Permission?.SystemCode == "MANAGE_USERS") == true;
+
+            MenuUsuarios.IsVisible = puedeGestionar;
+
+
+            Routing.RegisterRoute("LoginPage", typeof(LoginPage));
             Routing.RegisterRoute("InventoryPage", typeof(InventoryPage));
             Routing.RegisterRoute("ProfilePage", typeof(ProfilePage));
             Routing.RegisterRoute("EditProfilePage", typeof(EditProfilePage));

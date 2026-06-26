@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ControlInventarioMovil.Views.UserFormPage"
+             Title="">
+
+    <ScrollView Padding="20">
+        <VerticalStackLayout Spacing="20">
+
+            <VerticalStackLayout HorizontalOptions="Center" Margin="0,10,0,5" Spacing="8">
+                <Grid HeightRequest="100" WidthRequest="100" HorizontalOptions="Center">
+                    <Border StrokeShape="RoundRectangle 50" WidthRequest="100" HeightRequest="100" Stroke="#A2D149" StrokeThickness="2" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}">
+                        <Grid>
+                            <Label x:Name="LblAvatarPlaceholder" Text="👤" FontSize="48" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            <Image x:Name="ImgUserProfile" Aspect="AspectFill" WidthRequest="100" HeightRequest="100" IsVisible="False">
+                                <Image.Clip>
+                                    <RoundRectangleGeometry CornerRadius="50" Rect="0,0,100,100"/>
+                                </Image.Clip>
+                            </Image>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <HorizontalStackLayout Spacing="15" HorizontalOptions="Center">
+                    <Button Text="Cambiar Foto" Clicked="OnChangePhotoClicked" BackgroundColor="Transparent" TextColor="#A2D149" FontSize="12" FontAttributes="Bold" Padding="5"/>
+                    <Button x:Name="BtnDeletePhoto" Text="Eliminar" Clicked="OnDeletePhotoClicked" BackgroundColor="Transparent" TextColor="#FF5252" FontSize="12" FontAttributes="Bold" Padding="5" IsVisible="False"/>
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="15">
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="NOMBRE COMPLETO" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" FontAttributes="Bold" CharacterSpacing="0.5"/>
+                    <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="12,0">
+                        <Entry x:Name="TxtFullName" Placeholder="Ej. Yossimar Alexandro Mercado Garcia" TextChanged="OnFullNameTextChanged" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" PlaceholderColor="#606A72" HeightRequest="42"/>
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="NOMBRE DE USUARIO (ID AUTOGENERADO)" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" FontAttributes="Bold" CharacterSpacing="0.5"/>
+                    <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="12,0">
+                        <Entry x:Name="TxtUsername" Placeholder="Se generará solo..." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" PlaceholderColor="#606A72" HeightRequest="42"/>
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="CONTRASENA DE ACCESO" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" FontAttributes="Bold" CharacterSpacing="0.5"/>
+                    <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="12,0">
+                        <Entry x:Name="TxtPassword" IsPassword="True" Placeholder="••••••••" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" PlaceholderColor="#606A72" HeightRequest="42"/>
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="ROL OPERATIVO" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" FontAttributes="Bold" CharacterSpacing="0.5"/>
+                    <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="12,0">
+                        <Picker x:Name="PkrRoles" Title="Seleccionar Rol" ItemDisplayBinding="{Binding Name}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" TitleColor="#606A72" HeightRequest="42"/>
+                    </Border>
+                </VerticalStackLayout>
+
+                <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="15,12" Margin="0,5,0,0">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <Label Text="Estado del Usuario" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
+                            <Label Text="Permite o bloquea el inicio de sesión inmediato." TextColor="#606A72" FontSize="11"/>
+                        </VerticalStackLayout>
+                        <Switch x:Name="SwIsActive" Grid.Column="1" IsToggled="True" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White"/>
+                    </Grid>
+                </Border>
+
+            </VerticalStackLayout>
+
+            <Button Text="GUARDAR CONFIGURACION" Clicked="OnSaveClicked" BackgroundColor="#2E7D32" TextColor="White" FontAttributes="Bold" CornerRadius="8" HeightRequest="46" Margin="0,15,0,20"/>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
