@@ -2,26 +2,27 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ControlInventarioMovil.Views.ConfiguracionPage"
+             xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
              Title="Configuración del Sistema"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="#1C262E">
+             BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}">
 
     <Grid RowDefinitions="Auto, Auto, *">
 
-        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="15,20,15,10" BackgroundColor="#161F27">
-            <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" Clicked="OnVolverClicked"/>
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="15,20,15,10" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
+            <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" Padding="0" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVolverClicked"/>
             <Label Grid.Column="1" Text="CONFIGURACIÓN GENERAL" TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" VerticalOptions="Center" CharacterSpacing="0.5"/>
             <BoxView Grid.Column="2" WidthRequest="30" BackgroundColor="Transparent"/>
         </Grid>
 
-        <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" BackgroundColor="#161F27" Padding="15,5,15,15">
+        <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}" Padding="15,5,15,15">
             <HorizontalStackLayout Spacing="10">
-                <Button Text="Auditoría" BackgroundColor="#232B35" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" HeightRequest="34" CornerRadius="17" Padding="15,0" Clicked="OnAnchorClicked" CommandParameter="Auditoria"/>
-                <Button Text="Personalización" BackgroundColor="#232B35" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" HeightRequest="34" CornerRadius="17" Padding="15,0" Clicked="OnAnchorClicked" CommandParameter="Personalizacion"/>
-                <Button Text="Seguridad" BackgroundColor="#232B35" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" HeightRequest="34" CornerRadius="17" Padding="15,0" Clicked="OnAnchorClicked" CommandParameter="Seguridad"/>
-                <Button Text="Visualizaciones" BackgroundColor="#232B35" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" HeightRequest="34" CornerRadius="17" Padding="15,0" Clicked="OnAnchorClicked" CommandParameter="Visualizaciones"/>
-                <Button Text="Permisos x Rol" BackgroundColor="#232B35" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" HeightRequest="34" CornerRadius="17" Padding="15,0" Clicked="OnAnchorClicked" CommandParameter="Permisos"/>
-                <Button Text="Divisas" BackgroundColor="#232B35" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" HeightRequest="34" CornerRadius="17" Padding="15,0" Clicked="OnAnchorClicked" CommandParameter="Divisas"/>
+                <Button Text="Auditoría" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" HeightRequest="34" CornerRadius="17" Padding="15,0" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAnchorClicked" CommandParameter="Auditoria"/>
+                <Button Text="Personalización" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" HeightRequest="34" CornerRadius="17" Padding="15,0" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAnchorClicked" CommandParameter="Personalizacion"/>
+                <Button Text="Seguridad" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" HeightRequest="34" CornerRadius="17" Padding="15,0" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAnchorClicked" CommandParameter="Seguridad"/>
+                <Button Text="Visualizaciones" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" HeightRequest="34" CornerRadius="17" Padding="15,0" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAnchorClicked" CommandParameter="Visualizaciones"/>
+                <Button Text="Permisos x Rol" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" HeightRequest="34" CornerRadius="17" Padding="15,0" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAnchorClicked" CommandParameter="Permisos"/>
+                <Button Text="Divisas" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" HeightRequest="34" CornerRadius="17" Padding="15,0" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAnchorClicked" CommandParameter="Divisas"/>
             </HorizontalStackLayout>
         </ScrollView>
 
@@ -29,97 +30,145 @@
             <VerticalStackLayout Spacing="25" Padding="0,0,0,40">
 
                 <VerticalStackLayout x:Name="SecAuditoria" Spacing="10">
-                    <Label Text="CONTROLES DE AUDITORÍA Y FINANZAS" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
-                    <Border StrokeShape="RoundRectangle 12" Stroke="#2E3842" BackgroundColor="#232B35" Padding="15">
+                    <Label Text="CONTROLES DE AUDITORÍA Y FINANZAS" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                    <Border StrokeShape="RoundRectangle 12" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
                         <VerticalStackLayout Spacing="15">
                             <Grid ColumnDefinitions="*, Auto">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="Aplicar Mora por Retraso" TextColor="White" FontSize="14" FontAttributes="Bold"/>
-                                    <Label Text="Activa recargos automáticos a deudores fuera de fecha." TextColor="#606A72" FontSize="11"/>
+                                    <Label Text="Aplicar Mora por Retraso" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
+                                    <Label Text="Activa recargos automáticos a deudores fuera de fecha." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
                                 </VerticalStackLayout>
-                                <Switch x:Name="SwApplyLateFee" Grid.Column="1" OnColor="#A2D149" ThumbColor="White"/>
+                                <Switch x:Name="SwApplyLateFee" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White"/>
                             </Grid>
-                            <BoxView HeightRequest="1" BackgroundColor="#2E3842"/>
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
                             <Grid ColumnDefinitions="*, Auto">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="Días de Gracia Permitidos" TextColor="White" FontSize="14" FontAttributes="Bold"/>
-                                    <Label Text="Plazo de días libres antes de empezar a cobrar la mora." TextColor="#606A72" FontSize="11"/>
+                                    <Label Text="Días de Gracia Permitidos" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
+                                    <Label Text="Plazo de días libres antes de empezar a cobrar la mora." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
                                 </VerticalStackLayout>
-                                <Entry x:Name="TxtGraceDays" Grid.Column="1" TextColor="White" Placeholder="0" WidthRequest="80" HorizontalTextAlignment="Center" Keyboard="Numeric"/>
+                                <Entry x:Name="TxtGraceDays" Grid.Column="1" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Placeholder="0" WidthRequest="80" HorizontalTextAlignment="Center" Keyboard="Numeric"/>
+                            </Grid>
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
+                            <Grid ColumnDefinitions="*, Auto">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="Porcentaje de Mora por Retraso" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
+                                    <Label Text="Tasa de interés aplicada por cada día de retraso financiero." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
+                                </VerticalStackLayout>
+                                <Entry x:Name="TxtLateFeePercentage" Grid.Column="1" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Placeholder="0.0" WidthRequest="80" HorizontalTextAlignment="Center" Keyboard="Numeric"/>
                             </Grid>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
 
                 <VerticalStackLayout x:Name="SecPersonalizacion" Spacing="10">
-                    <Label Text="PREFERENCIAS DE ESTILO Y PERSONALIZACIÓN" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
-                    <Border StrokeShape="RoundRectangle 12" Stroke="#2E3842" BackgroundColor="#232B35" Padding="15">
+                    <Label Text="PREFERENCIAS DE ESTILO Y PERSONALIZACIÓN" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                    <Border StrokeShape="RoundRectangle 12" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
                         <VerticalStackLayout Spacing="15">
 
                             <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
                                 <VerticalStackLayout Grid.Column="0" Spacing="4">
-                                    <Label Text="Idioma Base" TextColor="White" FontSize="12" FontAttributes="Bold"/>
-                                    <Border StrokeShape="RoundRectangle 6" Stroke="#2E3842" BackgroundColor="#161F27" Padding="5,0" HeightRequest="45">
-                                        <Picker x:Name="PkrLanguage" Title="Seleccionar" TextColor="White" HorizontalOptions="Fill" VerticalOptions="Center"/>
+                                    <Label Text="Idioma Base" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                    <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                        <Picker x:Name="PkrLanguage" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalOptions="Fill" VerticalOptions="Center"/>
                                     </Border>
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Grid.Column="1" Spacing="4">
-                                    <Label Text="Formato Fecha" TextColor="White" FontSize="12" FontAttributes="Bold"/>
-                                    <Border StrokeShape="RoundRectangle 6" Stroke="#2E3842" BackgroundColor="#161F27" Padding="5,0" HeightRequest="45">
-                                        <Picker x:Name="PkrDateFormat" Title="Seleccionar" TextColor="White" HorizontalOptions="Fill" VerticalOptions="Center"/>
+                                    <Label Text="Formato Fecha" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                    <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                        <Picker x:Name="PkrDateFormat" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalOptions="Fill" VerticalOptions="Center"/>
                                     </Border>
                                 </VerticalStackLayout>
                             </Grid>
 
-                            <BoxView HeightRequest="1" BackgroundColor="#2E3842"/>
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
 
-                            <Grid ColumnDefinitions="*, Auto">
-                                <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="Habilitar Modo Oscuro (Dark Mode)" TextColor="White" FontSize="14" FontAttributes="Bold"/>
-                                    <Label Text="Cambia la interfaz a tonos oscuros para descanso visual." TextColor="#606A72" FontSize="11"/>
+                            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                                <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                    <Label Text="Zona Horaria" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                    <Border StrokeShape="RoundRectangle 6" Stroke ="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                        <Picker x:Name="PkrTimeZone" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalOptions="Fill" VerticalOptions="Center"/>
+                                    </Border>
                                 </VerticalStackLayout>
-                                <Switch x:Name="SwDarkMode" Grid.Column="1" OnColor="#A2D149" ThumbColor="White"/>
+                                <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                    <Label Text="Modalidad de Venta" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                    <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                        <Picker x:Name="PkrSalesMode" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalOptions="Fill" VerticalOptions="Center"/>
+                                    </Border>
+                                </VerticalStackLayout>
                             </Grid>
 
-                            <BoxView HeightRequest="1" BackgroundColor="#2E3842"/>
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
 
                             <Grid ColumnDefinitions="*, Auto">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="Mostrar Miniaturas de Productos" TextColor="White" FontSize="14" FontAttributes="Bold"/>
-                                    <Label Text="Renderiza la foto pequeña del artículo en el listado oficial." TextColor="#606A72" FontSize="11"/>
+                                    <Label Text="Habilitar Modo Oscuro (Dark Mode)" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
+                                    <Label Text="Cambia la interfaz a tonos oscuros para descanso visual." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
                                 </VerticalStackLayout>
-                                <Switch x:Name="SwShowThumbnails" Grid.Column="1" OnColor="#A2D149" ThumbColor="White"/>
+                                <Switch x:Name="SwDarkMode" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White"/>
                             </Grid>
 
-                            <BoxView HeightRequest="1" BackgroundColor="#2E3842"/>
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
 
                             <Grid ColumnDefinitions="*, Auto">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="Compactar Vista de Listas" TextColor="White" FontSize="14" FontAttributes="Bold"/>
-                                    <Label Text="Reduce los márgenes de las tarjetas para ver más stock por pantalla." TextColor="#606A72" FontSize="11"/>
+                                    <Label Text="Mostrar Miniaturas de Productos" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
+                                    <Label Text="Renderiza la foto pequeña del artículo en el listado oficial." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
                                 </VerticalStackLayout>
-                                <Switch x:Name="SwCompactView" Grid.Column="1" OnColor="#A2D149" ThumbColor="White"/>
+                                <Switch x:Name="SwShowThumbnails" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White"/>
+                            </Grid>
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
+                            <Grid ColumnDefinitions="*, Auto">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="Compactar Vista de Listas" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
+                                    <Label Text="Reduce los márgenes de las tarjetas para ver más stock por pantalla." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
+                                </VerticalStackLayout>
+                                <Switch x:Name="SwCompactView" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White"/>
                             </Grid>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
 
                 <VerticalStackLayout x:Name="SecSeguridad" Spacing="10">
-                    <Label Text="CUSTODIA Y SEGURIDAD" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
-                    <Border StrokeShape="RoundRectangle 12" Stroke="#2E3842" BackgroundColor="#232B35" Padding="15">
+                    <Label Text="CUSTODIA Y SEGURIDAD" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                    <Border StrokeShape="RoundRectangle 12" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
                         <VerticalStackLayout Spacing="15">
                             <Grid ColumnDefinitions="*, Auto">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="Requerir Autenticación Biométrica" TextColor="White" FontSize="14" FontAttributes="Bold"/>
-                                    <Label Text="Solicita Huella / FaceID cada vez que abras la aplicación." TextColor="#606A72" FontSize="11"/>
+                                    <Label Text="Requerir Autenticación Biométrica" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
+                                    <Label Text="Solicita Huella / FaceID cada vez que abras la aplicación." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
                                 </VerticalStackLayout>
-                                <Switch x:Name="SwUseAuth" Grid.Column="1" OnColor="#A2D149" ThumbColor="White"/>
+                                <Switch x:Name="SwUseAuthentication" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White"/>
                             </Grid>
-                            <BoxView HeightRequest="1" BackgroundColor="#2E3842"/>
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
+                            <Grid ColumnDefinitions="*, Auto">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="Actividad de Logística Compartida" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
+                                    <Label Text="Permite co-working logístico y visibilidad cross-team de deudas." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
+                                </VerticalStackLayout>
+                                <Switch x:Name="SwSharedActivity" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White"/>
+                            </Grid>
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
                             <VerticalStackLayout Spacing="5">
-                                <Label Text="Correo de Notificaciones Emisoras (SMTP)" TextColor="#939CA5" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#161F27" Padding="10,0">
-                                    <Entry x:Name="TxtSmtpEmail" TextColor="White" Placeholder="alertas@empresa.com" PlaceholderColor="#606A72" HeightRequest="40"/>
+                                <Label Text="Correo de Notificaciones Emisoras (SMTP)" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0">
+                                    <Entry x:Name="TxtSmtpEmail" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="alertas@empresa.com" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" HeightRequest="40"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="Contraseña del Servidor Correo (SMTP)" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor ="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0">
+                                    <Entry x:Name="TxtSmtpPassword" IsPassword="True" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="••••••••••••" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" HeightRequest="40"/>
                                 </Border>
                             </VerticalStackLayout>
                         </VerticalStackLayout>
@@ -127,85 +176,115 @@
                 </VerticalStackLayout>
 
                 <VerticalStackLayout x:Name="SecVisualizaciones" Spacing="10">
-                    <Label Text="CONFIGURACIÓN DE INVENTARIO Y ESCÁNER" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
-                    <Border StrokeShape="RoundRectangle 12" Stroke="#2E3842" BackgroundColor="#232B35" Padding="15">
+                    <Label Text="CONFIGURACIÓN DE INVENTARIO Y ESCÁNER" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                    <Border StrokeShape="RoundRectangle 12" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
                         <VerticalStackLayout Spacing="15">
                             <Grid ColumnDefinitions="*, Auto">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="Rastreo por Códigos de Barras" TextColor="White" FontSize="14" FontAttributes="Bold"/>
-                                    <Label Text="Muestra lector e inputs de pistolas ópticas en almacén." TextColor="#606A72" FontSize="11"/>
+                                    <Label Text="Rastreo por Códigos de Barras" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
+                                    <Label Text="Muestra lector e inputs de pistolas ópticas en almacén." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
                                 </VerticalStackLayout>
-                                <Switch x:Name="SwUseBarcodes" Grid.Column="1" OnColor="#A2D149" ThumbColor="White"/>
+                                <Switch x:Name="SwUseBarcodes" Grid.Column="1" OnColor ="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White"/>
                             </Grid>
-                            <BoxView HeightRequest="1" BackgroundColor="#2E3842"/>
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
                             <Grid ColumnDefinitions="*, Auto">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="Generación Automática de Códigos" TextColor="White" FontSize="14" FontAttributes="Bold"/>
-                                    <Label Text="Crea prefijos SKU autogenerados si el producto no tiene EAN." TextColor="#606A72" FontSize="11"/>
+                                    <Label Text="Generación Automática de Códigos" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
+                                    <Label Text="Crea prefijos SKU autogenerados si el producto no tiene EAN." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
                                 </VerticalStackLayout>
-                                <Switch x:Name="SwGenerateCodes" Grid.Column="1" OnColor="#A2D149" ThumbColor="White"/>
+                                <Switch x:Name="SwGenerateCodes" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White"/>
                             </Grid>
-                            <BoxView HeightRequest="1" BackgroundColor="#2E3842"/>
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
                             <Grid ColumnDefinitions="*, Auto">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="Calcular Devaluación Financiera" TextColor="White" FontSize="14" FontAttributes="Bold"/>
-                                    <Label Text="Habilita las proyecciones de depreciación en activos fijos." TextColor="#606A72" FontSize="11"/>
+                                    <Label Text="Calcular Devaluación Financiera" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
+                                    <Label Text="Habilita las proyecciones de devaluación en activos fijos." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
                                 </VerticalStackLayout>
-                                <Switch x:Name="SwCalculateDevaluation" Grid.Column="1" OnColor="#A2D149" ThumbColor="White"/>
+                                <Switch x:Name="SwCalculateDevaluation" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White"/>
                             </Grid>
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
+                            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                                <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                    <Label Text="Canal de Alertas" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                    <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                        <Picker x:Name="PkrNotification" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalOptions="Fill" VerticalOptions="Center"/>
+                                    </Border>
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                    <Label Text="Divisa Base Inventario" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                    <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                        <Picker x:Name="PkrCurrency" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalOptions="Fill" VerticalOptions="Center"/>
+                                    </Border>
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Unidad de Medida Corporativa por Defecto" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                    <Picker x:Name="PkrMeasurementUnit" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalOptions="Fill" VerticalOptions="Center"/>
+                                </Border>
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
 
                 <VerticalStackLayout x:Name="SecPermisos" Spacing="10">
-                    <Label Text="SEGURIDAD OPERATIVA: PERMISOS POR ROL" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
-                    <Border StrokeShape="RoundRectangle 12" Stroke="#2E3842" BackgroundColor="#232B35" Padding="15">
+                    <Label Text="SEGURIDAD OPERATIVA: PERMISOS POR ROL" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                    <Border StrokeShape="RoundRectangle 12" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
                         <VerticalStackLayout Spacing="15">
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="Seleccionar Rol a Consultar:" TextColor="#939CA5" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 6" Stroke="#2E3842" BackgroundColor="#161F27" Padding="10,0" HeightRequest="45">
-                                    <Picker x:Name="PkrRolesPermisos" Title="Administrador" TextColor="White" HorizontalOptions="Fill" VerticalOptions="Center"/>
+                                <Label Text="Seleccionar Rol a Consultar:" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                    <Picker x:Name="PkrRolesPermisos" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalOptions="Fill" VerticalOptions="Center"/>
                                 </Border>
                             </VerticalStackLayout>
-                            <BoxView HeightRequest="1" BackgroundColor="#2E3842"/>
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
                             <Grid ColumnDefinitions="*, Auto">
-                                <Label Text="Permitir Crear Artículos" TextColor="White" FontSize="13" VerticalOptions="Center"/>
-                                <Switch x:Name="SwPermisoCrear" Grid.Column="1" OnColor="#A2D149" ThumbColor="White" Scale="0.8" IsEnabled="False" IsToggled="True"/>
+                                <Label Text="Permitir Crear Artículos" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="13" VerticalOptions="Center"/>
+                                <Switch x:Name="SwPermisoCrear" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White" Scale="0.8" IsEnabled="False" IsToggled="True"/>
                             </Grid>
                             <Grid ColumnDefinitions="*, Auto">
-                                <Label Text="Permitir Editar Costos" TextColor="White" FontSize="13" VerticalOptions="Center"/>
-                                <Switch x:Name="SwPermisoCostos" Grid.Column="1" OnColor="#A2D149" ThumbColor="White" Scale="0.8" IsEnabled="False" IsToggled="True"/>
+                                <Label Text="Permitir Editar Costos" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="13" VerticalOptions="Center"/>
+                                <Switch x:Name="SwPermisoCostos" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White" Scale="0.8" IsEnabled="False" IsToggled="True"/>
                             </Grid>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
 
                 <VerticalStackLayout x:Name="SecDivisas" Spacing="10">
-                    <Label Text="MONITOR DE TASAS DE CAMBIO OFICIALES" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
-                    <Border StrokeShape="RoundRectangle 12" Stroke="#2E3842" BackgroundColor="#232B35" Padding="15">
+                    <Label Text="MONITOR DE TASAS DE CAMBIO OFICIALES" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                    <Border StrokeShape="RoundRectangle 12" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
                         <VerticalStackLayout Spacing="12">
                             <Grid ColumnDefinitions="Auto, *, Auto">
                                 <Label Grid.Column="0" Text="🇵🇪" FontSize="18" VerticalOptions="Center"/>
-                                <Label Grid.Column="1" Text="Soles (PEN)" TextColor="White" FontAttributes="Bold" FontSize="14" Margin="10,0,0,0" VerticalOptions="Center"/>
-                                <Label Grid.Column="2" Text="MONEDA BASE" TextColor="#A2D149" FontAttributes="Bold" FontSize="11" VerticalOptions="Center"/>
+                                <Label Grid.Column="1" Text="Soles (PEN)" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="14" Margin="10,0,0,0" VerticalOptions="Center"/>
+                                <Label Grid.Column="2" Text="MONEDA BASE" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="11" VerticalOptions="Center"/>
                             </Grid>
-                            <BoxView HeightRequest="1" BackgroundColor="#2E3842"/>
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
                             <Grid ColumnDefinitions="Auto, *, Auto">
                                 <Label Grid.Column="0" Text="🇺🇸" FontSize="18" VerticalOptions="Center"/>
-                                <Label Grid.Column="1" Text="Dólares (USD)" TextColor="White" FontAttributes="Bold" FontSize="14" Margin="10,0,0,0" VerticalOptions="Center"/>
-                                <Label x:Name="LblTcDolar" Grid.Column="2" Text="S/. 3.417" TextColor="#EFA72F" FontAttributes="Bold" FontSize="14" VerticalOptions="Center"/>
+                                <Label Grid.Column="1" Text="Dólares (USD)" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="14" Margin="10,0,0,0" VerticalOptions="Center"/>
+                                <Label x:Name="LblTcDolar" Grid.Column="2" Text="S/. 3.417" TextColor="{AppThemeBinding Light=#E65100, Dark=#EFA72F}" FontAttributes="Bold" FontSize="14" VerticalOptions="Center"/>
                             </Grid>
-                            <BoxView HeightRequest="1" BackgroundColor="#2E3842"/>
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
                             <Grid ColumnDefinitions="Auto, *, Auto">
                                 <Label Grid.Column="0" Text="🇪🇺" FontSize="18" VerticalOptions="Center"/>
-                                <Label Grid.Column="1" Text="Euros (EUR)" TextColor="White" FontAttributes="Bold" FontSize="14" Margin="10,0,0,0" VerticalOptions="Center"/>
-                                <Label x:Name="LblTcEuro" Grid.Column="2" Text="S/. 3.682" TextColor="#EFA72F" FontAttributes="Bold" FontSize="14" VerticalOptions="Center"/>
+                                <Label Grid.Column="1" Text="Euros (EUR)" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="14" Margin="10,0,0,0" VerticalOptions="Center"/>
+                                <Label x:Name="LblTcEuro" Grid.Column="2" Text="S/. 3.682" TextColor="{AppThemeBinding Light=#E65100, Dark=#EFA72F}" FontAttributes="Bold" FontSize="14" VerticalOptions="Center"/>
                             </Grid>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
 
-                <Button x:Name="BtnGuardarConfig" Text="GUARDAR PREFERENCIAS GENERALES" BackgroundColor="#A2D149" TextColor="#1C262E" FontAttributes="Bold" CornerRadius="8" HeightRequest="48" Margin="0,10,0,0" Clicked="OnGuardarConfigClicked"/>
+                <Button x:Name="BtnGuardarConfig" Text="GUARDAR PREFERENCIAS GENERALES" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="8" HeightRequest="48" Margin="0,10,0,0" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnGuardarConfigClicked"/>
 
             </VerticalStackLayout>
         </ScrollView>

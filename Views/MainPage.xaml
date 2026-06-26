@@ -2,8 +2,9 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:ControlInventarioMovil.Views.Controls"
+             xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
              x:Class="ControlInventarioMovil.Views.MainPage"
-             BackgroundColor="White"
+             BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}"
              Shell.NavBarIsVisible="False">
 
     <ContentView x:Name="InteractionDetector" BackgroundColor="Transparent">
@@ -14,167 +15,152 @@
         <Grid RowDefinitions="Auto, Auto, *, Auto">
 
             <Grid Grid.Row="0" 
-      BackgroundColor="#1B4F5F" 
-      Padding="15,10" 
-      ColumnDefinitions="*, Auto, *">
-                <Image Source="warehouse_icon.png" 
-           HeightRequest="25" 
-           WidthRequest="25" 
-           Grid.Column="0" 
-           HorizontalOptions="Start"
-           VerticalOptions="Center"/>
+                  BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}" 
+                  Padding="15,10" 
+                  ColumnDefinitions="*, Auto, *">
 
-                <Border Grid.Column="1"
-        StrokeShape="RoundRectangle 8"
-        Stroke="#2E3842"
-        BackgroundColor="#232B35"
-        HeightRequest="46" 
-        WidthRequest="220" 
-        VerticalOptions="Center"
-        HorizontalOptions="Center">
+                <Image Grid.Column="0"
+                       Source="warehouse_icon.png" 
+                       HeightRequest="25" 
+                       WidthRequest="25" 
+                       HorizontalOptions="Start"
+                       VerticalOptions="Center"/>
 
-                    <Picker x:Name="PkrAmbienteTrabajo" 
-            Title="Seleccionar Almacén" 
-            TitleColor="#A0E2FF" 
-            TextColor="White" 
-            FontAttributes="Bold" 
-            FontSize="14"
-            HorizontalOptions="Fill" 
-            VerticalOptions="Fill" 
-            Margin="15,0"
-            SelectedIndexChanged="OnAmbienteTrabajoChanged"/>
-                </Border>
+                <HorizontalStackLayout Grid.Column="1" Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Border StrokeShape="RoundRectangle 8"
+                            Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"
+                            BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}"
+                            HeightRequest="46" 
+                            WidthRequest="220" 
+                            VerticalOptions="Center">
 
-                <HorizontalStackLayout Grid.Column="2" 
-                           HorizontalOptions="End" 
-                           VerticalOptions="Center" 
-                           Spacing="5">
+                        <Picker x:Name="PkrAmbienteTrabajo" 
+                                Title="Seleccionar Almacén" 
+                                TitleColor="{AppThemeBinding Light=#54606C, Dark=#A0E2FF}" 
+                                TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" 
+                                FontAttributes="Bold" 
+                                FontSize="14"
+                                HorizontalOptions="Fill" 
+                                VerticalOptions="Fill" 
+                                Margin="15,0"
+                                SelectedIndexChanged="OnAmbienteTrabajoChanged"/>
+                    </Border>
 
-                    <Button Text="+" 
-                TextColor="#A8D08D" 
-                BackgroundColor="Transparent" 
-                FontSize="22" 
-                FontAttributes="Bold"
-                WidthRequest="45"
-                HeightRequest="40"
-                VerticalOptions="Center"
-                Clicked="OnCrearNuevoAlmacenClicked"/>
-
-                    <Image Source="user_icon.png" 
-               HeightRequest="25" 
-               WidthRequest="25" 
-               VerticalOptions="Center"/>
-
+                    <ImageButton Source="add_icon.png" 
+                                 BackgroundColor="Transparent" 
+                                 Padding="8"
+                                 WidthRequest="38"
+                                 HeightRequest="38"
+                                 VerticalOptions="Center"
+                                 helpers:EfectosVisualesHelper.Animar="True"
+                                 Clicked="OnCrearNuevoAlmacenClicked"/>
                 </HorizontalStackLayout>
             </Grid>
 
             <VerticalStackLayout Grid.Row="1" HorizontalOptions="Center" Spacing="2" Margin="0,20,0,0">
-                <Label x:Name="lblNombre" Text="Hola..." FontSize="28" FontAttributes="Bold" TextColor="Black" HorizontalTextAlignment="Center"/>
-                <Label x:Name="lblRol" Text="Rol: ..." TextColor="Gray" HorizontalTextAlignment="Center" FontSize="15"/>
-                <Border BackgroundColor="#D4E6D1" HorizontalOptions="Center" Padding="15,4" Margin="0,12">
+                <Label x:Name="lblNombre" Text="Hola..." FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalTextAlignment="Center"/>
+                <Label x:Name="lblRol" Text="Rol: ..." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" HorizontalTextAlignment="Center" FontSize="15"/>
+
+                <Border BackgroundColor="{AppThemeBinding Light=#D4E6D1, Dark=#1E3A1E}" HorizontalOptions="Center" Padding="15,4" Margin="0,12">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="20"/>
                     </Border.StrokeShape>
-                    <Label Text="3 Reportes" TextColor="#4F7942" FontAttributes="Bold" FontSize="13"/>
+                    <Label Text="3 Reportes" TextColor="{AppThemeBinding Light=#4F7942, Dark=#A2D149}" FontAttributes="Bold" FontSize="13"/>
                 </Border>
             </VerticalStackLayout>
 
             <Grid Grid.Row="2" x:Name="ContenedorOrbital" HorizontalOptions="Center" VerticalOptions="Center" HeightRequest="280" WidthRequest="280">
 
                 <Border x:Name="AroEnergia" 
-        WidthRequest="200" 
-        HeightRequest="200" 
-        HorizontalOptions="Center" 
-        VerticalOptions="Center" 
-        TranslationY="-5"
-        BackgroundColor="Transparent"
-        StrokeThickness="3">
+                        WidthRequest="200" 
+                        HeightRequest="200" 
+                        HorizontalOptions="Center" 
+                        VerticalOptions="Center" 
+                        TranslationY="-5"
+                        BackgroundColor="Transparent"
+                        StrokeThickness="3"
+                        Stroke="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="100"/>
                     </Border.StrokeShape>
-                    <Border.Stroke>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                            <GradientStop Color="#1B4F5F" Offset="0.0" />
-                            <GradientStop Color="#F5F5F5" Offset="1.0" />
-                        </LinearGradientBrush>
-                    </Border.Stroke>
                 </Border>
 
                 <Grid x:Name="OrbitaRegistros" HorizontalOptions="Center" VerticalOptions="Center" InputTransparent="False">
                     <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
-                        <Border HeightRequest="48" WidthRequest="48" Padding="8" BackgroundColor="White" StrokeThickness="1" Stroke="#d3d3d3">
+                        <Border HeightRequest="48" WidthRequest="48" Padding="8" BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}" StrokeThickness="1" Stroke="{AppThemeBinding Light=#D3D3D3, Dark=#2E3842}">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="24"/>
                             </Border.StrokeShape>
                             <Image Source="registros.png"/>
                         </Border>
-                        <Label x:Name="TxtRegistros" Text="Registros" HorizontalOptions="Center" TextColor="Black" FontSize="12"/>
+                        <Label x:Name="TxtRegistros" Text="Registros" HorizontalOptions="Center" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12"/>
                     </VerticalStackLayout>
                 </Grid>
 
                 <Grid x:Name="OrbitaInventario" HorizontalOptions="Center" VerticalOptions="Center" InputTransparent="False">
                     <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
-                        <Border HeightRequest="48" WidthRequest="48" Padding="8" BackgroundColor="White" StrokeThickness="1" Stroke="#d3d3d3">
+                        <Border HeightRequest="48" WidthRequest="48" Padding="8" BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}" StrokeThickness="1" Stroke="{AppThemeBinding Light=#D3D3D3, Dark=#2E3842}">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="24"/>
                             </Border.StrokeShape>
                             <Image Source="inventario.png"/>
                         </Border>
-                        <Label x:Name="TxtInventario" Text="Inventario" HorizontalOptions="Center" TextColor="Black" FontSize="12"/>
+                        <Label x:Name="TxtInventario" Text="Inventario" HorizontalOptions="Center" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12"/>
                     </VerticalStackLayout>
                 </Grid>
 
                 <Grid x:Name="OrbitaReportes" HorizontalOptions="Center" VerticalOptions="Center" InputTransparent="False">
                     <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
-                        <Border HeightRequest="48" WidthRequest="48" Padding="8" BackgroundColor="White" StrokeThickness="1" Stroke="#d3d3d3">
+                        <Border HeightRequest="48" WidthRequest="48" Padding="8" BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}" StrokeThickness="1" Stroke="{AppThemeBinding Light=#D3D3D3, Dark=#2E3842}">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="24"/>
                             </Border.StrokeShape>
                             <Image Source="reportes.png"/>
                         </Border>
-                        <Label x:Name="TxtReportes" Text="Reportes" HorizontalOptions="Center" TextColor="Black" FontSize="12"/>
+                        <Label x:Name="TxtReportes" Text="Reportes" HorizontalOptions="Center" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12"/>
                     </VerticalStackLayout>
                 </Grid>
 
                 <Grid x:Name="OrbitaConfig" HorizontalOptions="Center" VerticalOptions="Center" InputTransparent="False">
                     <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
-                        <Border HeightRequest="48" WidthRequest="48" Padding="8" BackgroundColor="White" StrokeThickness="1" Stroke="#d3d3d3">
+                        <Border HeightRequest="48" WidthRequest="48" Padding="8" BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}" StrokeThickness="1" Stroke="{AppThemeBinding Light=#D3D3D3, Dark=#2E3842}">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="24"/>
                             </Border.StrokeShape>
                             <Image Source="config_icon.png"/>
                         </Border>
-                        <Label x:Name="TxtConfig" Text="Configuración" HorizontalOptions="Center" TextColor="Black" FontSize="12"/>
+                        <Label x:Name="TxtConfig" Text="Configuración" HorizontalOptions="Center" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12"/>
                     </VerticalStackLayout>
                 </Grid>
 
                 <Border HeightRequest="120" 
-        WidthRequest="120" 
-        BackgroundColor="#A8D08D" 
-        StrokeThickness="0" 
-        TranslationY="-5">
+                        WidthRequest="120" 
+                        BackgroundColor="#A8D08D" 
+                        StrokeThickness="0" 
+                        TranslationY="-5">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="60"/>
                     </Border.StrokeShape>
                     <Border.Shadow>
-                        <Shadow Brush="#A8D08D" Offset="0,0" Radius="15" Opacity="0.5"/>
+                        <Shadow Brush="{AppThemeBinding Light=#A8D08D, Dark=#000000}" Offset="0,0" Radius="15" Opacity="0.5"/>
                     </Border.Shadow>
 
                     <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
                         <Label Text="Stock OK" 
-               FontSize="22" 
-               FontAttributes="Bold" 
-               TextColor="#1B4F5F" 
-               HorizontalOptions="Center"/>
+                               FontSize="22" 
+                               FontAttributes="Bold" 
+                               TextColor="#1B4F5F" 
+                               HorizontalOptions="Center"/>
 
                         <Label x:Name="LblTotalArticulos" 
-               Text="..." 
-               FontSize="14" 
-               TextColor="#1B4F5F" 
-               HorizontalOptions="Center"/>
+                               Text="..." 
+                               FontSize="14" 
+                               TextColor="#1B4F5F" 
+                               HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                 </Border>
             </Grid>
+
             <controls:FooterView x:Name="FooterView" Grid.Row="3" />
         </Grid>
     </ContentView>

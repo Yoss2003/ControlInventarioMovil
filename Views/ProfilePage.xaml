@@ -1,43 +1,52 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:models="clr-namespace:ControlInventarioMovil.Models"
+             xmlns:models="clr-namespace:ControlInventario.Models"
+             xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
              x:Class="ControlInventarioMovil.Views.ProfilePage"
-             BackgroundColor="#F4F6F6"
+             BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}"
              Shell.NavBarIsVisible="False">
 
     <Grid RowDefinitions="Auto, *">
 
-        <Grid Grid.Row="0" BackgroundColor="#1B4F5F" Padding="15,20" ColumnDefinitions="Auto, *, Auto">
-            <Image Source="arrow_back.png" 
-                   HeightRequest="25" 
-                   WidthRequest="25" 
-                   Grid.Column="0" 
-                   VerticalOptions="Center">
-                <Image.GestureRecognizers>
-                    <TapGestureRecognizer Tapped="OnBackClicked"/>
-                </Image.GestureRecognizers>
-            </Image>
+        <Grid Grid.Row="0" 
+              BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}" 
+              Padding="15,20" 
+              ColumnDefinitions="Auto, *, Auto">
 
-            <Label Text="Mi Cuenta" TextColor="White" FontSize="20" FontAttributes="Bold" 
-                   VerticalOptions="Center" HorizontalOptions="Center" Grid.Column="1"/>
+            <ImageButton Grid.Column="0" 
+                         Source="arrow_back.png" 
+                         HeightRequest="25" WidthRequest="25" 
+                         BackgroundColor="Transparent" Padding="0"
+                         VerticalOptions="Center" 
+                         helpers:EfectosVisualesHelper.Animar="True"
+                         Clicked="OnBackClicked"/>
 
-            <Image Source="edit_icon.png" 
-                   HeightRequest="25" 
-                   WidthRequest="25" 
-                   Grid.Column="2" 
-                   VerticalOptions="Center" >
-                <Image.GestureRecognizers>
-                    <TapGestureRecognizer Tapped="OnEditProfileClicked"/>
-                </Image.GestureRecognizers>
-            </Image>
+            <Label Text="Mi Cuenta" 
+                   TextColor="White" 
+                   FontSize="20" 
+                   FontAttributes="Bold" 
+                   VerticalOptions="Center" 
+                   HorizontalOptions="Center" 
+                   Grid.Column="1"/>
+
+            <ImageButton Grid.Column="2" 
+                         Source="edit_icon.png" 
+                         HeightRequest="25" WidthRequest="25" 
+                         BackgroundColor="Transparent" Padding="0"
+                         VerticalOptions="Center" 
+                         helpers:EfectosVisualesHelper.Animar="True"
+                         Clicked="OnEditProfileClicked"/>
         </Grid>
 
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="20,30,20,40" Spacing="25">
 
                 <VerticalStackLayout HorizontalOptions="Center" Spacing="10">
-                    <Border HeightRequest="130" WidthRequest="130" StrokeThickness="0" HorizontalOptions="Center">
+                    <Border HeightRequest="130" WidthRequest="130" 
+                            StrokeThickness="{AppThemeBinding Light=1, Dark=0}" 
+                            Stroke="{AppThemeBinding Light=#E0E4E7, Dark=Transparent}"
+                            HorizontalOptions="Center">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="65"/>
                         </Border.StrokeShape>
@@ -47,11 +56,14 @@
                         <Image x:Name="imgProfile" Source="user_outline.png" Aspect="AspectFill" HeightRequest="130" WidthRequest="130"/>
                     </Border>
 
-                    <Label x:Name="lblFullName" Text="Nombre Apellido" TextColor="Black" FontSize="22" FontAttributes="Bold" HorizontalTextAlignment="Center" Margin="0,10,0,0"/>
-                    <Label x:Name="lblRole" Text="Rol" TextColor="Gray" FontSize="16" HorizontalTextAlignment="Center"/>
+                    <Label x:Name="lblFullName" Text="Nombre Apellido" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="22" FontAttributes="Bold" HorizontalTextAlignment="Center" Margin="0,10,0,0"/>
+                    <Label x:Name="lblRole" Text="Rol" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="16" HorizontalTextAlignment="Center"/>
                 </VerticalStackLayout>
 
-                <Border BackgroundColor="White" StrokeThickness="0" Padding="15">
+                <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" 
+                        Stroke="{AppThemeBinding Light=#E0E4E7, Dark=Transparent}" 
+                        StrokeThickness="{AppThemeBinding Light=1, Dark=0}" 
+                        Padding="15">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="12"/>
                     </Border.StrokeShape>
@@ -62,11 +74,14 @@
                     <Grid ColumnDefinitions="Auto, *, Auto" VerticalOptions="Center" ColumnSpacing="15">
                         <Image Source="user_icon_blue.png" HeightRequest="30" WidthRequest="30" Grid.Column="0" VerticalOptions="Center"/>
                         <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
-                            <Label Text="Nombre de Usuario" TextColor="Gray" FontSize="12"/>
-                            <Label x:Name="lblUsername" Text="Usuario" TextColor="Black" FontSize="16" FontAttributes="Bold"/>
+                            <Label Text="Nombre de Usuario" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                            <Label x:Name="lblUsername" Text="Usuario" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="16" FontAttributes="Bold"/>
                         </VerticalStackLayout>
 
-                        <Border x:Name="borderStatus" Grid.Column="2" BackgroundColor="#1B4F5F" WidthRequest="50" HeightRequest="30" StrokeThickness="0" VerticalOptions="Center">
+                        <Border x:Name="borderStatus" Grid.Column="2" 
+                                BackgroundColor="{AppThemeBinding Light=#E5F1F4, Dark=#1A2B32}" 
+                                WidthRequest="50" HeightRequest="30" StrokeThickness="0" 
+                                VerticalOptions="Center" helpers:EfectosVisualesHelper.Animar="True">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="8"/>
                             </Border.StrokeShape>
@@ -78,7 +93,10 @@
                     </Grid>
                 </Border>
 
-                <Border BackgroundColor="White" StrokeThickness="0" Padding="15">
+                <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" 
+                        Stroke="{AppThemeBinding Light=#E0E4E7, Dark=Transparent}" 
+                        StrokeThickness="{AppThemeBinding Light=1, Dark=0}" 
+                        Padding="15">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="12"/>
                     </Border.StrokeShape>
@@ -90,24 +108,27 @@
                         <Grid ColumnDefinitions="Auto, *" ColumnSpacing="15" VerticalOptions="Center">
                             <Image Source="email_icon.png" HeightRequest="25" WidthRequest="25" Grid.Column="0" VerticalOptions="Center"/>
                             <VerticalStackLayout Grid.Column="1">
-                                <Label Text="Email" TextColor="Gray" FontSize="12"/>
-                                <Label x:Name="lblEmail" Text="correo@empresa.com" TextColor="Black" FontSize="15" FontAttributes="Bold"/>
+                                <Label Text="Email" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Label x:Name="lblEmail" Text="correo@empresa.com" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="15" FontAttributes="Bold"/>
                             </VerticalStackLayout>
                         </Grid>
 
                         <Grid ColumnDefinitions="Auto, *" ColumnSpacing="15" VerticalOptions="Center">
                             <Image Source="phone_icon.png" HeightRequest="25" WidthRequest="25" Grid.Column="0" VerticalOptions="Center"/>
                             <VerticalStackLayout Grid.Column="1">
-                                <Label Text="Teléfono" TextColor="Gray" FontSize="12"/>
-                                <Label x:Name="lblPhone" Text="987654321" TextColor="Black" FontSize="15" FontAttributes="Bold"/>
+                                <Label Text="Teléfono" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Label x:Name="lblPhone" Text="987654321" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="15" FontAttributes="Bold"/>
                             </VerticalStackLayout>
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
 
-                <Border BackgroundColor="White" StrokeThickness="0" Padding="15">
+                <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" 
+                        Stroke="{AppThemeBinding Light=#E0E4E7, Dark=Transparent}" 
+                        StrokeThickness="{AppThemeBinding Light=1, Dark=0}" 
+                        Padding="15">
                     <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="12"/>
+                        <RoundRectangle CornerRadius ="12"/>
                     </Border.StrokeShape>
                     <Border.Shadow>
                         <Shadow Brush="Black" Offset="0,2" Radius="4" Opacity="0.1"/>
@@ -118,12 +139,12 @@
 
                         <VerticalStackLayout Grid.Column="1" Spacing="10">
                             <VerticalStackLayout>
-                                <Label Text="Puesto" TextColor="Gray" FontSize="12"/>
-                                <Label x:Name="lblPosition" Text="Puesto" TextColor="Black" FontSize="15" FontAttributes="Bold"/>
+                                <Label Text="Puesto" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Label x:Name="lblPosition" Text="Puesto" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="15" FontAttributes="Bold"/>
                             </VerticalStackLayout>
                             <VerticalStackLayout>
-                                <Label Text="Área" TextColor="Gray" FontSize="12"/>
-                                <Label x:Name="lblArea" Text="Área" TextColor="Black" FontSize="15" FontAttributes="Bold"/>
+                                <Label Text="Área" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Label x:Name="lblArea" Text="Área" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="15" FontAttributes="Bold"/>
                             </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Grid>
@@ -131,13 +152,14 @@
 
                 <Button ImageSource="logout_icon_white.png" 
                         Text=" Cerrar Sesión" 
-                        BackgroundColor="#1B4F5F" 
+                        BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#2E3842}" 
                         TextColor="White" 
                         FontAttributes="Bold" 
                         FontSize="16" 
                         CornerRadius="25" 
                         HeightRequest="55" 
                         Margin="0,10,0,0"
+                        helpers:EfectosVisualesHelper.Animar="True"
                         Clicked="OnLogoutClicked"/>
 
             </VerticalStackLayout>

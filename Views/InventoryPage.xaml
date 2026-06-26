@@ -1,88 +1,134 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
              x:Class="ControlInventarioMovil.Views.InventoryPage"
              Title="Inventario Real"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="#1C262E">
+             BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}">
+
     <Grid RowDefinitions="Auto, *, Auto">
 
-        <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Padding="20,20,15,15" BackgroundColor="#161F27">
+        <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Padding="20,20,15,15" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
             <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
-                <Label x:Name="LblNombreAlmacen" Text="ALMACÉN ACTIVO" TextColor="#A2D149" FontAttributes="Bold" FontSize="15" CharacterSpacing="0.5"/>
-                <Label Text="Listado oficial de existencias en tiempo real" TextColor="#606A72" FontSize="11"/>
+                <Label x:Name="LblNombreAlmacen" Text="ALMACÉN ACTIVO" TextColor="{AppThemeBinding Light=White, Dark=#A2D149}" FontAttributes="Bold" FontSize="15" CharacterSpacing="0.5"/>
+                <Label Text="Listado oficial de existencias en tiempo real" TextColor="{AppThemeBinding Light=#CDD5DB, Dark=#606A72}" FontSize="11"/>
             </VerticalStackLayout>
-            <ImageButton Grid.Column="1" Source="config_icon.png" WidthRequest="22" HeightRequest="22" BackgroundColor="Transparent" VerticalOptions="Center" Margin="0,0,10,0" Opacity="0.8" Clicked="OnConfigCategoriesClicked"/>
+            <ImageButton Grid.Column="1" Source="config_icon.png" WidthRequest="22" HeightRequest="22" BackgroundColor="Transparent" Padding="0" VerticalOptions="Center" Margin="0,0,10,0" Opacity="0.8" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnConfigCategoriesClicked"/>
         </Grid>
 
-        <Grid Grid.Row="1" Padding="15,12">
-            <ActivityIndicator x:Name="ActCargando" IsRunning="False" IsVisible="False" Color="#A2D149" HorizontalOptions="Center" VerticalOptions="Center" HeightRequest="40" WidthRequest="40"/>
+        <Grid Grid.Row="1" RowDefinitions="Auto, *" Padding="15,12">
 
-            <VerticalStackLayout x:Name="SecEstadoVacio" IsVisible="False" VerticalOptions="Center" Spacing="10">
-                <Image Source="reportes.png" HeightRequest="50" WidthRequest="50" Opacity="0.3" HorizontalOptions="Center"/>
-                <Label Text="Almacén sin existencias" TextColor="#939CA5" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
-                <Label Text="Presiona el botón inferior para registrar el primer artículo en este ambiente." TextColor="#606A72" FontSize="12" HorizontalTextAlignment="Center" Padding="30,0"/>
-            </VerticalStackLayout>
+            <Button Grid.Row="0"
+                    x:Name="BtnToggleStock"
+                    Text="Ver Agotados (Stock 0)"
+                    Clicked="OnToggleStockCeroClicked"
+                    BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#2E3842}"
+                    TextColor="{AppThemeBinding Light=#1C262E, Dark=White}"
+                    FontAttributes="Bold"
+                    CornerRadius="6"
+                    HeightRequest="36"
+                    FontSize="11"
+                    HorizontalOptions="End"
+                    Margin="0,0,0,10"
+                    helpers:EfectosVisualesHelper.Animar="True"/>
 
-            <CollectionView x:Name="CvwArticulos" SelectionMode="None">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Grid Padding="0,0,0,10">
-                            <Border StrokeShape="RoundRectangle 8" Stroke="#26313C" BackgroundColor="#222B34" Padding="15,14">
-                                <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto" RowSpacing="0">
+            <Grid Grid.Row="1">
 
-                                    <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" TextColor="White" FontAttributes="Bold" FontSize="14" LineBreakMode="TailTruncation" VerticalOptions="Center"/>
+                <ActivityIndicator x:Name="ActCargando" IsRunning="False" IsVisible="False" Color="#A2D149" HorizontalOptions="Center" VerticalOptions="Center" HeightRequest="40" WidthRequest="40"/>
 
-                                    <HorizontalStackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="End" VerticalOptions="Center" Spacing="4">
-                                        <Label Text="{Binding AcquisitionCurrency}" TextColor="#EFA72F" FontAttributes="Bold" FontSize="12" VerticalOptions="Center"/>
-                                        <Label Text="{Binding SalePrice, StringFormat='S/. {0:F2}'}" TextColor="#A2D149">
-                                            <Label.Triggers>
-                                                <DataTrigger TargetType="Label" Binding="{Binding SalePrice}" Value="{x:Null}">
-                                                    <Setter Property="IsVisible" Value="False"/>
-                                                </DataTrigger>
-                                            </Label.Triggers>
-                                        </Label>
-                                    </HorizontalStackLayout>
+                <VerticalStackLayout x:Name="SecEstadoVacio" IsVisible="False" VerticalOptions="Center" Spacing="10">
+                    <Image Source="reportes.png" HeightRequest="50" WidthRequest="50" Opacity="0.3" HorizontalOptions="Center"/>
+                    <Label Text="Almacén sin existencias" TextColor="{AppThemeBinding Light=#1C262E, Dark=#939CA5}" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                    <Label Text="Presiona el botón inferior para registrar el primer artículo en este ambiente o cambia el filtro de stock." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="12" HorizontalTextAlignment="Center" Padding="30,0"/>
+                </VerticalStackLayout>
 
-                                    <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Spacing="8" Margin="0,6,0,0">
-                                        <Border BackgroundColor="#161F27" StrokeShape="RoundRectangle 4" Padding="6,2" StrokeThickness="0">
-                                            <Label Text="{Binding Code}" TextColor="#A2D149" FontSize="10" FontAttributes="Bold"/>
-                                        </Border>
-                                        <Label Text="{Binding MeasurementUnit}" TextColor="#788591" FontSize="11" VerticalOptions="Center"/>
-                                    </HorizontalStackLayout>
+                <Grid x:Name="ContenedorLista">
+                    <CollectionView x:Name="CvwArticulos" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="0,0,0,10">
+                                    <Border StrokeShape="RoundRectangle 8" 
+                                            Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#26313C}" 
+                                            BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" 
+                                            Padding="15,14">
+                                        <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto" RowSpacing="0">
 
-                                    <Label Grid.Row="1" Grid.Column="1" Text="P. Venta" TextColor="#54606C" FontSize="9" HorizontalOptions="End" Margin="0,2,0,0"/>
+                                            <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="14" LineBreakMode="TailTruncation" VerticalOptions="Center"/>
 
-                                    <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="*, Auto" Margin="0,15,0,0">
-                                        <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
-                                            <Label Text="Existencia en Almacén:" TextColor="#939CA5" FontSize="12" VerticalOptions="Center"/>
-                                            <Label Text="{Binding Stock, StringFormat='{0:0.##}'}" TextColor="#A2D149" FontAttributes="Bold" FontSize="15" VerticalOptions="Center"/>
-                                        </HorizontalStackLayout>
+                                            <VerticalStackLayout Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" HorizontalOptions="End" VerticalOptions="Start" Spacing="3">
+                                                <HorizontalStackLayout Spacing="5" HorizontalOptions="End">
+                                                    <Label Text="Costo Adq:" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" VerticalOptions="Center"/>
+                                                    <Label Text="{Binding AcquisitionDisplay}" TextColor="{AppThemeBinding Light=#E65100, Dark=#EFA72F}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center"/>
+                                                </HorizontalStackLayout>
 
-                                        <ImageButton Grid.Column="1" 
-                                                     Source="edit_icon.png" 
-                                                     WidthRequest="22" 
-                                                     HeightRequest="22" 
-                                                     BackgroundColor="Transparent" 
-                                                     VerticalOptions="Center" 
-                                                     HorizontalOptions="End"
-                                                     Padding="0"
-                                                     Opacity="0.8"
-                                                     CommandParameter="{Binding .}"
-                                                     Clicked="OnEditarArticuloClicked"/>
-                                    </Grid>
+                                                <HorizontalStackLayout Spacing="5" HorizontalOptions="End" IsVisible="{Binding IsConversionVisible}">
+                                                    <Label Text="P. Origen:" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" VerticalOptions="Center"/>
+                                                    <Label Text="{Binding OriginalSaleDisplay}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Opacity="0.9"/>
+                                                </HorizontalStackLayout>
 
+                                                <HorizontalStackLayout Spacing="5" HorizontalOptions="End">
+                                                    <Label Text="P. Venta:" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" VerticalOptions="Center"/>
+                                                    <Label Text="{Binding ConvertedSaleDisplay}" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="14" VerticalOptions="Center"/>
+                                                </HorizontalStackLayout>
+                                            </VerticalStackLayout>
+
+                                            <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Spacing="8" Margin="0,6,0,0">
+                                                <Border BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" 
+                                                        Stroke="{AppThemeBinding Light=#CDD5DB, Dark=Transparent}"
+                                                        StrokeThickness="{AppThemeBinding Light=1, Dark=0}"
+                                                        StrokeShape="RoundRectangle 4" Padding="6,2">
+                                                    <Label Text="{Binding Code}" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="10" FontAttributes="Bold"/>
+                                                </Border>
+                                                <Label Text="{Binding MeasurementUnit}" TextColor="{AppThemeBinding Light=#54606C, Dark=#788591}" FontSize="11" VerticalOptions="Center"/>
+                                            </HorizontalStackLayout>
+
+                                            <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="*, Auto" Margin="0,15,0,0">
+                                                <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
+                                                    <Label Text="Existencia en Almacén:" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" VerticalOptions="Center"/>
+                                                    <Label Text="{Binding Stock, StringFormat='{0:0.##}'}" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="15" VerticalOptions="Center"/>
+                                                </HorizontalStackLayout>
+
+                                                <HorizontalStackLayout Grid.Column="1" Spacing="14" HorizontalOptions="End" VerticalOptions="Center">
+                                                    <ImageButton Source="edit_icon.png" 
+                                                                 WidthRequest="22" 
+                                                                 HeightRequest="22" 
+                                                                 BackgroundColor="Transparent" 
+                                                                 VerticalOptions="Center" 
+                                                                 HorizontalOptions="End"
+                                                                 Padding="0"
+                                                                 Opacity="0.8"
+                                                                 CommandParameter="{Binding .}"
+                                                                 helpers:EfectosVisualesHelper.Animar="True"
+                                                                 Clicked="OnEditarArticuloClicked"/>
+
+                                                    <ImageButton Source="delete_icon.png" 
+                                                                 WidthRequest="22" 
+                                                                 HeightRequest="22" 
+                                                                 BackgroundColor="Transparent" 
+                                                                 VerticalOptions="Center" 
+                                                                 HorizontalOptions="End"
+                                                                 Padding="0"
+                                                                 Opacity="0.8"
+                                                                 CommandParameter="{Binding .}"
+                                                                 helpers:EfectosVisualesHelper.Animar="True"
+                                                                 Clicked="OnEliminarStockClicked"/>
+                                                </HorizontalStackLayout>
+                                            </Grid>
+
+                                        </Grid>
+                                    </Border>
                                 </Grid>
-                            </Border>
-                        </Grid>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+            </Grid>
         </Grid>
 
-        <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="12" Padding="15,12,15,15" BackgroundColor="#161F27">
-            <Button Grid.Column="0" Text="PANEL PRINCIPAL" BackgroundColor="#2E3842" TextColor="#939CA5" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" FontSize="12" Clicked="OnVolverClicked"/>
-            <Button Grid.Column="1" Text="+ NUEVO ARTÍCULO" BackgroundColor="#A2D149" TextColor="#1C262E" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" FontSize="12" Clicked="OnAgregarArticuloClicked"/>
+        <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="12" Padding="15,12,15,15" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
+            <Button Grid.Column="0" Text="PANEL PRINCIPAL" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=#939CA5}" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" FontSize="12" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVolverClicked"/>
+            <Button Grid.Column="1" Text="+ NUEVO ARTÍCULO" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" FontSize="12" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAgregarArticuloClicked"/>
         </Grid>
 
     </Grid>

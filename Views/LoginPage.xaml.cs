@@ -83,7 +83,7 @@ public partial class LoginPage : ContentPage
         await AnimarFondo();
     }
 
-    private void OnShowPasswordTapped(object sender, TappedEventArgs e)
+    private void OnShowPasswordTapped(object sender, EventArgs e)
     {
         txtPassword.IsPassword = !txtPassword.IsPassword;
 
