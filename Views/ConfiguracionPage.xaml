@@ -246,15 +246,19 @@
                                     <Picker x:Name="PkrRolesPermisos" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalOptions="Fill" VerticalOptions="Center"/>
                                 </Border>
                             </VerticalStackLayout>
+
                             <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
-                            <Grid ColumnDefinitions="*, Auto">
-                                <Label Text="Permitir Crear Artículos" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="13" VerticalOptions="Center"/>
-                                <Switch x:Name="SwPermisoCrear" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White" Scale="0.8" IsEnabled="False" IsToggled="True"/>
-                            </Grid>
-                            <Grid ColumnDefinitions="*, Auto">
-                                <Label Text="Permitir Editar Costos" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="13" VerticalOptions="Center"/>
-                                <Switch x:Name="SwPermisoCostos" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White" Scale="0.8" IsEnabled="False" IsToggled="True"/>
-                            </Grid>
+
+                            <VerticalStackLayout x:Name="ContenedorPermisos" Spacing="10" BindableLayout.ItemsSource="{Binding ListaPermisosDinamicos}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*, Auto">
+                                            <Label Text="{Binding Name}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="13" VerticalOptions="Center"/>
+                                            <Switch IsToggled="{Binding HasPermission}" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White" Scale="0.8"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
