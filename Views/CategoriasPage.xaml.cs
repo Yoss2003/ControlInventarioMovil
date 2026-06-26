@@ -136,7 +136,7 @@ namespace ControlInventarioMovil.Views
             }
         }
 
-        private void OnEditarPadreClicked(object sender, EventArgs e)
+        private async void OnEditarPadreClicked(object sender, EventArgs e)
         {
             var boton = (View)sender;
             _categoriaEnEdicion = (CategoriaPadreUI)boton.BindingContext;
@@ -154,7 +154,7 @@ namespace ControlInventarioMovil.Views
             AbrirFormulario();
         }
 
-        private void OnEditarHijaClicked(object sender, EventArgs e)
+        private async void OnEditarHijaClicked(object sender, EventArgs e)
         {
             var boton = (View)sender;
             _categoriaEnEdicion = (Category)boton.BindingContext;

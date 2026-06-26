@@ -2,362 +2,398 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ControlInventarioMovil.Views.ArticleFormPage"
+             xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
              Title="Detalle de Artículo"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="#1C262E">
+             BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}">
     <Grid>
         <Grid RowDefinitions="Auto, *, 70">
-            <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="15,20,15,15" BackgroundColor="#1C262E">
-                <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" Clicked="OnVolverClicked"/>
+
+            <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="15,20,15,15" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
+                <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" Padding="0" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVolverClicked"/>
                 <Label x:Name="LblTituloFormulario" Grid.Column="1" Text="INGRESO DE ARTÍCULO MULTIAMBIENTE" TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" VerticalOptions="Center"/>
-                <ImageButton Grid.Column="2" Source="config_icon.png" WidthRequest="30" HeightRequest="30" BackgroundColor="Transparent"/>
+                <ImageButton Grid.Column="2" Source="config_icon.png" WidthRequest="30" HeightRequest="30" BackgroundColor="Transparent" Padding="0" helpers:EfectosVisualesHelper.Animar="True"/>
             </Grid>
 
             <ScrollView Grid.Row="1" Padding="15">
-                <VerticalStackLayout Spacing="22">
+                <VerticalStackLayout Spacing="20" Padding="0,0,0,20">
 
-                    <Grid ColumnDefinitions="*, *" ColumnSpacing="15">
+                    <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=Transparent}" StrokeThickness="{AppThemeBinding Light=1, Dark=0}" Padding="15">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12"/>
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="Black" Offset="0,2" Radius="4" Opacity="0.08"/>
+                        </Border.Shadow>
+                        <VerticalStackLayout Spacing="15">
+                            <Label Text="EVIDENCIA MULTIMEDIA" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                            <Grid ColumnDefinitions="*, *" ColumnSpacing="15">
+                                <Border Grid.Column="0" HeightRequest="140" StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="0" HorizontalOptions="Fill">
+                                    <Grid>
+                                        <ImageButton x:Name="ImgArticuloPreview" Aspect="AspectFill" HorizontalOptions="Fill" VerticalOptions="Fill" BackgroundColor="Transparent" Padding="0" IsVisible="False" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVerFotoPrincipalClicked"/>
+                                        <Grid x:Name="PlaceholderArticulo">
+                                            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="8" InputTransparent="True">
+                                                <ImageButton Source="config_icon.png" HeightRequest="32" WidthRequest="32" BackgroundColor="Transparent" Padding="0" HorizontalOptions="Center"/>
+                                                <Label Text="Foto Artículo" TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11" HorizontalTextAlignment="Center"/>
+                                            </VerticalStackLayout>
+                                            <ImageButton BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Fill" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnTomarFotoPrincipalClicked"/>
+                                        </Grid>
+                                        <ImageButton x:Name="BtnBorrarFotoPrincipal" Source="delete_icon.png" WidthRequest="26" HeightRequest="26" BackgroundColor="Transparent" Padding="0" HorizontalOptions="End" VerticalOptions="Start" Margin="8" IsVisible="False" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnBorrarFotoPrincipalClicked"/>
+                                    </Grid>
+                                </Border>
 
-                        <Border Grid.Column="0" 
-            WidthRequest="150" HeightRequest="150" 
-            StrokeShape="RoundRectangle 12" Stroke="#2E3842" 
-            BackgroundColor="#232B35" Padding="0" 
-            HorizontalOptions="Center" >
-                            <Grid>
-                                <Image x:Name="ImgArticuloPreview" 
-                   Aspect="AspectFill" 
-                   HorizontalOptions="Fill" VerticalOptions="Fill" 
-                   IsVisible="False">
-                                    <Image.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnVerFotoPrincipalClicked"/>
-                                    </Image.GestureRecognizers>
-                                </Image>
-
-                                <VerticalStackLayout x:Name="PlaceholderArticulo" 
-                                 VerticalOptions="Center" HorizontalOptions="Center" 
-                                 Spacing="8">
-                                    <VerticalStackLayout.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnTomarFotoPrincipalClicked"/>
-                                    </VerticalStackLayout.GestureRecognizers>
-                                    <Image Source="config_icon.png" HeightRequest="32" WidthRequest="32" HorizontalOptions="Center"/>
-                                    <Label Text="Foto del Artículo" TextColor="#606A72" FontSize="11" HorizontalTextAlignment="Center"/>
-                                </VerticalStackLayout>
-
-                                <ImageButton x:Name="BtnBorrarFotoPrincipal"
-                         Source="delete_icon.png" 
-                         WidthRequest="26" HeightRequest="26"
-                         HorizontalOptions="End" VerticalOptions="Start"
-                         Margin="8" IsVisible="False"
-                         Clicked="OnBorrarFotoPrincipalClicked"/>
+                                <Border Grid.Column="1" HeightRequest="140" StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="0" HorizontalOptions="Fill">
+                                    <Grid>
+                                        <ImageButton x:Name="ImgVoucherPreview" Aspect="AspectFill" HorizontalOptions="Fill" VerticalOptions="Fill" BackgroundColor="Transparent" Padding="0" IsVisible="False" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVerFotoVoucherClicked"/>
+                                        <Grid x:Name="PlaceholderVoucher">
+                                            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="8" InputTransparent="True">
+                                                <ImageButton Source="reportes.png" HeightRequest="32" WidthRequest="32" BackgroundColor="Transparent" Padding="0" HorizontalOptions="Center"/>
+                                                <Label Text="Comprobante" TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11" HorizontalTextAlignment="Center"/>
+                                            </VerticalStackLayout>
+                                            <ImageButton BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Fill" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnTomarFotoComprobanteClicked"/>
+                                        </Grid>
+                                        <ImageButton x:Name="BtnBorrarFotoVoucher" Source="delete_icon.png" WidthRequest="26" HeightRequest="26" BackgroundColor="Transparent" Padding="0" HorizontalOptions="End" VerticalOptions="Start" Margin="8" IsVisible="False" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnBorrarFotoVoucherClicked"/>
+                                    </Grid>
+                                </Border>
                             </Grid>
-                        </Border>
+                        </VerticalStackLayout>
+                    </Border>
 
-                        <Border Grid.Column="1" 
-            WidthRequest="150" HeightRequest="150" 
-            StrokeShape="RoundRectangle 12" Stroke="#2E3842" 
-            BackgroundColor="#232B35" Padding="0" 
-            HorizontalOptions="Center" >
-                            <Grid>
-                                <Image x:Name="ImgVoucherPreview" 
-                   Aspect="AspectFill" 
-                   HorizontalOptions="Fill" VerticalOptions="Fill" 
-                   IsVisible="False">
-                                    <Image.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnVerFotoVoucherClicked"/>
-                                    </Image.GestureRecognizers>
-                                </Image>
+                    <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=Transparent}" StrokeThickness="{AppThemeBinding Light=1, Dark=0}" Padding="15">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12"/>
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="Black" Offset="0,2" Radius="4" Opacity="0.08"/>
+                        </Border.Shadow>
+                        <VerticalStackLayout Spacing="15">
+                            <Label Text="CLASIFICACIÓN CORPORATIVA" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="Categoría *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                    <Picker x:Name="PkrCategory" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnCategoryChanged"/>
+                                </Border>
+                                <Label x:Name="LblTrackingInfo" Text="Modo de Rastreo: Pendiente..." TextColor="{AppThemeBinding Light=#E65100, Dark=#EFA72F}" FontSize="11" FontAttributes="Bold" Margin="5,0,0,0"/>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
 
-                                <VerticalStackLayout x:Name="PlaceholderVoucher" 
-                                 VerticalOptions="Center" HorizontalOptions="Center" 
-                                 Spacing="8">
-                                    <VerticalStackLayout.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnTomarFotoComprobanteClicked"/>
-                                    </VerticalStackLayout.GestureRecognizers>
-                                    <Image Source="reportes.png" HeightRequest="32" WidthRequest="32" HorizontalOptions="Center"/>
-                                    <Label Text="Foto Comprobante (Opc)" TextColor="#606A72" FontSize="11" HorizontalTextAlignment="Center"/>
+                    <VerticalStackLayout x:Name="SecDatos">
+                        <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=Transparent}" StrokeThickness="{AppThemeBinding Light=1, Dark=0}" Padding="15">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12"/>
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="Black" Offset="0,2" Radius="4" Opacity="0.08"/>
+                            </Border.Shadow>
+
+                            <VerticalStackLayout Spacing="15">
+                                <Label Text="DATOS TÉCNICOS DEL PRODUCTO" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+
+                                <VerticalStackLayout x:Name="SecBarcode" Spacing="5" IsVisible="False">
+                                    <Label Text="Código de Barras EAN/UPC (Caja) *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                        <Entry x:Name="TxtBarcode" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Escanee el código de fábrica" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40"/>
+                                    </Border>
                                 </VerticalStackLayout>
+                                <BoxView IsVisible="{Binding Source={x:Reference SecBarcode}, Path=IsVisible}" HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
 
-                                <ImageButton x:Name="BtnBorrarFotoVoucher"
-                         Source="delete_icon.png" 
-                         WidthRequest="26" HeightRequest="26"
-                         HorizontalOptions="End" VerticalOptions="Start"
-                         Margin="8" IsVisible="False"
-                         Clicked="OnBorrarFotoVoucherClicked"/>
-                            </Grid>
-                        </Border>
-                    </Grid>
+                                <VerticalStackLayout x:Name="SecSku" Spacing="5">
+                                    <Label Text="Código SKU / Interno *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                        <Entry x:Name="TxtSku" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ingrese SKU" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnAutoNameTriggerChanged"/>
+                                    </Border>
+                                </VerticalStackLayout>
+                                <BoxView IsVisible="{Binding Source={x:Reference SecSku}, Path=IsVisible}" HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
 
-                    <VerticalStackLayout Spacing="15">
-                        <Label Text="CLASIFICACIÓN CORPORATIVA" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
-                        <VerticalStackLayout Spacing="5">
-                            <Label Text="Categoría *" TextColor="#939CA5" FontSize="12"/>
-                            <Border StrokeShape="RoundRectangle 8" Stroke="#A2D149" BackgroundColor="#232B35" Padding="10,0">
-                                <Grid>
-                                    <Picker x:Name="PkrCategory" TextColor="White" BackgroundColor="Transparent" HeightRequest="40" SelectedIndexChanged="OnCategoryChanged"/>
-                                    <Label x:Name="LblPlaceholderCategory" Text="Seleccione una categoría..." TextColor="#606A72" VerticalOptions="Center" InputTransparent="True"/>
+                                <Grid x:Name="SecModelSerie" ColumnDefinitions="*, *" ColumnSpacing="12">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                        <Label Text="Modelo" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                        <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                            <Entry x:Name="TxtModel" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ej. L14 Gen 3" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnAutoNameTriggerChanged"/>
+                                        </Border>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                        <Label Text="Número de Serie" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                        <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                            <Entry x:Name="TxtSerialNumber" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="S/N de fábrica" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnAutoNameTriggerChanged"/>
+                                        </Border>
+                                    </VerticalStackLayout>
                                 </Grid>
-                            </Border>
-                            <Label x:Name="LblTrackingInfo" Text="Modo de Rastreo: Pendiente..." TextColor="#EFA72F" FontSize="11" FontAttributes="Bold" Margin="5,0,0,0"/>
-                        </VerticalStackLayout>
+                                <BoxView IsVisible="{Binding Source={x:Reference SecModelSerie}, Path=IsVisible}" HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
+                                <VerticalStackLayout x:Name="ContenedorNombre" Spacing="5" IsVisible="False">
+                                    <Label Text="Nombre del Artículo *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                        <Entry x:Name="TxtName" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Nombre descriptivo" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40"/>
+                                    </Border>
+                                </VerticalStackLayout>
+                                <BoxView IsVisible="{Binding Source={x:Reference ContenedorNombre}, Path=IsVisible}" HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="Marca *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
+                                        <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                            <Picker x:Name="PkrBrand" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnAutoNameTriggerChanged"/>
+                                        </Border>
+                                        <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                            <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarMarcasClicked"/>
+                                            <ImageButton Source="edit_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditarMarcaClicked"/>
+                                        </HorizontalStackLayout>
+                                    </Grid>
+                                </VerticalStackLayout>
+                                <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="Proveedor Asociado" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
+                                        <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45" VerticalOptions="Center">
+                                            <Picker x:Name="PkrSupplier" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged"/>
+                                        </Border>
+                                        <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                            <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarProveedoresClicked"/>
+                                            <ImageButton Source="edit_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditarProveedorClicked"/>
+                                        </HorizontalStackLayout>
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
                     </VerticalStackLayout>
 
-                    <VerticalStackLayout Spacing="15">
-                        <Label Text="DATOS TÉCNICOS DEL PRODUCTO" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                    <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=Transparent}" StrokeThickness="{AppThemeBinding Light=1, Dark=0}" Padding="15">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12"/>
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="Black" Offset="0,2" Radius="4" Opacity="0.08"/>
+                        </Border.Shadow>
+                        <VerticalStackLayout Spacing="15">
+                            <Label Text="INFORMACIÓN FINANCIERA DE TRANSACCIÓN" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
 
-                        <VerticalStackLayout x:Name="SecBarcode" Spacing="5" IsVisible="False">
-                            <Label Text="Código de Barras EAN/UPC (Obligatorio en Caja) *" TextColor="#939CA5" FontSize="12"/>
-                            <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                <Entry x:Name="TxtBarcode" TextColor="White" Placeholder="Escanee o digite el código de fábrica" PlaceholderColor="#606A72" HeightRequest="40"/>
-                            </Border>
-                        </VerticalStackLayout>
+                            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                                <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                    <Label Text="Costo Adquisición" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                        <Entry x:Name="TxtAcquisitionPrice" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="0.00" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=Gray}" Keyboard="Numeric" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnAcquisitionPriceChanged"/>
+                                    </Border>
+                                    <Label x:Name="LblConversionEquivalente" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" Margin="5,2,0,0" IsVisible="False"/>
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                    <Label Text="Precio Venta Estimado" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                        <Entry x:Name="TxtSalePrice" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="0.00" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=Gray}" Keyboard="Numeric" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnSalePriceChanged"/>
+                                    </Border>
+                                    <Label x:Name="LblConversionEquivalenteVenta" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" Margin="5,2,0,0" IsVisible="False"/>
+                                </VerticalStackLayout>
+                            </Grid>
 
-                        <VerticalStackLayout x:Name="SecSku" Spacing="5">
-                            <Label Text="Código SKU / Interno *" TextColor="#939CA5" FontSize="12"/>
-                            <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                <Entry x:Name="TxtSku" TextColor="White" Placeholder="Ingrese SKU" PlaceholderColor="#606A72" HeightRequest="40" TextChanged="OnAutoNameTriggerChanged"/>
-                            </Border>
-                        </VerticalStackLayout>
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+                            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                                <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                    <Label Text="Moneda Adquisición" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                        <Picker x:Name="PkrCurrency" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnMonedaChanged"/>
+                                    </Border>
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                    <Label Text="Moneda Venta" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                        <Picker x:Name="PkrSaleCurrency" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnSaleMonedaChanged"/>
+                                    </Border>
+                                </VerticalStackLayout>
+                            </Grid>
 
-                        <Grid x:Name="SecModelSerie" ColumnDefinitions="*, *" ColumnSpacing="12">
-                            <VerticalStackLayout Grid.Column="0" Spacing="5">
-                                <Label Text="Modelo" TextColor="#939CA5" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <Entry x:Name="TxtModel" TextColor="White" Placeholder="Ej. L14 Gen 3" PlaceholderColor="#606A72" HeightRequest="40" TextChanged="OnAutoNameTriggerChanged"/>
-                                </Border>
-                            </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="1" Spacing="5">
-                                <Label Text="Número de Serie" TextColor="#939CA5" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <Entry x:Name="TxtSerialNumber" TextColor="White" Placeholder="S/N de fábrica" PlaceholderColor="#606A72" HeightRequest="40" TextChanged="OnAutoNameTriggerChanged"/>
-                                </Border>
-                            </VerticalStackLayout>
-                        </Grid>
-
-                        <VerticalStackLayout x:Name="ContenedorNombre" Spacing="5" IsVisible="False">
-                            <Label Text="Nombre del Artículo *" TextColor="#939CA5" FontSize="12"/>
-                            <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                <Entry x:Name="TxtName" TextColor="White" Placeholder="Nombre descriptivo" PlaceholderColor="#606A72" HeightRequest="40"/>
-                            </Border>
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout Spacing="5">
-                            <Label Text="Marca *" TextColor="#939CA5" FontSize="12"/>
-                            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
-                                <Border Grid.Column="0" StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <Grid>
-                                        <Picker x:Name="PkrBrand" TextColor="White" BackgroundColor="Transparent" HeightRequest="40" SelectedIndexChanged="OnAutoNameTriggerChanged"/>
-                                        <Label x:Name="LblPlaceholderBrand" Text="Seleccione una marca..." TextColor="#606A72" VerticalOptions="Center" InputTransparent="True"/>
-                                    </Grid>
-                                </Border>
-                                <Button Grid.Column="1" Text="+" BackgroundColor="#2E3842" TextColor="#A2D149" FontAttributes="Bold" WidthRequest="45" HeightRequest="40" Clicked="OnAdministrarMarcasClicked"/>
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+                            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                                <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                    <Label Text="Fecha Adquisición" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                        <DatePicker x:Name="DtpAcquisitionDate" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HeightRequest="40"/>
+                                    </Border>
+                                </VerticalStackLayout>
                             </Grid>
                         </VerticalStackLayout>
+                    </Border>
 
-                        <VerticalStackLayout Spacing="5">
-                            <Label Text="Proveedor Asociado" TextColor="#939CA5" FontSize="12"/>
-                            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
-                                <Border Grid.Column="0" StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0" HeightRequest="45" VerticalOptions="Center">
-                                    <Picker x:Name="PkrSupplier" TextColor="White" BackgroundColor="Transparent" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged"/>
-                                </Border>
-                                <Button Grid.Column="1" Text="+" BackgroundColor="#2E3842" TextColor="#A2D149" FontAttributes="Bold" FontSize="16" WidthRequest="45" HeightRequest="45" VerticalOptions="Center" Clicked="OnAdministrarProveedoresClicked"/>
+                    <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=Transparent}" StrokeThickness="{AppThemeBinding Light=1, Dark=0}" Padding="15">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12"/>
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="Black" Offset="0,2" Radius="4" Opacity="0.08"/>
+                        </Border.Shadow>
+                        <VerticalStackLayout Spacing="15">
+                            <Label Text="LOGÍSTICA, ALMACENAMIENTO Y STOCK" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+
+                            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                                <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                    <Label Text="Unidad de Medida *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                        <Picker x:Name="PkrMeasurement" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged"/>
+                                    </Border>
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                    <Label Text="Stock Inicial *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                        <Entry x:Name="TxtStock" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="0" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=Gray}" BackgroundColor="Transparent" HeightRequest="40" Keyboard="Numeric"/>
+                                    </Border>
+                                </VerticalStackLayout>
                             </Grid>
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
 
-                    <VerticalStackLayout Spacing="15">
-                        <Label Text="INFORMACIÓN FINANCIERA DE TRANSACCIÓN" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
-
-                        <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
-                            <VerticalStackLayout Grid.Column="0" Spacing="5">
-                                <Label Text="Costo Adquisición" TextColor="#939CA5" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <Entry x:Name="TxtAcquisitionPrice" 
-                       TextColor="White" 
-                       Placeholder="0.00" 
-                       Keyboard="Numeric" 
-                       HeightRequest="40"
-                       TextChanged="OnAcquisitionPriceChanged"/>
-                                </Border>
-
-                                <Label x:Name="LblConversionEquivalente" 
-                   TextColor="#A2D149" 
-                   FontSize="11" 
-                   FontAttributes="Bold" 
-                   Margin="5,2,0,0" 
-                   IsVisible="False"/>
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout Grid.Column="1" Spacing="5">
-                                <Label Text="Precio Venta Estimado" TextColor="#939CA5" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <Entry x:Name="TxtSalePrice" TextColor="White" Placeholder="0.00" Keyboard="Numeric" HeightRequest="40"/>
-                                </Border>
-                            </VerticalStackLayout>
-                        </Grid>
-
-                        <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
-                            <VerticalStackLayout Grid.Column="0" Spacing="5">
-                                <Label Text="Moneda Adquisición" TextColor="#939CA5" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <Picker x:Name="PkrCurrency" 
-                        TextColor="White" 
-                        BackgroundColor="Transparent" 
-                        HeightRequest="40" 
-                        SelectedIndexChanged="OnMonedaChanged"/>
-                                </Border>
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout Grid.Column="1" Spacing="5">
-                                <Label Text="Fecha Adquisición" TextColor="#939CA5" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <DatePicker x:Name="DtpAcquisitionDate" TextColor="White" BackgroundColor="Transparent" HeightRequest="40"/>
-                                </Border>
-                            </VerticalStackLayout>
-                        </Grid>
-                    </VerticalStackLayout>
-
-                    <VerticalStackLayout Spacing="15">
-                        <Label Text="LOGÍSTICA, ALMACENAMIENTO Y STOCK" TextColor="#A2D149" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
-                        <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
-                            <VerticalStackLayout Grid.Column="0" Spacing="5">
-                                <Label Text="Unidad de Medida *" TextColor="#939CA5" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <Grid>
-                                        <Picker x:Name="PkrMeasurement" TextColor="White" BackgroundColor="Transparent" HeightRequest="40" SelectedIndexChanged="OnPickerIndexChanged"/>
-                                        <Label x:Name="LblPlaceholderMeasurement" Text="Seleccione unidad..." TextColor="#606A72" VerticalOptions="Center" InputTransparent="True"/>
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+                            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                                <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                    <Label Text="Estado *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
+                                        <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                            <Picker x:Name="PkrStatusParam" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged"/>
+                                        </Border>
+                                        <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                            <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="38" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarEstadoClicked"/>
+                                            <ImageButton Source="edit_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="38" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditarEstadoClicked"/>
+                                        </HorizontalStackLayout>
                                     </Grid>
-                                </Border>
-                            </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="1" Spacing="5">
-                                <Label Text="Stock Inicial *" TextColor="#939CA5" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <Entry x:Name="TxtStock" TextColor="White" Placeholder="0" HeightRequest="40" Keyboard="Numeric"/>
-                                </Border>
-                            </VerticalStackLayout>
-                        </Grid>
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                    <Label Text="Ubicación / Almacén *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
+                                        <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                            <Picker x:Name="PkrLocationParam" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged"/>
+                                        </Border>
+                                        <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                            <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="38" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarUbicacionClicked"/>
+                                            <ImageButton Source="edit_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="38" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditarUbicacionClicked"/>
+                                        </HorizontalStackLayout>
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Grid>
 
-                        <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
-                            <VerticalStackLayout Grid.Column="0" Spacing="5">
-                                <Label Text="Estado *" TextColor="#939CA5" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <Picker x:Name="PkrStatusParam" TextColor="White" BackgroundColor="Transparent" HeightRequest="40" SelectedIndexChanged="OnPickerIndexChanged"/>
-                                </Border>
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="Condición Física *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
+                                    <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                        <Picker x:Name="PkrConditionParam" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged"/>
+                                    </Border>
+                                    <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                        <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarCondicionClicked"/>
+                                        <ImageButton Source="edit_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditarCondicionClicked"/>
+                                    </HorizontalStackLayout>
+                                </Grid>
                             </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="1" Spacing="5">
-                                <Label Text="Ubicación / Almacén *" TextColor="#939CA5" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <Picker x:Name="PkrLocationParam" TextColor="White" BackgroundColor="Transparent" HeightRequest="40" SelectedIndexChanged="OnPickerIndexChanged"/>
-                                </Border>
-                            </VerticalStackLayout>
-                        </Grid>
 
-                        <VerticalStackLayout Spacing="5">
-                            <Label Text="Condición Física *" TextColor="#939CA5" FontSize="12"/>
-                            <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                <Picker x:Name="PkrConditionParam" TextColor="White" BackgroundColor="Transparent" HeightRequest="40" SelectedIndexChanged="OnPickerIndexChanged"/>
-                            </Border>
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="Observaciones Generales (Visible / Opcional)" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,5" HeightRequest="80">
+                                    <Editor x:Name="TxtObservation" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Detalles sobre el estado del empaque, lote, etc..." PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="60"/>
+                                </Border>
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
+                    </Border>
 
-                        <VerticalStackLayout Spacing="5">
-                            <Label Text="Observaciones Generales (Visible / Opcional)" TextColor="#939CA5" FontSize="12"/>
-                            <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,5">
-                                <Editor x:Name="TxtObservation" TextColor="White" Placeholder="Detalles sobre el estado del empaque, lote, etc..." HeightRequest="60"/>
-                            </Border>
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
+                    <VerticalStackLayout x:Name="BloqueSerializadoCondicional" IsVisible="False">
+                        <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=Transparent}" StrokeThickness="{AppThemeBinding Light=1, Dark=0}" Padding="15">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12"/>
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="Black" Offset="0,2" Radius="4" Opacity="0.08"/>
+                            </Border.Shadow>
 
-                    <VerticalStackLayout x:Name="BloqueSerializadoCondicional" IsVisible="False" Spacing="15">
-                        <Label Text="CONTROLES CORPORATIVOS DE ACTIVO FIJO" TextColor="#EFA72F" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
-                        <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
-                            <VerticalStackLayout Grid.Column="0" Spacing="5">
-                                <Label Text="Meses de Vida Útil *" TextColor="#939CA5" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <Entry x:Name="TxtUsefulLife" TextColor="White" Placeholder="Ej. 48" Keyboard="Numeric" HeightRequest="40"/>
-                                </Border>
+                            <VerticalStackLayout Spacing="15">
+                                <Label Text="CONTROLES CORPORATIVOS DE ACTIVO FIJO" TextColor="{AppThemeBinding Light=#E65100, Dark=#EFA72F}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                                <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                        <Label Text="Meses de Vida Útil *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                        <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                            <Entry x:Name="TxtUsefulLife" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ej. 48" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=Gray}" Keyboard="Numeric" BackgroundColor="Transparent" HeightRequest="40"/>
+                                        </Border>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                        <Label Text="Vencimiento Garantía *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                        <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                            <DatePicker x:Name="DtpWarranty" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HeightRequest="40"/>
+                                        </Border>
+                                    </VerticalStackLayout>
+                                </Grid>
+                                <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="Especificaciones del Sistema" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,5" HeightRequest="70">
+                                        <Editor x:Name="TxtCharacteristics" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="RAM, Procesador, etc..." PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="65"/>
+                                    </Border>
+                                </VerticalStackLayout>
                             </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="1" Spacing="5">
-                                <Label Text="Vencimiento Garantía *" TextColor="#939CA5" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                    <DatePicker x:Name="DtpWarranty" TextColor="White" BackgroundColor="Transparent" HeightRequest="40"/>
-                                </Border>
-                            </VerticalStackLayout>
-                        </Grid>
-                        <VerticalStackLayout Spacing="5">
-                            <Label Text="Especificaciones del Sistema" TextColor="#939CA5" FontSize="12"/>
-                            <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,5">
-                                <Editor x:Name="TxtCharacteristics" TextColor="White" Placeholder="RAM, Procesador, etc..." HeightRequest="65"/>
-                            </Border>
-                        </VerticalStackLayout>
+                        </Border>
                     </VerticalStackLayout>
 
                 </VerticalStackLayout>
             </ScrollView>
 
-            <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="12" Padding="15,10,15,15" BackgroundColor="#161F27">
-                <Button Grid.Column="0" Text="CANCELAR" BackgroundColor="#2E3842" TextColor="#939CA5" FontAttributes="Bold" CornerRadius="8" Clicked="OnCancelarClicked"/>
-                <Button x:Name="BtnGuardar" Grid.Column="1" Text="GUARDAR INGRESO" BackgroundColor="#A2D149" TextColor="#1C262E" FontAttributes="Bold" CornerRadius="8" Clicked="OnGuardarClicked"/>
+            <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="12" Padding="15,10,15,15" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#161F27}">
+                <Button Grid.Column="0" Text="CANCELAR" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=#939CA5}" FontAttributes="Bold" CornerRadius="8" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnCancelarClicked"/>
+                <Button x:Name="BtnGuardar" Grid.Column="1" Text="GUARDAR INGRESO" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="8" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnGuardarClicked"/>
             </Grid>
         </Grid>
 
         <Grid x:Name="OverlayMarcas" BackgroundColor="#B3000000" IsVisible="False" Opacity="0">
-            <Border VerticalOptions="Center" Margin="20" BackgroundColor="#1C262E" StrokeShape="RoundRectangle 20" Padding="20,25,20,25">
+            <Border VerticalOptions="Center" Margin="20" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C262E}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeShape="RoundRectangle 20" Padding="20,25,20,25">
                 <VerticalStackLayout Spacing="15">
-                    <Label Text="NUEVA MARCA" TextColor="#A2D149" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center"/>
-                    <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                        <Entry x:Name="TxtNuevaMarca" TextColor="White" Placeholder="Nombre de la marca" HeightRequest="40"/>
+                    <Label Text="NUEVA MARCA" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center"/>
+                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0" HeightRequest="45">
+                        <Entry x:Name="TxtNuevaMarca" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Nombre de la marca" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=Gray}" BackgroundColor="Transparent" HeightRequest="40"/>
                     </Border>
                     <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
-                        <Button Grid.Column="0" Text="CANCELAR" BackgroundColor="#2E3842" TextColor="#939CA5" Clicked="OnCerrarOverlayMarcasClicked"/>
-                        <Button Grid.Column="1" Text="GUARDAR" BackgroundColor="#A2D149" TextColor="#1C262E" Clicked="OnGuardarMarcaClicked"/>
+                        <Button Grid.Column="0" Text="CANCELAR" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=#939CA5}" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnCerrarOverlayMarcasClicked"/>
+                        <Button Grid.Column="1" Text="GUARDAR" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnGuardarMarcaClicked"/>
                     </Grid>
                 </VerticalStackLayout>
             </Border>
         </Grid>
 
         <Grid x:Name="OverlayProveedores" BackgroundColor="#B3000000" IsVisible="False" Opacity="0">
-            <Border VerticalOptions="Center" Margin="20" BackgroundColor="#1C262E" StrokeShape="RoundRectangle 20" Padding="20,25,20,25">
+            <Border VerticalOptions="Center" Margin="20" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C262E}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeShape="RoundRectangle 20" Padding="20,25,20,25">
                 <ScrollView MaximumHeightRequest="500">
                     <VerticalStackLayout Spacing="14">
-                        <Label Text="REGISTRAR DISTRIBUIDOR OFICIAL" TextColor="#A2D149" FontAttributes="Bold" FontSize="13" HorizontalOptions="Center" CharacterSpacing="0.5"/>
-
-                        <Label Text="Número de RUC (11 dígitos) *" TextColor="#939CA5" FontSize="12"/>
+                        <Label Text="REGISTRAR DISTRIBUIDOR OFICIAL" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="13" HorizontalOptions="Center" CharacterSpacing="0.5"/>
+                        <Label Text="Número de RUC (11 dígitos) *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                         <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
-                            <Border Grid.Column="0" StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                                <Entry x:Name="TxtPopupRuc" TextColor="White" Placeholder="Escribe el RUC..." PlaceholderColor="#606A72" Keyboard="Numeric" MaxLength="11" HeightRequest="40"/>
+                            <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0" HeightRequest="45" Grid.Column="0">
+                                <Entry x:Name="TxtPopupRuc" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Escribe el RUC..." PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" Keyboard="Numeric" MaxLength="11" HeightRequest="40"/>
                             </Border>
-                            <Button Grid.Column="1" Text="🔍 BUSCAR" BackgroundColor="#2E3842" TextColor="#A2D149" FontAttributes="Bold" WidthRequest="100" HeightRequest="40" CornerRadius="6" Clicked="OnBuscarRucPopupClicked"/>
+                            <Button Grid.Column="1" Text="🔍 BUSCAR" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" WidthRequest="100" HeightRequest="45" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnBuscarRucPopupClicked"/>
                         </Grid>
 
                         <ActivityIndicator x:Name="ActCargandoRuc" IsRunning="False" IsVisible="False" Color="#A2D149" HorizontalOptions="Center" HeightRequest="25" WidthRequest="25"/>
-
-                        <Label Text="Razón Social / Nombre Legal *" TextColor="#939CA5" FontSize="12"/>
-                        <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                            <Entry x:Name="TxtPopupBusinessName" TextColor="White" Placeholder="Se rellenará automáticamente..." PlaceholderColor="#54606C" HeightRequest="40"/>
+                        <Label Text="Razón Social / Nombre Legal *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                        <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0" HeightRequest="45">
+                            <Entry x:Name="TxtPopupBusinessName" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Se rellenará automáticamente..." PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#54606C}" BackgroundColor="Transparent" HeightRequest="40"/>
                         </Border>
 
-                        <Label Text="Dirección Fiscal de la Empresa" TextColor="#939CA5" FontSize="12"/>
-                        <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                            <Entry x:Name="TxtPopupAddress" TextColor="White" Placeholder="Dirección legal SUNAT..." PlaceholderColor="#54606C" HeightRequest="40"/>
+                        <Label Text="Dirección Fiscal de la Empresa" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                        <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0" HeightRequest="45">
+                            <Entry x:Name="TxtPopupAddress" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Dirección legal SUNAT..." PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#54606C}" BackgroundColor="Transparent" HeightRequest="40"/>
                         </Border>
 
-                        <Label Text="Nombre del Contacto / Vendedor" TextColor="#939CA5" FontSize="12"/>
-                        <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                            <Entry x:Name="TxtPopupContactName" TextColor="White" Placeholder="Ej. Asesor de Ventas..." PlaceholderColor="#54606C" HeightRequest="40"/>
+                        <Label Text="Nombre del Contacto / Vendedor" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                        <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0" HeightRequest="45">
+                            <Entry x:Name="TxtPopupContactName" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ej. Asesor de Ventas..." PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#54606C}" BackgroundColor="Transparent" HeightRequest="40"/>
                         </Border>
 
-                        <Label Text="Teléfono / Celular de Contacto" TextColor="#939CA5" FontSize="12"/>
-                        <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                            <Entry x:Name="TxtPopupPhone" TextColor="White" Placeholder="Ej. 999888777" PlaceholderColor="#54606C" Keyboard="Telephone" HeightRequest="40"/>
+                        <Label Text="Teléfono / Celular de Contacto" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                        <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0" HeightRequest="45">
+                            <Entry x:Name="TxtPopupPhone" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ej. 999888777" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#54606C}" BackgroundColor="Transparent" Keyboard="Telephone" HeightRequest="40"/>
                         </Border>
 
-                        <Label Text="Correo Electrónico" TextColor="#939CA5" FontSize="12"/>
-                        <Border StrokeShape="RoundRectangle 8" Stroke="#2E3842" BackgroundColor="#232B35" Padding="10,0">
-                            <Entry x:Name="TxtPopupEmail" TextColor="White" Placeholder="Ej. ventas@proveedor.com" PlaceholderColor="#54606C" Keyboard="Email" HeightRequest="40"/>
+                        <Label Text="Correo Electrónico" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                        <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0" HeightRequest="45">
+                            <Entry x:Name="TxtPopupEmail" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ej. ventas@proveedor.com" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#54606C}" BackgroundColor="Transparent" Keyboard="Email" HeightRequest="40"/>
                         </Border>
 
                         <Grid ColumnDefinitions="*, *" ColumnSpacing="12" Margin="0,10,0,0">
-                            <Button Grid.Column="0" Text="CANCELAR" BackgroundColor="#2E3842" TextColor="#939CA5" CornerRadius="6" HeightRequest="40" Clicked="OnCerrarOverlayProveedoresClicked"/>
-                            <Button Grid.Column="1" Text="GUARDAR PROV" BackgroundColor="#A2D149" TextColor="#1C262E" FontAttributes="Bold" CornerRadius="6" HeightRequest="40" Clicked="OnGuardarProveedorClicked"/>
+                            <Button Grid.Column="0" Text="CANCELAR" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=#939CA5}" CornerRadius="6" HeightRequest="40" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnCerrarOverlayProveedoresClicked"/>
+                            <Button Grid.Column="1" Text="GUARDAR PROV" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="6" HeightRequest="40" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnGuardarProveedorClicked"/>
                         </Grid>
                     </VerticalStackLayout>
                 </ScrollView>

@@ -19,6 +19,8 @@ namespace ControlInventarioMovil.Views
         private List<Parameters> _parametrosGlobales = new();
         private List<Currency> _monedasGlobales = new();
         private List<Supplier> _proveedoresGlobales = new();
+        private List<MeasurementUnit> _todasLasUnidades = new();
+        private List<MeasurementUnit> _unidadesFiltradas = new();
 
         private List<Parameters> _estadosParam = new();
         private List<Parameters> _ubicacionesParam = new();
@@ -40,29 +42,25 @@ namespace ControlInventarioMovil.Views
             // 1. Cargamos todos los catálogos base de la nube
             await CargarCatalogosFormularioAsync();
 
+            if (UserSession.CurrentProfile != null)
+                SecBarcode.IsVisible = UserSession.CurrentProfile.UseBarcodes;
+
             // 2. 🌟 DETECTOR DE MODO (ALTA VS EDICIÓN)
             if (UserSession.CurrentArticleToEdit != null)
-            {
                 HydrateFormularioParaEdicion(UserSession.CurrentArticleToEdit);
-            }
             else
-            {
                 PrepararFormularioParaAltaNueva();
-            }
         }
 
         private void ControlarColorPlaceholderPicker(Picker picker)
         {
             picker.Dispatcher.Dispatch(() =>
             {
+                // 🎯 Si el índice es 0 (el texto de Seleccione...) o menos, se pinta gris placeholder
                 if (picker.SelectedIndex <= 0)
-                {
                     picker.TextColor = Color.FromArgb("#606A72");
-                }
                 else
-                {
-                    picker.TextColor = Colors.White;
-                }
+                    picker.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Colors.White : Color.FromArgb("#1C262E");
             });
         }
 
@@ -74,41 +72,69 @@ namespace ControlInventarioMovil.Views
 
                 var cats = await _apiService.GetCategoriesAsync();
                 _categoriasHijas = cats.Where(c => c.ParentCategoryId != null && c.ParentCategoryId != 0).ToList();
-                PkrCategory.Items.Clear();
-                _categoriasHijas.ForEach(c => PkrCategory.Items.Add(c.Name));
 
-                PkrCategory.SelectedIndex = -1;
-                LblPlaceholderCategory.IsVisible = true;
+                // 🌟 CATEGORÍAS (Texto agregado al inicio)
+                PkrCategory.Items.Clear();
+                PkrCategory.Items.Add("Seleccione una categoría...");
+                _categoriasHijas.ForEach(c => PkrCategory.Items.Add(c.Name));
+                PkrCategory.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrCategory);
 
                 _marcasGlobales = await _apiService.GetBrandsAsync();
                 _monedasGlobales = await _apiService.GetCurrenciesAsync();
+                _todasLasUnidades = await _apiService.GetMeasurementUnitsAsync() ?? new();
 
-                // 🌟 MONEDAS
+                // MONEDA DE COMPRA
                 PkrCurrency.Items.Clear();
-                PkrCurrency.Items.Add("Seleccione moneda..."); // Índice 0
+                PkrCurrency.Items.Add("Seleccione moneda...");
                 _monedasGlobales.ForEach(curr => PkrCurrency.Items.Add($"{curr.CurrencyName} ({(string.IsNullOrWhiteSpace(curr.CurrencyCode) ? "" : curr.CurrencyCode)})"));
                 PkrCurrency.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrCurrency);
+
+                // MONEDA DE VENTA
+                PkrSaleCurrency.Items.Clear();
+                PkrSaleCurrency.Items.Add("Seleccione moneda...");
+                _monedasGlobales.ForEach(curr => PkrSaleCurrency.Items.Add($"{curr.CurrencyName} ({(string.IsNullOrWhiteSpace(curr.CurrencyCode) ? "" : curr.CurrencyCode)})"));
+                PkrSaleCurrency.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrSaleCurrency);
 
                 _parametrosGlobales = await _apiService.GetParametersAsync();
                 _estadosParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Estado", StringComparison.OrdinalIgnoreCase)).ToList();
                 _ubicacionesParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Ubicacion", StringComparison.OrdinalIgnoreCase)).ToList();
-                _condicionesParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Condicion", StringComparison.OrdinalIgnoreCase)).ToList();                
+                _condicionesParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Condicion", StringComparison.OrdinalIgnoreCase)).ToList();
+
+                // 🌟 UNIDADES MEDIDA (Inicialización con texto base)
+                PkrMeasurement.Items.Clear();
+                PkrMeasurement.Items.Add("Seleccione una unidad...");
+                PkrMeasurement.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrMeasurement);
+
+                // 🌟 MARCAS (Inicialización preventiva con texto base)
+                PkrBrand.Items.Clear();
+                PkrBrand.Items.Add("Seleccione una marca...");
+                PkrBrand.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrBrand);
 
                 // 🌟 ESTADOS
                 PkrStatusParam.Items.Clear();
-                PkrStatusParam.Items.Add("Seleccione estado...");
+                PkrStatusParam.Items.Add("Seleccione un estado...");
                 _estadosParam.ForEach(p => PkrStatusParam.Items.Add(p.Name));
                 PkrStatusParam.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrStatusParam);
 
                 // 🌟 UBICACIONES
                 PkrLocationParam.Items.Clear();
-                PkrLocationParam.Items.Add("Seleccione ubicación...");
+                PkrLocationParam.Items.Add("Seleccione una ubicación...");
                 _ubicacionesParam.ForEach(p => PkrLocationParam.Items.Add(p.Name));
-                PkrLocationParam.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrLocationParam);
+
+                if (UserSession.CurrentInventory != null)
+                {
+                    int indexWarehouse = _ubicacionesParam.FindIndex(l => l.Id == UserSession.CurrentInventory.Id);
+                    PkrLocationParam.SelectedIndex = indexWarehouse >= 0 ? indexWarehouse + 1 : 0;
+                }
+                else
+                {
+                    PkrLocationParam.SelectedIndex = 0;
+                }
+                ControlarColorPlaceholderPicker(PkrLocationParam);
 
                 // 🌟 CONDICIONES
                 PkrConditionParam.Items.Clear();
-                PkrConditionParam.Items.Add("Seleccione condición...");
+                PkrConditionParam.Items.Add("Seleccione una condición...");
                 _condicionesParam.ForEach(p => PkrConditionParam.Items.Add(p.Name));
                 PkrConditionParam.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrConditionParam);
 
@@ -119,72 +145,88 @@ namespace ControlInventarioMovil.Views
                 PkrSupplier.Items.Add("Selecciona un distribuidor...");
                 _proveedoresGlobales.ForEach(s => PkrSupplier.Items.Add(s.BusinessName));
                 PkrSupplier.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrSupplier);
-                
+
                 var paramMonedaBase = _parametrosGlobales.FirstOrDefault(p => p.InventoryId == currentInventoryId && p.ParameterType == "MonedaBase");
                 if (paramMonedaBase != null && int.TryParse(paramMonedaBase.Name, out int currencyIdAsociado))
                 {
                     int indexMoneda = _monedasGlobales.FindIndex(m => m.Id == currencyIdAsociado);
                     if (indexMoneda >= 0)
                     {
-                        PkrCurrency.SelectedIndex = indexMoneda + 1; // +1 por el placeholder
+                        PkrCurrency.SelectedIndex = indexMoneda + 1;
                         ControlarColorPlaceholderPicker(PkrCurrency);
+
+                        PkrSaleCurrency.SelectedIndex = indexMoneda + 1;
+                        ControlarColorPlaceholderPicker(PkrSaleCurrency);
                     }
                 }
-                else if (PkrCurrency.Items.Count > 0) PkrCurrency.SelectedIndex = 0;
             }
             catch (Exception ex) { Console.WriteLine($"[CATALOG_FAIL] {ex.Message}"); }
         }
 
-        
         private void HydrateFormularioParaEdicion(Article art)
         {
             LblTituloFormulario.Text = "EDICIÓN DE ARTÍCULO CORPORATIVO";
             BtnGuardar.Text = "ACTUALIZAR CAMBIOS";
-            BtnGuardar.BackgroundColor = Color.FromArgb("#EFA72F"); // Color naranja preventivo para edición
+            BtnGuardar.BackgroundColor = Color.FromArgb("#EFA72F");
             BtnGuardar.TextColor = Color.FromArgb("#1C262E");
 
-            // 🌟 REGLA SENIOR: Congelamos la categoría para impedir mutar el TrackingMode
-            PkrCategory.SelectedIndex = _categoriasHijas.FindIndex(c => c.Id == art.CategoryId);
-            PkrCategory.IsEnabled = false;
-
-            // Rellenar textos básicos removiendo los placeholders preventivos de BD antigua
             TxtName.Text = art.Name;
             TxtModel.Text = art.Model == "N/A" || art.Model == "Empacado de Fábrica" ? "" : art.Model;
             TxtBarcode.Text = art.Barcode;
-
-            // Si el código nace con el prefijo "BAR-", limpiamos la UI para el operador
             TxtSku.Text = art.Code.StartsWith("BAR-") ? "" : art.Code;
             TxtSerialNumber.Text = art.SerialNumber;
             TxtStock.Text = art.Stock.ToString("0.##");
             TxtObservation.Text = art.Observation;
             TxtCharacteristics.Text = art.Characteristics;
 
-            // Rellenar selectores de catálogos
-            if (art.BrandId > 0) PkrBrand.SelectedIndex = _marcasFiltradas.FindIndex(m => m.Id == art.BrandId) + 1;
+            // Mapeo con desfase +1 por los placeholders fijos
             if (art.StatusId.HasValue) PkrStatusParam.SelectedIndex = _estadosParam.FindIndex(p => p.Id == art.StatusId.Value) + 1;
             if (art.LocationId.HasValue) PkrLocationParam.SelectedIndex = _ubicacionesParam.FindIndex(p => p.Id == art.LocationId.Value) + 1;
             if (art.ConditionId.HasValue) PkrConditionParam.SelectedIndex = _condicionesParam.FindIndex(p => p.Id == art.ConditionId.Value) + 1;
 
-            ControlarColorPlaceholderPicker(PkrBrand);
             ControlarColorPlaceholderPicker(PkrStatusParam);
             ControlarColorPlaceholderPicker(PkrLocationParam);
             ControlarColorPlaceholderPicker(PkrConditionParam);
 
-            // Precios y monedas originales
             TxtAcquisitionPrice.Text = art.AcquisitionPrice?.ToString("F2");
             TxtSalePrice.Text = art.SalePrice?.ToString("F2");
 
             if (!string.IsNullOrWhiteSpace(art.AcquisitionCurrency))
             {
                 int idxMon = _monedasGlobales.FindIndex(m => m.CurrencyCode == art.AcquisitionCurrency);
-                if (idxMon >= 0) PkrCurrency.SelectedIndex = idxMon;
+                if (idxMon >= 0) PkrCurrency.SelectedIndex = idxMon + 1;
             }
+
+            if (!string.IsNullOrWhiteSpace(art.SaleCurrency))
+            {
+                int idxSaleMon = _monedasGlobales.FindIndex(m => m.CurrencyCode == art.SaleCurrency);
+                if (idxSaleMon >= 0) PkrSaleCurrency.SelectedIndex = idxSaleMon + 1;
+            }
+
+            ControlarColorPlaceholderPicker(PkrCurrency);
+            ControlarColorPlaceholderPicker(PkrSaleCurrency);
 
             if (art.AcquisitionDate.HasValue) DtpAcquisitionDate.Date = art.AcquisitionDate.Value;
             if (art.WarrantyEndDate.HasValue) DtpWarranty.Date = art.WarrantyEndDate.Value;
             TxtUsefulLife.Text = art.UsefulLifeMonths?.ToString();
 
-            // Guardar el rastro multimedia original de la nube
+            // 🎯 Forzamos Categoría (+1 por su placeholder nuevo)
+            PkrCategory.SelectedIndex = _categoriasHijas.FindIndex(c => c.Id == art.CategoryId) + 1;
+            PkrCategory.IsEnabled = false;
+
+            // Como la cascada ya corrió, inyectamos Marca y Unidad (+1 por sus nuevos placeholders)
+            if (!string.IsNullOrWhiteSpace(art.MeasurementUnit) && _unidadesFiltradas != null)
+            {
+                int unitIdx = _unidadesFiltradas.FindIndex(u => string.Equals(u.UnitName, art.MeasurementUnit, StringComparison.OrdinalIgnoreCase));
+                if (unitIdx != -1) PkrMeasurement.SelectedIndex = unitIdx + 1;
+            }
+
+            if (art.BrandId > 0 && _marcasFiltradas != null)
+            {
+                int brandIdx = _marcasFiltradas.FindIndex(m => m.Id == art.BrandId);
+                if (brandIdx != -1) PkrBrand.SelectedIndex = brandIdx + 1;
+            }
+
             _rutaFotoPrincipal = art.MainPhotoPath;
             _rutaFotoVoucher = art.MainVoucherPath;
 
@@ -207,7 +249,7 @@ namespace ControlInventarioMovil.Views
             if (art.SupplierId.HasValue && art.SupplierId.Value > 0)
             {
                 int idxSup = _proveedoresGlobales.FindIndex(s => s.Id == art.SupplierId.Value);
-                if (idxSup >= 0) PkrSupplier.SelectedIndex = idxSup + 1; // +1 por el placeholder
+                if (idxSup >= 0) PkrSupplier.SelectedIndex = idxSup + 1;
             }
         }
 
@@ -217,16 +259,45 @@ namespace ControlInventarioMovil.Views
             BtnGuardar.Text = "GUARDAR INGRESO";
             BtnGuardar.BackgroundColor = Color.FromArgb("#A2D149");
             PkrCategory.IsEnabled = true;
+
+            // 🎯 Todos se inicializan apuntando al índice 0 ("Seleccione...")
+            PkrCategory.SelectedIndex = 0;
+            PkrMeasurement.SelectedIndex = 0;
+            PkrBrand.SelectedIndex = 0;
+            PkrStatusParam.SelectedIndex = 0;
+            PkrConditionParam.SelectedIndex = 0;
+            PkrSupplier.SelectedIndex = 0;
+            PkrCurrency.SelectedIndex = 0;
+            PkrSaleCurrency.SelectedIndex = 0;
+
+            if (UserSession.CurrentInventory != null)
+            {
+                int indexWarehouse = _ubicacionesParam.FindIndex(l => l.Id == UserSession.CurrentInventory.Id);
+                PkrLocationParam.SelectedIndex = indexWarehouse >= 0 ? indexWarehouse + 1 : 0;
+            }
+            else
+            {
+                PkrLocationParam.SelectedIndex = 0;
+            }
+
+            ControlarColorPlaceholderPicker(PkrCategory);
+            ControlarColorPlaceholderPicker(PkrMeasurement);
+            ControlarColorPlaceholderPicker(PkrBrand);
+            ControlarColorPlaceholderPicker(PkrStatusParam);
+            ControlarColorPlaceholderPicker(PkrLocationParam);
+            ControlarColorPlaceholderPicker(PkrConditionParam);
+            ControlarColorPlaceholderPicker(PkrSupplier);
+            ControlarColorPlaceholderPicker(PkrCurrency);
+            ControlarColorPlaceholderPicker(PkrSaleCurrency);
         }
 
         private void OnCategoryChanged(object sender, EventArgs e)
         {
-            // 1. Controlamos la visibilidad del placeholder flotante de la Categoría
-            // Si el índice es -1 (nada seleccionado), el texto gris se muestra; si elige algo, se oculta.
-            LblPlaceholderCategory.IsVisible = (PkrCategory.SelectedIndex == -1);
+            PkrMeasurement.Items.Clear();
+            PkrMeasurement.SelectedIndex = -1;
 
-            // 🌟 ESCENARIO DE CONTINGENCIA: Si no hay selección real, limpiamos sub-catálogos y salimos
-            if (PkrCategory.SelectedIndex == -1)
+            // 🌟 CONTINGENCIA: Si eligen el índice 0 (Seleccione...) o no hay nada, reseteamos sub-catálogos
+            if (PkrCategory.SelectedIndex <= 0)
             {
                 ContenedorNombre.IsVisible = false;
                 SecBarcode.IsVisible = false;
@@ -235,103 +306,116 @@ namespace ControlInventarioMovil.Views
                 BloqueSerializadoCondicional.IsVisible = false;
                 LblTrackingInfo.Text = "Modo de Rastreo: Pendiente...";
 
-                // Reseteamos Unidad de Medida a su estado inicial gris
                 PkrMeasurement.Items.Clear();
-                PkrMeasurement.SelectedIndex = -1;
-                LblPlaceholderMeasurement.IsVisible = true;
+                PkrMeasurement.Items.Add("Seleccione una unidad...");
+                PkrMeasurement.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrMeasurement);
 
-                // Reseteamos Marca a su estado inicial gris
                 PkrBrand.Items.Clear();
-                PkrBrand.SelectedIndex = -1;
-                LblPlaceholderBrand.IsVisible = true;
+                PkrBrand.Items.Add("Seleccione una marca...");
+                PkrBrand.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrBrand);
 
-                return; // Salida segura del hilo de ejecución
+                return;
             }
 
-            // 2. ESCENARIO REAL: Extraemos la categoría seleccionada limpiamente (Índice base 0 oficial)
-            var catSel = _categoriasHijas[PkrCategory.SelectedIndex];
+            // Real data index shift (-1 porque el índice 0 es el texto explicativo)
+            var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
 
             LblTrackingInfo.Text = $"Modo de Rastreo: {catSel.TrackingMode}";
             ContenedorNombre.IsVisible = true;
 
-            // 3. RE-CONFIGURACIÓN DINÁMICA DE UNIDADES DE MEDIDA
+            // ====================================================================
+            // 🎯 3. RE-CONFIGURACIÓN DINÁMICA Y FILTRADO TÁCTICO DE UNIDADES
+            // ====================================================================
             PkrMeasurement.Items.Clear();
+            PkrMeasurement.Items.Add("Seleccione una unidad..."); // Inyectamos texto base en el índice 0
 
-            if (catSel.TrackingMode == "Stackable" || catSel.TrackingMode == "Serialized")
+            string[] abreviaturasPermitidas;
+
+            if (string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase))
             {
-                PkrMeasurement.Items.Add("Unidades");
-                PkrMeasurement.Items.Add("Piezas");
+                abreviaturasPermitidas = new[] { "UND", "PAR", "JGO" };
+            }
+            else if (string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase))
+            {
+                abreviaturasPermitidas = new[] { "UND", "BOX", "MCTN", "PKT", "DOC", "BLST", "TRM", "CONT", "PAR", "JGO" };
+            }
+            else
+            {
+                abreviaturasPermitidas = new[] { "KGS", "TON", "LTS", "GAL", "ML", "GRS", "MTS", "CM", "MLN", "M2", "M3", "LBS", "OZ" };
+            }
 
-                // Ajuste de visibilidades según reglas corporativas de empaque o activos serializados
-                SecBarcode.IsVisible = (catSel.TrackingMode == "Stackable");
-                SecSku.IsVisible = (catSel.TrackingMode == "Serialized");
-                SecModelSerie.IsVisible = (catSel.TrackingMode == "Serialized");
-                BloqueSerializadoCondicional.IsVisible = (catSel.TrackingMode == "Serialized");
+            if (_todasLasUnidades != null && _todasLasUnidades.Count > 0)
+            {
+                _unidadesFiltradas = _todasLasUnidades
+                    .Where(u => !string.IsNullOrWhiteSpace(u.Abbreviation) &&
+                                abreviaturasPermitidas.Contains(u.Abbreviation.Trim(), StringComparer.OrdinalIgnoreCase))
+                    .ToList();
 
-                // Si es serializado (activo fijo), el nombre se bloquea para que lo arme el algoritmo automático
-                TxtName.IsReadOnly = (catSel.TrackingMode == "Serialized");
-                TxtName.BackgroundColor = catSel.TrackingMode == "Serialized" ? Color.FromArgb("#1C232A") : Color.FromArgb("#232B35");
-
-                // Disparamos el auto-nombre únicamente si estamos registrando un alta nueva
-                if (catSel.TrackingMode == "Serialized" && UserSession.CurrentArticleToEdit == null)
+                foreach (var unidad in _unidadesFiltradas)
                 {
-                    OnAutoNameTriggerChanged(sender, null!);
+                    PkrMeasurement.Items.Add(unidad.UnitName);
                 }
             }
             else
             {
-                // Configuraciones estándar para productos generales (Líquidos, cables, insumos sueltos, etc.)
-                SecBarcode.IsVisible = false;
-                SecSku.IsVisible = true;
-                SecModelSerie.IsVisible = false;
-                BloqueSerializadoCondicional.IsVisible = false;
-
-                TxtName.IsReadOnly = false;
-                TxtName.BackgroundColor = Color.FromArgb("#232B35");
-
-                PkrMeasurement.Items.Add("Unidades");
-                PkrMeasurement.Items.Add("Metros");
-                PkrMeasurement.Items.Add("Kilos");
+                System.Diagnostics.Debug.WriteLine("🚨 [ERROR CRÍTICO]: '_todasLasUnidades' está VACÍA.");
+                DisplayAlertAsync("Error de datos", "El catálogo maestro de unidades no ha cargado desde el servidor Somee.", "OK");
             }
 
-            // Pre-seleccionamos el índice 0 del nuevo catálogo y apagamos su etiqueta flotante
-            PkrMeasurement.SelectedIndex = 0;
-            LblPlaceholderMeasurement.IsVisible = false;
+            PkrMeasurement.SelectedIndex = 0; // Apunta al "Seleccione..."
+            ControlarColorPlaceholderPicker(PkrMeasurement);
 
-            // 4. RE-FILTRADO DINÁMICO DE MARCAS ASOCIADAS A LA CATEGORÍA
-            PkrBrand.Items.Clear();
+            // Visibilidades condicionales
+            SecBarcode.IsVisible = string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase);
+            SecSku.IsVisible = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase);
+            SecModelSerie.IsVisible = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase);
+            BloqueSerializadoCondicional.IsVisible = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase);
 
-            // Filtramos en memoria local usando LINQ las marcas que correspondan al ID de la categoría elegida
-            _marcasFiltradas = _marcasGlobales.Where(m => m.CategoryId == catSel.Id).ToList();
-            _marcasFiltradas.ForEach(m => PkrBrand.Items.Add(m.Name));
+            TxtName.IsReadOnly = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase);
 
-            // Evaluamos si el catálogo resultante contiene elementos comerciales
-            if (_marcasFiltradas.Count > 0)
+            bool isDarkMode = Application.Current?.RequestedTheme == AppTheme.Dark;
+            if (string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase))
             {
-                // Si hay marcas disponibles, pre-seleccionamos la primera y ocultamos el texto flotante
-                PkrBrand.SelectedIndex = 0;
-                LblPlaceholderBrand.IsVisible = false;
+                TxtName.BackgroundColor = isDarkMode ? Color.FromArgb("#12181F") : Color.FromArgb("#E9ECEF");
             }
             else
             {
-                // Si la categoría es nueva y no tiene marcas registradas, dejamos el control listo para usar el botón "+"
-                PkrBrand.SelectedIndex = -1;
-                LblPlaceholderBrand.IsVisible = true;
+                TxtName.BackgroundColor = Colors.Transparent;
             }
+
+            if (string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) && UserSession.CurrentArticleToEdit == null)
+            {
+                OnAutoNameTriggerChanged(sender, null!);
+            }
+
+            // ====================================================================
+            // 🗃️ 4. RE-FILTRADO DINÁMICO DE MARCAS
+            // ====================================================================
+            PkrBrand.Items.Clear();
+            PkrBrand.Items.Add("Seleccione una marca..."); // Inyectamos texto base en el índice 0
+
+            if (_marcasGlobales != null)
+            {
+                _marcasFiltradas = _marcasGlobales.Where(m => m.CategoryId == catSel.Id).ToList();
+                _marcasFiltradas.ForEach(m => PkrBrand.Items.Add(m.Name));
+            }
+
+            PkrBrand.SelectedIndex = 0;
+            ControlarColorPlaceholderPicker(PkrBrand);
         }
 
         private void OnAutoNameTriggerChanged(object sender, EventArgs e)
         {
-            LblPlaceholderBrand.IsVisible = (PkrBrand.SelectedIndex == -1);
+            if (sender is Picker pck) ControlarColorPlaceholderPicker(pck);
 
-            if (PkrCategory.SelectedIndex == -1 || UserSession.CurrentArticleToEdit != null) return;
+            if (PkrCategory.SelectedIndex <= 0 || UserSession.CurrentArticleToEdit != null) return;
 
-            var catSel = _categoriasHijas[PkrCategory.SelectedIndex]; // Limpio, sin resta
+            var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
 
-            if (catSel.TrackingMode == "Serialized")
+            if (string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase))
             {
-                // Si el índice es mayor o igual a 0 hay marca, sino es genérico
-                string brandTxt = PkrBrand.SelectedIndex >= 0 ? PkrBrand.SelectedItem.ToString()! : "Genérico";
+                // Si el índice es mayor a 0 hay una marca real seleccionada
+                string brandTxt = PkrBrand.SelectedIndex > 0 ? PkrBrand.SelectedItem.ToString()! : "Genérico";
                 string skuTxt = !string.IsNullOrWhiteSpace(TxtSku.Text) ? TxtSku.Text.Trim() : "S/K";
                 string serieTxt = !string.IsNullOrWhiteSpace(TxtSerialNumber.Text) ? TxtSerialNumber.Text.Trim() : "S/S";
 
@@ -343,20 +427,20 @@ namespace ControlInventarioMovil.Views
         {
             int idAlmacenActivo = UserSession.CurrentInventory?.Id ?? 1;
 
-            if (PkrCategory.SelectedIndex == -1)
+            if (PkrCategory.SelectedIndex <= 0)
             {
                 await DisplayAlertAsync("Validación", "Debes seleccionar una Categoría para clasificar el artículo.", "OK");
                 return;
             }
 
-            var catSel = _categoriasHijas[PkrCategory.SelectedIndex];
+            var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
 
-            if (catSel.TrackingMode == "Stackable" && string.IsNullOrWhiteSpace(TxtBarcode.Text))
+            if (string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(TxtBarcode.Text))
             {
                 await DisplayAlertAsync("Validación", "El Código de Barras de fábrica es mandatorio para artículos en empaque.", "OK");
                 return;
             }
-            if (catSel.TrackingMode != "Stackable" && string.IsNullOrWhiteSpace(TxtSku.Text))
+            if (!string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(TxtSku.Text))
             {
                 await DisplayAlertAsync("Validación", "El campo Código SKU Interno es mandatorio.", "OK");
                 return;
@@ -366,7 +450,12 @@ namespace ControlInventarioMovil.Views
                 await DisplayAlertAsync("Validación", "El Nombre del artículo no puede estar vacío.", "OK");
                 return;
             }
-            
+
+            if (PkrMeasurement.SelectedIndex <= 0)
+            {
+                await DisplayAlertAsync("Validación", "Por favor, seleccione una unidad de medida.", "OK");
+                return;
+            }
 
             decimal? acqPrice = string.IsNullOrWhiteSpace(TxtAcquisitionPrice.Text) ? null : Convert.ToDecimal(TxtAcquisitionPrice.Text.Trim());
             decimal? salePrice = string.IsNullOrWhiteSpace(TxtSalePrice.Text) ? null : Convert.ToDecimal(TxtSalePrice.Text.Trim());
@@ -380,39 +469,48 @@ namespace ControlInventarioMovil.Views
 
                 if (!continuar) return;
             }
-            if (catSel.TrackingMode == "Stackable" && (!acqPrice.HasValue || !salePrice.HasValue))
+            if (string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) && (!acqPrice.HasValue || !salePrice.HasValue))
             {
                 await DisplayAlertAsync("Validación Financiera", "Para artículos masivos (Stackable), el Costo de Adquisición y el Precio de Venta estimado son obligatorios.", "Corregir");
                 return;
             }
 
-            int brandIdFinal = _marcasFiltradas.Count > 0 && PkrBrand.SelectedIndex > 0 ? _marcasFiltradas[PkrBrand.SelectedIndex - 1].Id : 0;
+            // 🎯 OBTENCIÓN CON DESFASE -1 POR LOS PLACEHOLDERS NUEVOS
+            int brandIdFinal = _marcasFiltradas != null && _marcasFiltradas.Count > 0 && PkrBrand.SelectedIndex > 0
+                ? _marcasFiltradas[PkrBrand.SelectedIndex - 1].Id
+                : 0;
+
             int? statusIdFinal = PkrStatusParam.SelectedIndex > 0 ? _estadosParam[PkrStatusParam.SelectedIndex - 1].Id : null;
             int? locationIdFinal = PkrLocationParam.SelectedIndex > 0 ? _ubicacionesParam[PkrLocationParam.SelectedIndex - 1].Id : null;
             int? conditionIdFinal = PkrConditionParam.SelectedIndex > 0 ? _condicionesParam[PkrConditionParam.SelectedIndex - 1].Id : null;
             int? supplierIdFinal = PkrSupplier.SelectedIndex > 0 ? _proveedoresGlobales[PkrSupplier.SelectedIndex - 1].Id : null;
             string? currencyFinal = PkrCurrency.SelectedIndex > 0 ? _monedasGlobales[PkrCurrency.SelectedIndex - 1].CurrencyCode : null;
+            string? saleCurrencyFinal = PkrSaleCurrency.SelectedIndex > 0 ? _monedasGlobales[PkrSaleCurrency.SelectedIndex - 1].CurrencyCode : "S/.";
 
             decimal.TryParse(TxtStock.Text, out decimal stockReal);
 
-            string codeEnvio = catSel.TrackingMode == "Stackable" ? $"BAR-{TxtBarcode.Text.Trim()}" : TxtSku.Text.Trim();
-            string modelEnvio = catSel.TrackingMode == "Stackable" ? "Empacado de Fábrica" : (string.IsNullOrWhiteSpace(TxtModel.Text) ? "N/A" : TxtModel.Text.Trim());
+            string codeEnvio = string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) ? $"BAR-{TxtBarcode.Text.Trim()}" : TxtSku.Text.Trim();
+            string modelEnvio = string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) ? "Empacado de Fábrica" : (string.IsNullOrWhiteSpace(TxtModel.Text) ? "N/A" : TxtModel.Text.Trim());
 
-            // Construcción del objeto Article unificado
             var articuloData = new Article
             {
                 InventoryId = idAlmacenActivo,
                 Code = codeEnvio,
-                Barcode = catSel.TrackingMode == "Stackable" ? TxtBarcode.Text.Trim() : null,
+                Barcode = string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) ? TxtBarcode.Text.Trim() : null,
                 Name = TxtName.Text.Trim(),
                 Model = modelEnvio,
                 CategoryId = catSel.Id,
                 BrandId = brandIdFinal,
-                Tracking = catSel.TrackingMode == "Stackable" ? TrackingMode.Standard :
-                           (catSel.TrackingMode == "Serialized" ? TrackingMode.Serialized : TrackingMode.Standard),
-                MeasurementUnit = PkrMeasurement.SelectedItem?.ToString() ?? "Unidades",
+                Tracking = string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) ? TrackingMode.Standard :
+                           (string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ? TrackingMode.Serialized : TrackingMode.Standard),
+
+                // 🎯 Se guarda solo el UnitName limpio a la base de datos restando 1
+                MeasurementUnit = PkrMeasurement.SelectedIndex > 0
+                                ? _unidadesFiltradas[PkrMeasurement.SelectedIndex - 1].UnitName
+                                : "Unidad",
+
                 Stock = stockReal,
-                SerialNumber = catSel.TrackingMode == "Serialized" ? TxtSerialNumber.Text?.Trim() : null,
+                SerialNumber = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ? TxtSerialNumber.Text?.Trim() : null,
                 CurrentEmployeeId = null,
                 PreviousEmployeeId = null,
                 FixedAsset = null,
@@ -420,9 +518,9 @@ namespace ControlInventarioMovil.Views
                 SalePrice = salePrice,
                 AcquisitionCurrency = currencyFinal,
                 AcquisitionDate = DtpAcquisitionDate.Date,
-                UsefulLifeMonths = catSel.TrackingMode == "Serialized" ? (string.IsNullOrWhiteSpace(TxtUsefulLife.Text) ? null : Convert.ToInt32(TxtUsefulLife.Text.Trim())) : null,
-                WarrantyEndDate = catSel.TrackingMode == "Serialized" ? DtpWarranty.Date : null,
-                Characteristics = catSel.TrackingMode == "Serialized" ? TxtCharacteristics.Text?.Trim() : null,
+                UsefulLifeMonths = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ? (string.IsNullOrWhiteSpace(TxtUsefulLife.Text) ? null : Convert.ToInt32(TxtUsefulLife.Text.Trim())) : null,
+                WarrantyEndDate = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ? DtpWarranty.Date : null,
+                Characteristics = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ? TxtCharacteristics.Text?.Trim() : null,
                 Observation = !string.IsNullOrWhiteSpace(TxtObservation.Text) ? TxtObservation.Text.Trim() : null,
                 StatusId = statusIdFinal,
                 LocationId = locationIdFinal,
@@ -431,22 +529,20 @@ namespace ControlInventarioMovil.Views
                 MainPhotoPath = _rutaFotoPrincipal,
                 MainVoucherPath = _rutaFotoVoucher,
 
-                // Si es edición conserva la fecha y acción original, si es nuevo inyecta el alta inicial (Action 1)
                 ActionId = UserSession.CurrentArticleToEdit != null ? UserSession.CurrentArticleToEdit.ActionId : 1,
                 RegistrationDate = UserSession.CurrentArticleToEdit != null ? UserSession.CurrentArticleToEdit.RegistrationDate : DateTime.Now,
 
-                // Mapeo del historial operativo
                 ModificationDate = UserSession.CurrentArticleToEdit != null ? DateTime.Now : null,
                 DecommissionDate = UserSession.CurrentArticleToEdit?.DecommissionDate,
-                DepartureDate = UserSession.CurrentArticleToEdit?.DepartureDate
+                DepartureDate = UserSession.CurrentArticleToEdit?.DepartureDate,
+                SaleCurrency = saleCurrencyFinal
             };
 
             bool exito = false;
 
-            // 🌟 DISPARADOR SELECTIVO DE ACCIÓN DE API
             if (UserSession.CurrentArticleToEdit != null)
             {
-                articuloData.Id = UserSession.CurrentArticleToEdit.Id; // Sincronizamos la Llave Primaria
+                articuloData.Id = UserSession.CurrentArticleToEdit.Id;
                 exito = await _apiService.UpdateArticleAsync(articuloData.Id, articuloData);
             }
             else
@@ -458,7 +554,6 @@ namespace ControlInventarioMovil.Views
             {
                 string msg = UserSession.CurrentArticleToEdit != null ? "actualizado" : "dado de alta";
                 await DisplayAlertAsync("Éxito", $"Artículo '{articuloData.Name}' {msg} correctamente en la nube.", "OK");
-
                 CleanupSessionAndLeave();
             }
             else
@@ -469,7 +564,6 @@ namespace ControlInventarioMovil.Views
 
         private void CleanupSessionAndLeave()
         {
-            // 🌟 CRUCIAL: Limpiamos el puente para que el siguiente artículo que se abra no se mezcle
             UserSession.CurrentArticleToEdit = null;
             Shell.Current.GoToAsync("..", false);
         }
@@ -490,7 +584,7 @@ namespace ControlInventarioMovil.Views
                         ImgArticuloPreview.Source = ImageSource.FromFile(_rutaFotoPrincipal);
                         ImgArticuloPreview.IsVisible = true;
                         PlaceholderArticulo.IsVisible = false;
-                        BtnBorrarFotoPrincipal.IsVisible = true; // Muestra el botón de eliminar
+                        BtnBorrarFotoPrincipal.IsVisible = true;
                     }
                 }
             }
@@ -510,7 +604,7 @@ namespace ControlInventarioMovil.Views
                         ImgVoucherPreview.Source = ImageSource.FromFile(_rutaFotoVoucher);
                         ImgVoucherPreview.IsVisible = true;
                         PlaceholderVoucher.IsVisible = false;
-                        BtnBorrarFotoVoucher.IsVisible = true; // 🌟 INYECTAR AQUÍ: Enciende el botón "X"
+                        BtnBorrarFotoVoucher.IsVisible = true;
                     }
                 }
             }
@@ -521,13 +615,12 @@ namespace ControlInventarioMovil.Views
         private async void OnCerrarOverlayMarcasClicked(object sender, EventArgs e) { await OverlayMarcas.FadeToAsync(0, 150); OverlayMarcas.IsVisible = false; }
         private async void OnGuardarMarcaClicked(object sender, EventArgs e)
         {
-            if (PkrCategory.SelectedIndex == -1 || string.IsNullOrEmpty(TxtNuevaMarca.Text)) return;
-            var nM = new Brand { InventoryId = UserSession.CurrentInventory?.Id ?? 1, CategoryId = _categoriasHijas[PkrCategory.SelectedIndex].Id, Name = TxtNuevaMarca.Text.Trim() };
+            if (PkrCategory.SelectedIndex <= 0 || string.IsNullOrEmpty(TxtNuevaMarca.Text)) return;
+            var nM = new Brand { InventoryId = UserSession.CurrentInventory?.Id ?? 1, CategoryId = _categoriasHijas[PkrCategory.SelectedIndex - 1].Id, Name = TxtNuevaMarca.Text.Trim() };
             var res = await _apiService.CreateBrandAsync(nM);
             if (res != null) { _marcasGlobales.Add(res); _marcasFiltradas.Add(res); PkrBrand.Items.Add(res.Name); PkrBrand.SelectedIndex = PkrBrand.Items.Count - 1; OnCerrarOverlayMarcasClicked(sender, e); }
         }
 
-        // 1. Despierta el PopUp de proveedores con una transición suave de opacidad
         private async void OnAdministrarProveedoresClicked(object sender, EventArgs e)
         {
             OverlayProveedores.IsVisible = true;
@@ -541,14 +634,12 @@ namespace ControlInventarioMovil.Views
             await OverlayProveedores.FadeToAsync(1, 200);
         }
 
-        // 2. Cierra el PopUp limpiamente
         private async void OnCerrarOverlayProveedoresClicked(object sender, EventArgs e)
         {
             await OverlayProveedores.FadeToAsync(0, 150);
             OverlayProveedores.IsVisible = false;
         }
 
-        // 3. El método de búsqueda SUNAT (El que interactúa con tu SuppliersController)
         private async void OnBuscarRucPopupClicked(object sender, EventArgs e)
         {
             string ruc = TxtPopupRuc.Text?.Trim() ?? "";
@@ -566,7 +657,6 @@ namespace ControlInventarioMovil.Views
                     TxtPopupBusinessName.Text = prov.BusinessName;
                     TxtPopupAddress.Text = prov.Address;
 
-                    // 🛡️ CONTROL DE RIESGO COMERCIAL (Inyectado aquí):
                     if (prov.Estado != "ACTIVO" || prov.Condicion != "HABIDO")
                     {
                         await DisplayAlertAsync("Riesgo Comercial",
@@ -584,17 +674,14 @@ namespace ControlInventarioMovil.Views
             finally { ActCargandoRuc.IsRunning = false; ActCargandoRuc.IsVisible = false; }
         }
 
-        // 4. Guarda el proveedor nuevo en tu tabla 'suppliers' mediante la API
         private async void OnGuardarProveedorClicked(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(TxtPopupBusinessName.Text)) return;
 
-            // Recolectamos lo que el operador haya digitado manualmente en los nuevos campos
             string contacto = TxtPopupContactName.Text?.Trim() ?? "";
             string telefono = TxtPopupPhone.Text?.Trim() ?? "";
             string correo = TxtPopupEmail.Text?.Trim() ?? "";
 
-            // 🌟 ESCENARIO A: Si el proveedor vino de SUNAT, complementamos sus datos comerciales
             if (_currentMappedSupplier != null)
             {
                 _currentMappedSupplier.ContactName = contacto;
@@ -604,9 +691,8 @@ namespace ControlInventarioMovil.Views
                 bool actualizado = await _apiService.UpdateSupplierAsync(_currentMappedSupplier.Id, _currentMappedSupplier);
                 if (actualizado)
                 {
-                    if (!PkrSupplier.Items.Contains(_currentMappedSupplier.BusinessName))
+                    if (!_proveedoresGlobales.Any(p => p.Id == _currentMappedSupplier.Id))
                     {
-                        // 🌟 Sincronizamos la memoria local
                         _proveedoresGlobales.Add(_currentMappedSupplier);
                         PkrSupplier.Items.Add(_currentMappedSupplier.BusinessName);
                     }
@@ -620,7 +706,6 @@ namespace ControlInventarioMovil.Views
                 return;
             }
 
-            // 📝 ESCENARIO B: Registro manual completo (Si SUNAT falló o no había internet)
             var nP = new Supplier
             {
                 InventoryId = 0,
@@ -642,6 +727,7 @@ namespace ControlInventarioMovil.Views
                 OnCerrarOverlayProveedoresClicked(sender, e);
             }
         }
+
         private void OnPickerIndexChanged(object sender, EventArgs e)
         {
             if (sender is Picker picker)
@@ -655,17 +741,16 @@ namespace ControlInventarioMovil.Views
             _rutaFotoPrincipal = null;
             ImgArticuloPreview.Source = null;
             ImgArticuloPreview.IsVisible = false;
-            BtnBorrarFotoPrincipal.IsVisible = false; // Oculta el botón de eliminar
+            BtnBorrarFotoPrincipal.IsVisible = false;
             PlaceholderArticulo.IsVisible = true;
         }
 
         private void OnBorrarFotoVoucherClicked(object sender, EventArgs e)
         {
-            // 1. Limpiamos el rastro de la ruta en memoria
             _rutaFotoVoucher = null;
             ImgVoucherPreview.Source = null;
             ImgVoucherPreview.IsVisible = false;
-            BtnBorrarFotoVoucher.IsVisible = false; // Oculta el botón de eliminar
+            BtnBorrarFotoVoucher.IsVisible = false;
             PlaceholderVoucher.IsVisible = true;
         }
 
@@ -675,12 +760,11 @@ namespace ControlInventarioMovil.Views
 
             try
             {
-                // Si el artículo viene de la nube de Somee, abrirá el navegador web nativo
                 if (_rutaFotoPrincipal.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                 {
                     await Launcher.Default.OpenAsync(new Uri(_rutaFotoPrincipal));
                 }
-                else // Si es una foto local recién tomada con la cámara, abre la galería del celular
+                else
                 {
                     await Launcher.Default.OpenAsync(new OpenFileRequest("Visualizar Foto de Producto", new ReadOnlyFile(_rutaFotoPrincipal)));
                 }
@@ -714,22 +798,8 @@ namespace ControlInventarioMovil.Views
             }
         }
 
-        // ====================================================================
-        // 🪙 MOTOR INTELIGENTE DE TIPO DE CAMBIO SUNAT (AUTOMÁTICO)
-        // ====================================================================
-
-        // Se dispara cada vez que tu mamá o tú escriben o borran un número en el costo
-        private void OnAcquisitionPriceChanged(object sender, TextChangedEventArgs e)
-        {
-            CalcularEquivalenteMoneda();
-        }
-
-        // Se dispara cuando eligen entre Soles o Dólares en el Picker
-        private void OnMonedaChanged(object sender, EventArgs e)
-        {
-            ControlarColorPlaceholderPicker(PkrCurrency); // Mantenemos tu estilo estético original
-            CalcularEquivalenteMoneda();
-        }
+        private void OnAcquisitionPriceChanged(object sender, TextChangedEventArgs e) => CalcularEquivalenteMoneda();
+        private void OnMonedaChanged(object sender, EventArgs e) { ControlarColorPlaceholderPicker(PkrCurrency); CalcularEquivalenteMoneda(); }
 
         private void CalcularEquivalenteMoneda()
         {
@@ -737,28 +807,28 @@ namespace ControlInventarioMovil.Views
             {
                 if (PkrCurrency.SelectedIndex <= 0 || _monedasGlobales == null || _monedasGlobales.Count == 0)
                 {
-                    LblConversionEquivalente.IsVisible = false;
+                    OcultarConversionCompra();
                     return;
                 }
 
                 var monedaSeleccionada = _monedasGlobales[PkrCurrency.SelectedIndex - 1];
-                string codigoMoneda = monedaSeleccionada.CurrencyCode?.ToUpper() ?? "";
+                string codigoMoneda = monedaSeleccionada.CurrencyCode?.Trim() ?? "";
+
+                if (codigoMoneda == "S/.")
+                {
+                    OcultarConversionCompra();
+                    return;
+                }
 
                 if (decimal.TryParse(TxtAcquisitionPrice.Text, out decimal costoExtranjero) && costoExtranjero > 0)
                 {
                     decimal tipoCambioVenta = 0;
 
-                    // Evaluamos dinámicamente cuál de los dos almacenes de caché usar
-                    if (codigoMoneda == "USD" && UserSession.TodayExchangeRateUSD != null)
-                    {
+                    if (codigoMoneda == "$" && UserSession.TodayExchangeRateUSD != null)
                         tipoCambioVenta = UserSession.TodayExchangeRateUSD.SellPrice;
-                    }
-                    else if (codigoMoneda == "EUR" && UserSession.TodayExchangeRateEUR != null)
-                    {
+                    else if (codigoMoneda == "€" && UserSession.TodayExchangeRateEUR != null)
                         tipoCambioVenta = UserSession.TodayExchangeRateEUR.SellPrice;
-                    }
 
-                    // Si encontramos un tipo de cambio válido, proyectamos la conversión en soles
                     if (tipoCambioVenta > 0)
                     {
                         decimal totalSoles = costoExtranjero * tipoCambioVenta;
@@ -767,14 +837,201 @@ namespace ControlInventarioMovil.Views
                         return;
                     }
                 }
-
-                // Si es Soles o no hay datos, se oculta limpiamente la etiqueta
-                LblConversionEquivalente.IsVisible = false;
+                OcultarConversionCompra();
             }
-            catch (Exception ex)
+            catch { OcultarConversionCompra(); }
+        }
+
+        private void OcultarConversionCompra() => LblConversionEquivalente.IsVisible = false;
+
+        private void OnSalePriceChanged(object sender, TextChangedEventArgs e) => CalcularEquivalenteMonedaVenta();
+        private void OnSaleMonedaChanged(object sender, EventArgs e) { ControlarColorPlaceholderPicker(PkrSaleCurrency); CalcularEquivalenteMonedaVenta(); }
+
+        private void CalcularEquivalenteMonedaVenta()
+        {
+            try
             {
-                System.Diagnostics.Debug.WriteLine($"[CONVERSION_ERROR] {ex.Message}");
-                LblConversionEquivalente.IsVisible = false;
+                if (PkrSaleCurrency.SelectedIndex <= 0 || _monedasGlobales == null || _monedasGlobales.Count == 0)
+                {
+                    OcultarConversionVenta();
+                    return;
+                }
+
+                var monedaSeleccionada = _monedasGlobales[PkrSaleCurrency.SelectedIndex - 1];
+                string codigoMoneda = monedaSeleccionada.CurrencyCode?.Trim() ?? "";
+
+                if (codigoMoneda == "S/.")
+                {
+                    OcultarConversionVenta();
+                    return;
+                }
+
+                if (decimal.TryParse(TxtSalePrice.Text, out decimal precioExtranjero) && precioExtranjero > 0)
+                {
+                    decimal tipoCambioVenta = 0;
+
+                    if (codigoMoneda == "$" && UserSession.TodayExchangeRateUSD != null)
+                        tipoCambioVenta = UserSession.TodayExchangeRateUSD.SellPrice;
+                    else if (codigoMoneda == "€" && UserSession.TodayExchangeRateEUR != null)
+                        tipoCambioVenta = UserSession.TodayExchangeRateEUR.SellPrice;
+
+                    if (tipoCambioVenta > 0)
+                    {
+                        decimal totalSoles = precioExtranjero * tipoCambioVenta;
+                        LblConversionEquivalenteVenta.Text = $"≈ S/. {totalSoles:N2} (TC {codigoMoneda}: {tipoCambioVenta:F3})";
+                        LblConversionEquivalenteVenta.IsVisible = true;
+                        return;
+                    }
+                }
+                OcultarConversionVenta();
+            }
+            catch { OcultarConversionVenta(); }
+        }
+
+        private void OcultarConversionVenta() => LblConversionEquivalenteVenta.IsVisible = false;
+
+        // ====================================================================
+        // 🏷️ MÉTODOS PARA MARCAS
+        // ====================================================================
+        private async void OnEditarMarcaClicked(object sender, EventArgs e)
+        {
+            if (PkrBrand.SelectedIndex <= 0)
+            {
+                await DisplayAlertAsync("Validación", "Selecciona una marca primero para poder editarla.", "OK");
+                return;
+            }
+
+            var marcaSeleccionada = _marcasFiltradas[PkrBrand.SelectedIndex - 1];
+            string nuevoNombre = await DisplayPromptAsync("Editar Marca", "Modifica el nombre de la marca:", initialValue: marcaSeleccionada.Name);
+
+            if (!string.IsNullOrWhiteSpace(nuevoNombre) && nuevoNombre != marcaSeleccionada.Name)
+            {
+                marcaSeleccionada.Name = nuevoNombre.Trim();
+
+                // 🚀 AQUÍ LLAMARÍAS A TU API PARA ACTUALIZAR:
+                // await _apiService.UpdateBrandAsync(marcaSeleccionada.Id, marcaSeleccionada);
+
+                // Actualizamos visualmente el Picker
+                PkrBrand.Items[PkrBrand.SelectedIndex] = marcaSeleccionada.Name;
+                await DisplayAlertAsync("Éxito", "Marca actualizada correctamente.", "OK");
+            }
+        }
+
+        // ====================================================================
+        // 🚚 MÉTODOS PARA PROVEEDORES
+        // ====================================================================
+        private async void OnEditarProveedorClicked(object sender, EventArgs e)
+        {
+            if (PkrSupplier.SelectedIndex <= 0)
+            {
+                await DisplayAlertAsync("Validación", "Selecciona un proveedor primero para poder editarlo.", "OK");
+                return;
+            }
+
+            // 🎯 MAGIA: Reutilizamos tu ventana Overlay inyectando los datos actuales
+            var proveedorSeleccionado = _proveedoresGlobales[PkrSupplier.SelectedIndex - 1];
+            _currentMappedSupplier = proveedorSeleccionado; // Tu método de guardar ya sabe qué hacer si esto no es null!
+
+            TxtPopupRuc.Text = proveedorSeleccionado.Ruc;
+            TxtPopupBusinessName.Text = proveedorSeleccionado.BusinessName;
+            TxtPopupAddress.Text = proveedorSeleccionado.Address;
+            TxtPopupContactName.Text = proveedorSeleccionado.ContactName;
+            TxtPopupPhone.Text = proveedorSeleccionado.Phone;
+            TxtPopupEmail.Text = proveedorSeleccionado.Email;
+
+            OverlayProveedores.IsVisible = true;
+            await OverlayProveedores.FadeToAsync(1, 200);
+        }
+
+        // ====================================================================
+        // 🟢 MÉTODOS PARA ESTADOS
+        // ====================================================================
+        private async void OnAdministrarEstadoClicked(object sender, EventArgs e)
+        {
+            string nuevoEstado = await DisplayPromptAsync("Nuevo Estado", "Ingrese el nombre del nuevo estado:");
+            if (!string.IsNullOrWhiteSpace(nuevoEstado))
+            {
+                // 🚀 API: var paramRegistrado = await _apiService.CreateParameterAsync(...);
+                var nuevoParam = new Parameters { Id = _estadosParam.Count + 1, Name = nuevoEstado.Trim(), ParameterType = "Estado" };
+
+                _estadosParam.Add(nuevoParam);
+                PkrStatusParam.Items.Add(nuevoParam.Name);
+                PkrStatusParam.SelectedIndex = PkrStatusParam.Items.Count - 1; // Auto-selecciona el nuevo
+            }
+        }
+
+        private async void OnEditarEstadoClicked(object sender, EventArgs e)
+        {
+            if (PkrStatusParam.SelectedIndex <= 0) { await DisplayAlertAsync("Aviso", "Selecciona un estado para editar.", "OK"); return; }
+
+            var estadoSel = _estadosParam[PkrStatusParam.SelectedIndex - 1];
+            string nuevoNombre = await DisplayPromptAsync("Editar Estado", "Modifica el nombre:", initialValue: estadoSel.Name);
+
+            if (!string.IsNullOrWhiteSpace(nuevoNombre) && nuevoNombre != estadoSel.Name)
+            {
+                estadoSel.Name = nuevoNombre.Trim();
+                // 🚀 API: await _apiService.UpdateParameterAsync(...);
+                PkrStatusParam.Items[PkrStatusParam.SelectedIndex] = estadoSel.Name;
+            }
+        }
+
+        // ====================================================================
+        // 🏢 MÉTODOS PARA UBICACIONES / ALMACÉN
+        // ====================================================================
+        private async void OnAdministrarUbicacionClicked(object sender, EventArgs e)
+        {
+            string nuevaUbicacion = await DisplayPromptAsync("Nueva Ubicación", "Ingrese el nombre de la sede o almacén:");
+            if (!string.IsNullOrWhiteSpace(nuevaUbicacion))
+            {
+                var nuevoParam = new Parameters { Id = _ubicacionesParam.Count + 1, Name = nuevaUbicacion.Trim(), ParameterType = "Ubicacion" };
+
+                _ubicacionesParam.Add(nuevoParam);
+                PkrLocationParam.Items.Add(nuevoParam.Name);
+                PkrLocationParam.SelectedIndex = PkrLocationParam.Items.Count - 1;
+            }
+        }
+
+        private async void OnEditarUbicacionClicked(object sender, EventArgs e)
+        {
+            if (PkrLocationParam.SelectedIndex <= 0) { await DisplayAlertAsync("Aviso", "Selecciona una ubicación para editar.", "OK"); return; }
+
+            var ubicacionSel = _ubicacionesParam[PkrLocationParam.SelectedIndex - 1];
+            string nuevoNombre = await DisplayPromptAsync("Editar Ubicación", "Modifica el nombre:", initialValue: ubicacionSel.Name);
+
+            if (!string.IsNullOrWhiteSpace(nuevoNombre) && nuevoNombre != ubicacionSel.Name)
+            {
+                ubicacionSel.Name = nuevoNombre.Trim();
+                PkrLocationParam.Items[PkrLocationParam.SelectedIndex] = ubicacionSel.Name;
+            }
+        }
+
+        // ====================================================================
+        // 📦 MÉTODOS PARA CONDICIÓN FÍSICA
+        // ====================================================================
+        private async void OnAdministrarCondicionClicked(object sender, EventArgs e)
+        {
+            string nuevaCondicion = await DisplayPromptAsync("Nueva Condición", "Ingrese la nueva condición física (Ej: Nuevo, Usado):");
+            if (!string.IsNullOrWhiteSpace(nuevaCondicion))
+            {
+                var nuevoParam = new Parameters { Id = _condicionesParam.Count + 1, Name = nuevaCondicion.Trim(), ParameterType = "Condicion" };
+
+                _condicionesParam.Add(nuevoParam);
+                PkrConditionParam.Items.Add(nuevoParam.Name);
+                PkrConditionParam.SelectedIndex = PkrConditionParam.Items.Count - 1;
+            }
+        }
+
+        private async void OnEditarCondicionClicked(object sender, EventArgs e)
+        {
+            if (PkrConditionParam.SelectedIndex <= 0) { await DisplayAlertAsync("Aviso", "Selecciona una condición para editar.", "OK"); return; }
+
+            var condicionSel = _condicionesParam[PkrConditionParam.SelectedIndex - 1];
+            string nuevoNombre = await DisplayPromptAsync("Editar Condición", "Modifica el nombre:", initialValue: condicionSel.Name);
+
+            if (!string.IsNullOrWhiteSpace(nuevoNombre) && nuevoNombre != condicionSel.Name)
+            {
+                condicionSel.Name = nuevoNombre.Trim();
+                PkrConditionParam.Items[PkrConditionParam.SelectedIndex] = condicionSel.Name;
             }
         }
     }

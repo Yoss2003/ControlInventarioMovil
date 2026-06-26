@@ -5,6 +5,7 @@ namespace ControlInventario.Models
     public static class UserSession
     {
         public static User? CurrentUser { get; set; }
+        public static Profile? CurrentProfile { get; set; }
         public static Inventory? CurrentInventory { get; set; }
         public static Article? CurrentArticleToEdit { get; set; }
         public static string? PreloadedBarcode { get; set; } = null;
