@@ -1,5 +1,5 @@
 using ControlInventario.Models;
-using ControlInventario.Shared.Models; // Asegura el acceso a tu modelo 'Article'
+using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
 using Microsoft.Maui.Controls;
 using System;
@@ -10,12 +10,12 @@ namespace ControlInventarioMovil.Views.Controls
     public partial class FooterView : ContentView
     {
         private bool _estaNavegando = false;
-        private readonly ApiService _apiService; // 🌟 El puente hacia internet
+        private readonly ApiService _apiService;
 
         public FooterView()
         {
             InitializeComponent();
-            _apiService = new ApiService(); // Inicializamos el servicio de datos
+            _apiService = new ApiService();
         }
 
         private async void OnFooterButtonTapped(object sender, TappedEventArgs e)
@@ -33,20 +33,18 @@ namespace ControlInventarioMovil.Views.Controls
 
             _estaNavegando = true;
 
-            // Capturamos el estado y la página que el usuario está viendo actualmente
             var rutaActual = Shell.Current.CurrentState.Location.OriginalString;
-            var paginaActual = Shell.Current.CurrentPage; // 🌟 Contexto para alertas e inputs
+            var paginaActual = Shell.Current.CurrentPage;
 
             // --- ENRUTAMIENTO INTELIGENTE ---
             switch (parametro)
             {
                 case "Agregar":
-                    // 📦 Ejecutamos el flujo inteligente del escáner en cascada usando la página activa
                     await NavegarFlujoAgregarSeguroAsync();
                     break;
 
                 case "Vender":
-                    // await Shell.Current.GoToAsync("VenderPage");
+                    await Shell.Current.GoToAsync("SalesPage");
                     break;
 
                 case "Analisis":
@@ -74,7 +72,6 @@ namespace ControlInventarioMovil.Views.Controls
         {
             if (paginaActual == null) return;
 
-            // 1. Desplegamos el menú flotante de opciones sobre la página actual
             string opcion = await paginaActual.DisplayActionSheetAsync("¿Qué acción deseas realizar?", "Cancelar", null, "📦 Registrar Producto Nuevo", "🔍 Escanear Código de Barras");
 
             if (opcion == "📦 Registrar Producto Nuevo")

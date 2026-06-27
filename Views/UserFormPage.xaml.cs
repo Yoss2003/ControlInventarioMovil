@@ -20,16 +20,38 @@ namespace ControlInventarioMovil.Views
         {
             base.OnAppearing();
 
-            // 1. Descargamos los roles de la base de datos de Somee
+            MainScrollContent.IsVisible = false;
+            LoadingOverlay.IsVisible = true;
+
             var roles = await _apiService.GetRolesAsync();
-            PkrRoles.ItemsSource = roles;
 
-            if (_userToEdit != null && roles != null)
+            if (roles != null)
             {
-                PkrRoles.SelectedItem = roles.FirstOrDefault(r => r.Id == _userToEdit.RoleId);
+                var rolesList = roles.ToList();
+                rolesList.Insert(0, new Role { Id = 0, Name = "Seleccionar un Rol" });
+                PkrRoles.ItemsSource = rolesList;
 
-                // 2. Ejecutamos el rellenado aquí cuando el contexto de la pantalla ya está 100% listo
-                HydrateFormulario();
+                if (_userToEdit != null)
+                {
+                    int indiceCorrecto = rolesList.FindIndex(r =>
+                        (r.Id > 0 && r.Id == _userToEdit.RoleId) ||
+                        (!string.IsNullOrWhiteSpace(r.Name) && !string.IsNullOrWhiteSpace(_userToEdit.RoleName) &&
+                         r.Name.Trim().Equals(_userToEdit.RoleName.Trim(), StringComparison.OrdinalIgnoreCase))
+                    );
+
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        PkrRoles.SelectedIndex = indiceCorrecto >= 0 ? indiceCorrecto : 0;
+                    });
+
+                    HydrateFormulario();
+                }
+                else
+                {
+                    PkrRoles.SelectedIndex = 0;
+                    MainScrollContent.IsVisible = true;
+                    LoadingOverlay.IsVisible = false;
+                }
             }
         }
 
@@ -42,44 +64,58 @@ namespace ControlInventarioMovil.Views
             TxtPassword.Text = _userToEdit.Password;
             SwIsActive.IsToggled = _userToEdit.IsActive;
 
-            // Renderizar la foto de perfil si ya existe en Somee
             if (!string.IsNullOrEmpty(_userToEdit.ProfilePictureUrl))
             {
-                // 🔒 SEGURO: Forzamos a que MAUI procese la imagen en el hilo de la interfaz visual
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     try
                     {
-                        string cleanBase64 = _userToEdit.ProfilePictureUrl.Trim();
+                        string cleanString = _userToEdit.ProfilePictureUrl.Trim();
 
-                        if (cleanBase64.Contains(","))
-                            cleanBase64 = cleanBase64.Split(',')[1];
+                        if (cleanString.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                        {
+                            ImgUserProfile.Source = ImageSource.FromUri(new Uri(cleanString));
+                        }
+                        else
+                        {
+                            if (cleanString.Contains(","))
+                                cleanString = cleanString.Split(',')[1];
 
-                        cleanBase64 = cleanBase64.Replace("\r", "").Replace("\n", "");
+                            cleanString = cleanString.Replace("\r", "").Replace("\n", "");
 
-                        _base64ImageString = cleanBase64;
-                        byte[] imageBytes = Convert.FromBase64String(cleanBase64);
+                            _base64ImageString = cleanString;
+                            byte[] imageBytes = Convert.FromBase64String(cleanString);
+                            ImgUserProfile.Source = ImageSource.FromStream(() => new MemoryStream(imageBytes));
+                        }
 
-                        ImgUserProfile.Source = ImageSource.FromStream(() => new MemoryStream(imageBytes));
-
-                        // Seteo elástico de controles
                         LblAvatarPlaceholder.IsVisible = false;
                         ImgUserProfile.IsVisible = true;
                         BtnDeletePhoto.IsVisible = true;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        // Si falla o la data es corrupta, se autoprotege mostrando la silueta por defecto
                         _base64ImageString = null;
                         LblAvatarPlaceholder.IsVisible = true;
                         ImgUserProfile.IsVisible = false;
                         BtnDeletePhoto.IsVisible = false;
-                        System.Diagnostics.Debug.WriteLine($"[MULTIMEDIA_ERR] Error base64: {ex.Message}");
+                    }
+                    finally
+                    {
+                        LoadingOverlay.IsVisible = false;
+                        MainScrollContent.IsVisible = true;
                     }
                 });
             }
+            else
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    LoadingOverlay.IsVisible = false;
+                    MainScrollContent.IsVisible = true;
+                });
+            }
 
-            TxtUsername.IsReadOnly = true; // El ID de usuario no se edita jamás
+            TxtUsername.IsReadOnly = true;
         }
 
         // Algoritmo de autogeneración de ID de Usuario
@@ -182,21 +218,18 @@ namespace ControlInventarioMovil.Views
         {
             var selectedRole = (Role)PkrRoles.SelectedItem;
 
-            // 1. Validaciones obligatorias de la interfaz
-            if (selectedRole == null || string.IsNullOrWhiteSpace(TxtUsername.Text) || string.IsNullOrWhiteSpace(TxtFullName.Text))
+            if (selectedRole == null || selectedRole.Id == 0 || string.IsNullOrWhiteSpace(TxtUsername.Text) || string.IsNullOrWhiteSpace(TxtFullName.Text))
             {
-                await DisplayAlertAsync("Error", "Completa todos los campos obligatorios y selecciona un Rol.", "OK");
+                await DisplayAlertAsync("Error", "Completa todos los campos obligatorios y selecciona un Rol operativo válido.", "OK");
                 return;
             }
 
-            // 2. Validación estricta de contraseña para cuentas nuevas
             if (_userToEdit == null && string.IsNullOrWhiteSpace(TxtPassword.Text))
             {
                 await DisplayAlertAsync("Seguridad", "La contraseña es completamente obligatoria para registrar cuentas nuevas.", "OK");
                 return;
             }
 
-            // 3. Instanciación segura: Inyectamos strings vacíos a los campos que la BD exige pero el formulario no tiene
             var user = _userToEdit ?? new User();
 
             string fullName = TxtFullName.Text.Trim();
@@ -215,7 +248,6 @@ namespace ControlInventarioMovil.Views
                 lastName = string.Empty;
             }
 
-            // 5. Asignación final de propiedades
             user.FirstName = firstName;
             user.LastName = lastName;
             user.Username = TxtUsername.Text.Trim();
@@ -228,20 +260,23 @@ namespace ControlInventarioMovil.Views
             user.RoleId = selectedRole.Id;
             user.IsActive = SwIsActive.IsToggled;
             user.ProfilePictureUrl = _base64ImageString;
-
             user.Role = null;
 
-            // 7. Persistencia hacia Somee y navegación
             bool exito = await _apiService.SaveUserAsync(user);
             if (exito)
             {
                 await DisplayAlertAsync("Éxito", "Los cambios en el personal han sido sincronizados correctamente.", "OK");
-                await Navigation.PopAsync(); // Regresamos al listado general
+                await Navigation.PopAsync();
             }
             else
             {
-                await DisplayAlertAsync("Error de Red", "No se pudo guardar el registro. Verifica que no existan datos duplicados o que tu API permita los datos enviados.", "OK");
+                await DisplayAlertAsync("Error de Red", "No se pudo guardar el registro. Verifica tu conexión con Somee.", "OK");
             }
+        }
+
+        private async void OnBackClicked(object sender, EventArgs e)
+        {
+            await Navigation.PopAsync();
         }
     }
 }

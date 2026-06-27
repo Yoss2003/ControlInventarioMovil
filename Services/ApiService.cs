@@ -628,7 +628,6 @@ namespace ControlInventarioMovil.Services
                 return 0; // Resguardo contable por si falla la red
             }
         }
-
         public async Task<ExchangeRate?> GetTodayExchangeRateAsync(string currency = "USD")
         {
             try
@@ -725,7 +724,6 @@ namespace ControlInventarioMovil.Services
             catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetPermissions: {ex.Message}"); }
             return new List<Permission>();
         }
-
         public async Task<bool> UpdateRolePermissionsAsync(int roleId, List<int> permissionIds)
         {
             try
@@ -735,7 +733,6 @@ namespace ControlInventarioMovil.Services
             }
             catch (Exception ex) { Console.WriteLine($"[API_ERROR] UpdateRolePermissions: {ex.Message}"); return false; }
         }
-
         public async Task<(string Secret, string QrUri)?> Generate2FAAsync(int userId)
         {
             try
@@ -755,7 +752,6 @@ namespace ControlInventarioMovil.Services
             catch (Exception ex) { Console.WriteLine($"[2FA_ERR] Generate: {ex.Message}"); }
             return null;
         }
-
         public async Task<bool> Enable2FAAsync(int userId, string code)
         {
             try
@@ -765,7 +761,6 @@ namespace ControlInventarioMovil.Services
             }
             catch (Exception ex) { Console.WriteLine($"[2FA_ERR] Enable: {ex.Message}"); return false; }
         }
-
         public async Task<bool> Disable2FAAsync(int userId)
         {
             try
@@ -775,7 +770,6 @@ namespace ControlInventarioMovil.Services
             }
             catch (Exception ex) { Console.WriteLine($"[2FA_ERR] Disable: {ex.Message}"); return false; }
         }
-
         public async Task<bool> SaveUserAsync(User user)
         {
             try
@@ -818,7 +812,6 @@ namespace ControlInventarioMovil.Services
                 return false;
             }
         }
-
         public async Task<List<User>?> GetUsersAsync()
         {
             try
@@ -837,6 +830,32 @@ namespace ControlInventarioMovil.Services
                 Console.WriteLine($"[API_ERR] GetUsers: {ex.Message}");
             }
             return null;
+        }
+
+        public async Task<bool> SaveSaleAsync(Sale nuevaVenta)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Sales", nuevaVenta);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return true;
+                }
+                else
+                {
+                    string errorDetallado = await response.Content.ReadAsStringAsync();
+                    System.Diagnostics.Debug.WriteLine($"[API_ERROR_SALE] Error: {errorDetallado}");
+                    await App.Current!.MainPage!.DisplayAlertAsync("Rechazo de Servidor (Somee)", errorDetallado, "OK");
+
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[API_CRITICAL_EX] SaveSale: {ex.Message}");
+                return false;
+            }
         }
     }
 

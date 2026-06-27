@@ -7,7 +7,7 @@
              Shell.NavBarIsVisible="False">
 
     <Grid>
-        <Grid BackgroundColor="#1E003B">
+        <Grid BackgroundColor="#1E003B" InputTransparent="True">
             <Ellipse x:Name="orbMorado" WidthRequest="400" HeightRequest="400" HorizontalOptions="Start" VerticalOptions="Start" Margin="-50,-50,0,0" Opacity="0.7">
                 <Ellipse.Fill>
                     <RadialGradientBrush>
@@ -111,8 +111,8 @@
                                              Padding="0"
                                              VerticalOptions="Center"
                                              Margin="10,0,0,0"
-                                             helpers:EfectosVisualesHelper.Animar="True"
-                                             Clicked="OnShowPasswordTapped">
+                                             Clicked="OnShowPasswordTapped"
+                                             helpers:EfectosVisualesHelper.Animar="True">
                                     <ImageButton.Triggers>
                                         <DataTrigger TargetType="ImageButton" Binding="{Binding Source={x:Reference loading}, Path=IsRunning}" Value="True">
                                             <Setter Property="IsEnabled" Value="False"/>
@@ -139,7 +139,7 @@
                             </Label.GestureRecognizers>
                         </Label>
 
-                        <Button Text="Ingresar" TextColor="White" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnLoginClicked">
+                        <Button Text="Ingresar" TextColor="White" FontAttributes="Bold" CornerRadius="10" HeightRequest="45"  Clicked="OnLoginClicked" helpers:EfectosVisualesHelper.Animar="True">
                             <Button.Background>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                                     <GradientStop Color="#4B0082" Offset="0.0" />

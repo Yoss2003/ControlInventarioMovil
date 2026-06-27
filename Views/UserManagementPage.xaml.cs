@@ -1,4 +1,3 @@
-using ControlInventario.Shared;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
 
@@ -13,21 +12,22 @@ namespace ControlInventarioMovil.Views
             InitializeComponent();
         }
 
-        // Cada vez que el Admin entre o regrese a esta pantalla, refrescamos la lista automáticamente
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            await CargarUsuariosDelSistemaAsync();
+            RefreshUsers.IsVisible = false;
+            LoadingOverlay.IsVisible = true;
+
+            await EjecutarCargaUsuariosAsync();
+
+            LoadingOverlay.IsVisible = false;
+            RefreshUsers.IsVisible = true;
         }
 
-        // Lógica maestra para descargar los usuarios desde tu API en Somee
-        private async Task CargarUsuariosDelSistemaAsync()
+        private async Task EjecutarCargaUsuariosAsync()
         {
-            RefreshUsers.IsRefreshing = true;
-
             try
             {
-                // Llamamos a la API (Asegúrate de tener este método en tu ApiService, abajo te lo dejo por si acaso)
                 var usuarios = await _apiService.GetUsersAsync();
 
                 if (usuarios != null)
@@ -36,33 +36,29 @@ namespace ControlInventarioMovil.Views
                 }
                 else
                 {
+                    // 🛡️ Alerta corregida a 'DisplayAlert'
                     await DisplayAlertAsync("Aviso", "No se encontraron usuarios registrados o tu sesión expiró.", "OK");
                 }
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[MANAGEMENT_ERR] Error al actualizar lista: {ex.Message}");
                 await DisplayAlertAsync("Error de Conexión", $"Fallo al leer el personal de la BD: {ex.Message}", "OK");
             }
-            finally
-            {
-                RefreshUsers.IsRefreshing = false;
-            }
         }
 
-        // Evento que se dispara cuando el usuario arrastra la pantalla hacia abajo (Pull-to-Refresh)
-        private async void OnRefreshing(object? sender, EventArgs e)
+        private async void OnRefreshing(object sender, EventArgs e)
         {
-            await CargarUsuariosDelSistemaAsync();
+            // Actualiza la información en segundo plano respetando el gesto nativo
+            await EjecutarCargaUsuariosAsync();
+            RefreshUsers.IsRefreshing = false;
         }
 
-        // 👉 NAVEGACIÓN A: Registro Nuevo (Formulario en blanco)
         private async void OnAddUserClicked(object? sender, EventArgs e)
         {
-            // Usamos la navegación jerárquica estándar push de MAUI
             await Navigation.PushAsync(new UserFormPage());
         }
 
-        // 👉 NAVEGACIÓN B: Edición de un usuario existente
         private async void OnEditUserClicked(object? sender, EventArgs e)
         {
             var boton = sender as ImageButton;
@@ -70,7 +66,6 @@ namespace ControlInventarioMovil.Views
 
             if (usuarioSeleccionado != null)
             {
-                // Le pasamos el usuario completo al constructor para que el formulario se auto-rellene
                 await Navigation.PushAsync(new UserFormPage(usuarioSeleccionado));
             }
         }
