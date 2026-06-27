@@ -1,13 +1,7 @@
-﻿using Microsoft.Maui.Controls;
-using System;
-
-namespace ControlInventarioMovil.Helpers
+﻿namespace ControlInventarioMovil.Helpers
 {
     public static class EfectosVisualesHelper
     {
-        // ====================================================================
-        // 🌟 PROPIEDAD ADJUNTA PARA INYECTAR EN ESTILOS GLOBALES
-        // ====================================================================
         public static readonly BindableProperty AnimarProperty =
             BindableProperty.CreateAttached("Animar", typeof(bool), typeof(EfectosVisualesHelper), false, propertyChanged: OnAnimarChanged);
 
@@ -18,64 +12,39 @@ namespace ControlInventarioMovil.Helpers
         {
             if (!(bool)newValue || !(bindable is View vista)) return;
 
-            // 1. Si es botón con texto, oscurecer. 
-            // 2. Si es ImageButton o botón sin texto (solo ícono), hacer Zoom.
-            if (vista is Button btn && !string.IsNullOrWhiteSpace(btn.Text))
-            {
-                AplicarEfectoOscurecimiento(btn);
-            }
-            else
-            {
-                AplicarEfectoZoom(vista);
-            }
+            AplicarEfectoSeguro(vista);
         }
 
-        // ==========================================
-        // 🖼️ EFECTO ZOOM PARA IMÁGENES/ÍCONOS
-        // ==========================================
-        private static void AplicarEfectoZoom(View vista)
+        private static void AplicarEfectoSeguro(View vista)
         {
-            // Hover (Pasar el Mouse en Windows)
-            var pointer = new PointerGestureRecognizer();
-            pointer.PointerEntered += async (s, e) => await vista.ScaleToAsync(1.15, 150, Easing.CubicOut);
-            pointer.PointerExited += async (s, e) => await vista.ScaleToAsync(1.0, 150, Easing.CubicIn);
-            vista.GestureRecognizers.Add(pointer);
+            // 1. EFECTO HOVER (SOLO ESCRITORIO): Evita que Android secuestre el evento Clicked
+            if (DeviceInfo.Platform == DevicePlatform.WinUI || DeviceInfo.Platform == DevicePlatform.MacCatalyst)
+            {
+                var pointer = new PointerGestureRecognizer();
+                pointer.PointerEntered += (s, e) => { _ = vista.ScaleToAsync(1.03, 150, Easing.CubicOut); };
+                pointer.PointerExited += (s, e) => { _ = vista.ScaleToAsync(1.0, 150, Easing.CubicIn); };
+                vista.GestureRecognizers.Add(pointer);
+            }
 
-            // Touch (Presionar con el dedo en Android)
+            // 2. EFECTO TOUCH (MÓVILES Y ESCRITORIO): Enganchado a los eventos nativos
             if (vista is Button btn)
             {
-                btn.Pressed += async (s, e) => await vista.ScaleToAsync(1.15, 100, Easing.CubicOut);
-                btn.Released += async (s, e) => await vista.ScaleToAsync(1.0, 100, Easing.CubicIn);
+                // Usamos Opacidad (FadeTo) en lugar de BackgroundColor para no destruir tu Gradiente
+                btn.Pressed += (s, e) => {
+                    _ = btn.ScaleToAsync(0.95, 100, Easing.CubicOut); // Se hunde un poquito
+                    _ = btn.FadeToAsync(0.8, 100);                    // Se oscurece un poquito
+                };
+                btn.Released += (s, e) => {
+                    _ = btn.ScaleToAsync(1.0, 100, Easing.CubicIn);   // Regresa a su tamaño
+                    _ = btn.FadeToAsync(1.0, 100);                    // Regresa su luz
+                };
             }
             else if (vista is ImageButton imgBtn)
             {
-                imgBtn.Pressed += async (s, e) => await vista.ScaleToAsync(1.15, 100, Easing.CubicOut);
-                imgBtn.Released += async (s, e) => await vista.ScaleToAsync(1.0, 100, Easing.CubicIn);
+                // El ojito de la contraseña: Se hace pequeño al tocarlo
+                imgBtn.Pressed += (s, e) => { _ = imgBtn.ScaleToAsync(0.85, 100, Easing.CubicOut); };
+                imgBtn.Released += (s, e) => { _ = imgBtn.ScaleToAsync(1.0, 100, Easing.CubicIn); };
             }
-        }
-
-        // ==========================================
-        // 🔤 EFECTO OSCURECIMIENTO AUTOMÁTICO
-        // ==========================================
-        private static void AplicarEfectoOscurecimiento(Button boton)
-        {
-            Color colorBase = boton.BackgroundColor;
-
-            // Si no tiene color o es transparente, lo ignoramos para no arruinar tu diseño
-            if (colorBase == null || colorBase == Colors.Transparent) return;
-
-            // 🧠 MAGIA: Calculamos automáticamente un color un 15% más oscuro usando Luminosidad
-            Color colorOscuro = colorBase.WithLuminosity((float)Math.Max(0, colorBase.GetLuminosity() - 0.15f));
-
-            // Hover en Desktop
-            var pointer = new PointerGestureRecognizer();
-            pointer.PointerEntered += (s, e) => boton.BackgroundColor = colorOscuro;
-            pointer.PointerExited += (s, e) => boton.BackgroundColor = colorBase;
-            boton.GestureRecognizers.Add(pointer);
-
-            // Touch en Android
-            boton.Pressed += (s, e) => boton.BackgroundColor = colorOscuro;
-            boton.Released += (s, e) => boton.BackgroundColor = colorBase;
         }
     }
 }

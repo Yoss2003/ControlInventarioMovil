@@ -2,56 +2,101 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="ControlInventarioMovil.Views.UserManagementPage"
-             Title="Control de Personal">
+             BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}"             
+             Shell.NavBarIsVisible="False">
 
     <Grid RowDefinitions="Auto, *" Padding="15" RowSpacing="15">
-        <Button Text="+ REGISTRAR NUEVO MIEMBRO" Clicked="OnAddUserClicked" BackgroundColor="#2E7D32" TextColor="White" FontAttributes="Bold" CornerRadius="8" HeightRequest="46"/>
 
-        <RefreshView Grid.Row="1" x:Name="RefreshUsers" Refreshing="OnRefreshing">
-            <CollectionView x:Name="CvUsers">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Border StrokeShape="RoundRectangle 10" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#161F27}" Margin="0,0,0,12" Padding="12,15">
-                            <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="12">
+        <Button Text="+ REGISTRAR NUEVO MIEMBRO" 
+                Clicked="OnAddUserClicked" 
+                BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#2E7D32}" 
+                TextColor="White" 
+                FontAttributes="Bold" 
+                CornerRadius="8" 
+                HeightRequest="46"/>
 
-                                <Border Grid.Column="0" StrokeShape="RoundRectangle 20" WidthRequest="40" HeightRequest="40" StrokeThickness="0" VerticalOptions="Center">
-                                    <Grid>
-                                        <Border BackgroundColor="#2E7D32" StrokeShape="RoundRectangle 20">
-                                            <Label Text="👤" TextColor="White" FontSize="16" HorizontalOptions="Center" VerticalOptions="Center"/>
-                                        </Border>
-                                        <Image Source="{Binding ProfilePictureUrl}" Aspect="AspectFill" WidthRequest="40" HeightRequest="40">
-                                            <Image.Triggers>
-                                                <DataTrigger TargetType="Image" Binding="{Binding ProfilePictureUrl}" Value="{x:Null}">
-                                                    <Setter Property="IsVisible" Value="False"/>
-                                                </DataTrigger>
-                                                <DataTrigger TargetType="Image" Binding="{Binding ProfilePictureUrl}" Value="">
-                                                    <Setter Property="IsVisible" Value="False"/>
-                                                </DataTrigger>
-                                            </Image.Triggers>
-                                        </Image>
-                                    </Grid>
-                                </Border>
+        <Grid Grid.Row="1">
 
-                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
-                                    <Label Text="{Binding FirstName}" FontAttributes="Bold" FontSize="15" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}"/>
-                                    <Grid ColumnDefinitions="Auto, *">
-                                        <Label Grid.Column="0" Text="ID: " FontSize="12" TextColor="#606A72" FontAttributes="Bold"/>
-                                        <Label Grid.Column="1" Text="{Binding Username}" FontSize="12" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
-                                    </Grid>
-                                </VerticalStackLayout>
+            <RefreshView x:Name="RefreshUsers" Refreshing="OnRefreshing" IsVisible="False">
+                <CollectionView x:Name="CvUsers">
 
-                                <HorizontalStackLayout Grid.Column="2" VerticalOptions="Center" Spacing="15">
-                                    <Border StrokeShape="RoundRectangle 6" BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B301F}" Padding="8,4" VerticalOptions="Center" StrokeThickness="0">
-                                        <Label Text="{Binding Role.Name}" FontSize="10" FontAttributes="Bold" TextColor="#A2D149"/>
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="16" />
+                    </CollectionView.ItemsLayout>
+
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border StrokeShape="RoundRectangle 10" 
+                                    Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" 
+                                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" 
+                                    Padding="12,15" 
+                                    Margin="2,2,2,2">
+
+                                <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="12">
+
+                                    <Border Grid.Column="0" StrokeShape="RoundRectangle 20" WidthRequest="40" HeightRequest="40" StrokeThickness="0" VerticalOptions="Center">
+                                        <Grid>
+                                            <Border BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" StrokeShape="RoundRectangle 20">
+                                                <Label Text="👤" TextColor="{AppThemeBinding Light=White, Dark=#161F27}" FontSize="16" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                            </Border>
+                                            <Image Source="{Binding ProfilePictureUrl}" Aspect="AspectFill" WidthRequest="40" HeightRequest="40">
+                                                <Image.Triggers>
+                                                    <DataTrigger TargetType="Image" Binding="{Binding ProfilePictureUrl}" Value="{x:Null}">
+                                                        <Setter Property="IsVisible" Value="False"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Image" Binding="{Binding ProfilePictureUrl}" Value="">
+                                                        <Setter Property="IsVisible" Value="False"/>
+                                                    </DataTrigger>
+                                                </Image.Triggers>
+                                            </Image>
+                                        </Grid>
                                     </Border>
-                                    <ImageButton Source="edit_icon.png" Clicked="OnEditUserClicked" CommandParameter="{Binding .}" HeightRequest="26" WidthRequest="26" VerticalOptions="Center"/>
-                                </HorizontalStackLayout>
 
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-        </RefreshView>
+                                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                        <Label Text="{Binding FirstName}" 
+                                               FontAttributes="Bold" 
+                                               FontSize="15" 
+                                               TextColor="{AppThemeBinding Light=#1C262E, Dark=White}"/>
+                                        <Grid ColumnDefinitions="Auto, *">
+                                            <Label Grid.Column="0" Text="ID: " FontSize="12" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontAttributes="Bold"/>
+                                            <Label Grid.Column="1" Text="{Binding Username}" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}"/>
+                                        </Grid>
+                                    </VerticalStackLayout>
+
+                                    <HorizontalStackLayout Grid.Column="2" VerticalOptions="Center" Spacing="15">
+
+                                        <Border StrokeShape="RoundRectangle 6" 
+                                                BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B301F}" 
+                                                Padding="8,4" 
+                                                VerticalOptions="Center" 
+                                                StrokeThickness="0">
+                                            <Label Text="{Binding RoleName}" 
+                                                   FontSize="10" 
+                                                   FontAttributes="Bold" 
+                                                   TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}"/>
+                                        </Border>
+
+                                        <ImageButton Source="edit_icon.png" 
+                                                     Clicked="OnEditUserClicked" 
+                                                     CommandParameter="{Binding .}" 
+                                                     HeightRequest="26" 
+                                                     WidthRequest="26" 
+                                                     VerticalOptions="Center" 
+                                                     BackgroundColor="Transparent"/>
+                                    </HorizontalStackLayout>
+
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
+
+            <VerticalStackLayout x:Name="LoadingOverlay" VerticalOptions="Center" HorizontalOptions="Center" Spacing="15" IsVisible="True">
+                <ActivityIndicator IsRunning="True" Color="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" HeightRequest="45" WidthRequest="45"/>
+                <Label Text="Actualizando personal..." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="13" FontAttributes="Bold" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+
+        </Grid>
     </Grid>
 </ContentPage>

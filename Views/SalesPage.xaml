@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
+             xmlns:models="clr-namespace:ControlInventario.Shared.Models;assembly=ControlInventario.Shared"
+             x:Class="ControlInventarioMovil.Views.SalesPage"
+             BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}"
+             Shell.NavBarIsVisible="False"
+             Title="">
+
+    <Grid RowDefinitions="Auto, Auto, *, Auto">
+
+        <Grid Grid.Row="0" Padding="15,10" ColumnDefinitions="Auto, *" VerticalOptions="Start">
+            <ImageButton Grid.Column="0"
+                         Source="arrow_back.png" 
+                         BackgroundColor="Transparent" 
+                         WidthRequest="25" 
+                         HeightRequest="25" 
+                         VerticalOptions="Center"
+                         helpers:EfectosVisualesHelper.Animar="True"
+                         Clicked="OnBackClicked"/>
+
+            <Label Grid.Column="1" 
+                   Text="Punto de Venta" 
+                   TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" 
+                   FontSize="20" 
+                   FontAttributes="Bold" 
+                   VerticalOptions="Center" 
+                   Margin="15,0,0,0" />
+        </Grid>
+
+        <Grid Grid.Row="1" Padding="15,5,15,10" ColumnDefinitions="*, Auto" ColumnSpacing="10">
+            <SearchBar Grid.Column="0" 
+                       x:Name="searchArticle"
+                       Placeholder="Buscar artículo..." 
+                       TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                       PlaceholderColor="#80A0A0A0"
+                       HeightRequest="45"
+                       TextChanged="OnSearchTextChanged"/>
+
+            <HorizontalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="5">
+                <Switch x:Name="switchHideAgotados" 
+                        IsToggled="False" 
+                        Toggled="OnHideAgotadosToggled"
+                        OnColor="#8A2BE2" />
+                <Label Text="Ocultar agotados" 
+                       TextColor="{AppThemeBinding Light=#505050, Dark=#E0E0E0}" 
+                       VerticalOptions="Center" 
+                       FontSize="13"/>
+            </HorizontalStackLayout>
+        </Grid>
+
+        <CollectionView Grid.Row="2" 
+                        x:Name="listArticles" 
+                        Margin="10,0">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:Article">
+                    <Border Margin="5" Padding="12" BackgroundColor="{AppThemeBinding Light=White, Dark=#263238}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding Stock}" Value="0">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </DataTrigger>
+                        </Border.Triggers>
+
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                                <Label Text="{Binding Name}" 
+                                       TextColor="{AppThemeBinding Light=Black, Dark=White}" 
+                                       FontSize="16" 
+                                       FontAttributes="Bold" />
+
+                                <Label Text="{Binding Model, StringFormat='Modelo: {0}'}" 
+                                       TextColor="#A0A0A0" 
+                                       FontSize="13" />
+
+                                <HorizontalStackLayout Spacing="15" Margin="0,3,0,0">
+                                    <Label Text="{Binding SalePrice, StringFormat='S/. {0:F2}'}" 
+                                           TextColor="#00CED1" 
+                                           FontAttributes="Bold" 
+                                           FontSize="15"/>
+
+                                    <Label Text="{Binding Stock, StringFormat='Stock: {0}'}" 
+                                           TextColor="{AppThemeBinding Light=Gray, Dark=#E0E0E0}" 
+                                           FontSize="13" 
+                                           VerticalOptions="Center"/>
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+
+                            <HorizontalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="8">
+                                <Button Text="-" 
+                                        WidthRequest="38" 
+                                        HeightRequest="38" 
+                                        Padding="0"
+                                        CornerRadius="19"
+                                        FontSize="22"
+                                        FontAttributes="Bold"
+                                        BackgroundColor="#E0E0E0" 
+                                        TextColor="Black"
+                                        Clicked="OnDecreaseQuantityClicked">
+                                    <Button.Triggers>
+                                        <DataTrigger TargetType="Button" Binding="{Binding Stock}" Value="0">
+                                            <Setter Property="IsEnabled" Value="False" />
+                                        </DataTrigger>
+                                    </Button.Triggers>
+                                </Button>
+
+                                <Label Text="{Binding QuantityInCart}" 
+                                       FontAttributes="Bold" 
+                                       FontSize="16" 
+                                       VerticalOptions="Center" 
+                                       HorizontalOptions="Center"
+                                       HorizontalTextAlignment="Center"
+                                       WidthRequest="30"
+                                       TextColor="{AppThemeBinding Light=Black, Dark=White}"/>
+
+                                <Button Text="+" 
+                                        WidthRequest="38" 
+                                        HeightRequest="38" 
+                                        Padding="0"
+                                        CornerRadius="19"
+                                        FontSize="22"
+                                        FontAttributes="Bold"
+                                        BackgroundColor="#8A2BE2" 
+                                        TextColor="White"
+                                        Clicked="OnIncreaseQuantityClicked">
+                                    <Button.Triggers>
+                                        <DataTrigger TargetType="Button" Binding="{Binding Stock}" Value="0">
+                                            <Setter Property="IsEnabled" Value="False" />
+                                        </DataTrigger>
+                                    </Button.Triggers>
+                                </Button>
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Border Grid.Row="3" 
+        Padding="20,12" 
+        BackgroundColor="{AppThemeBinding Light=White, Dark=#171F24}" 
+        StrokeThickness="1" 
+        Stroke="#30808080">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="24,24,0,0" />
+            </Border.StrokeShape>
+
+            <Grid ColumnDefinitions="2*, 1*" RowDefinitions="Auto, Auto, Auto" RowSpacing="10">
+
+                <Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="*, *" ColumnSpacing="8" VerticalOptions="Center">
+                    <Picker Grid.Column="0"
+                    x:Name="pickerPaymentType"
+                    Title="Método"
+                    TitleColor="Gray"
+                    TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                    HeightRequest="45"
+                    VerticalOptions="Center">
+                        <Picker.Items>
+                            <x:String>Efectivo</x:String>
+                            <x:String>Tarjeta</x:String>
+                            <x:String>Billetera digital</x:String>
+                            <x:String>Transferencia</x:String>
+                            <x:String>Venta a Cuotas</x:String>
+                        </Picker.Items>
+                    </Picker>
+
+                    <Picker Grid.Column="1"
+                    x:Name="pickerSubWallet"
+                    Title="¿Cuál?"
+                    TitleColor="Gray"
+                    TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                    HeightRequest="45"
+                    IsVisible="False"
+                    VerticalOptions="Center">
+                        <Picker.Items>
+                            <x:String>Yape</x:String>
+                            <x:String>Plin</x:String>
+                            <x:String>Bim</x:String>
+                        </Picker.Items>
+                    </Picker>
+
+                    <Picker Grid.Column="1"
+                    x:Name="pickerSalesMode"
+                    Title="Plazo"
+                    TitleColor="Gray"
+                    TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                    HeightRequest="45"
+                    IsVisible="False"
+                    VerticalOptions="Center">
+                        <Picker.Items>
+                            <x:String>Diario</x:String>
+                            <x:String>Semanal</x:String>
+                            <x:String>Mensual</x:String>
+                            <x:String>Total</x:String>
+                        </Picker.Items>
+                    </Picker>
+                </Grid>
+
+                <HorizontalStackLayout Grid.Row="0" Grid.Column="1" 
+                               HorizontalOptions="End" 
+                               VerticalOptions="Center" 
+                               Spacing="5">
+                    <Label Text="Total:" TextColor="{AppThemeBinding Light=Black, Dark=White}" FontSize="14" VerticalOptions="Center"/>
+                    <Label x:Name="lblTotalAmount" Text="S/. 0.00" TextColor="#00CED1" FontAttributes="Bold" FontSize="20" VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+
+                <Label Grid.Row="1" Grid.ColumnSpan="2"
+               x:Name="lblTotalItems"
+               Text="0 artículos seleccionados" 
+               TextColor="Gray" 
+               FontSize="12"                            
+               HorizontalOptions="Start"/>
+
+                <Button Grid.Row="2" Grid.ColumnSpan="2"
+                Text="CERRAR VENTA" 
+                TextColor="White" 
+                FontAttributes="Bold" 
+                HeightRequest="48" 
+                CornerRadius="12"
+                helpers:EfectosVisualesHelper.Animar="True"
+                Clicked="OnCheckoutClicked">
+                    <Button.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#8A2BE2" Offset="0.0" />
+                            <GradientStop Color="#0000FF" Offset="1.0" />
+                        </LinearGradientBrush>
+                    </Button.Background>
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>

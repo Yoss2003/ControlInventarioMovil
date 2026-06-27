@@ -116,10 +116,10 @@ public partial class LoginPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[KEYSTORE RESET]: {ex.Message}");
-            SecureStorage.Default.RemoveAll(); // <-- Esta es la línea evitará crasheos
+            SecureStorage.Default.RemoveAll();
         }
 
-        await AnimarFondo();
+        _ = AnimarFondo();
     }
 
     private void OnShowPasswordTapped(object sender, EventArgs e)
