@@ -258,10 +258,11 @@ namespace ControlInventarioMovil.Views
             {
                 UserId = UserSession.CurrentUser?.Id ?? 1,
                 SaleDate = DateTime.Now,
-                SelectedPaymentType = tipoPago,
+                PaymentType = tipoPago,
                 SalesModeId = _currentSalesModeId,
                 TotalAmount = dineroTotal,
-                Notes = $"Venta procesada desde la aplicación móvil."
+                Notes = $"Venta procesada desde la aplicación móvil.",
+                CustomerName = null
             };
 
             foreach (var art in productosEnCarrito)
@@ -289,6 +290,7 @@ namespace ControlInventarioMovil.Views
                 _currentSalesModeId = 5;
                 _selectedSubWallet = "";
 
+                await LoadArticlesAsync();
                 CalculateTotals();
                 FilterArticles();
             }

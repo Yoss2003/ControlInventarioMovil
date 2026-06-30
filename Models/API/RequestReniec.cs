@@ -6,5 +6,7 @@
         public string? apellidoPaterno { get; set; }
         public string? apellidoMaterno { get; set; }
         public string? numeroDocumento { get; set; }
+
+        public string NombreCompleto => $"{nombres} {apellidoPaterno} {apellidoMaterno}".Trim();
     }
 }

@@ -10,7 +10,6 @@ namespace ControlInventarioMovil.Views
     [QueryProperty(nameof(ScannedCodeResult), "scannedCode")]
     public partial class MainPage : ContentPage
     {
-        private bool _isAnimating = false;
         private readonly ApiService _apiService;
         // ==========================================
         // CONFIGURACIÓN PREMIUM DEL DIAL ORBITAL
@@ -81,7 +80,6 @@ namespace ControlInventarioMovil.Views
             if (_radarCts == null || _radarCts.IsCancellationRequested)
             {
                 _radarCts = new CancellationTokenSource();
-                _ = AnimateAroEnergiaInfiniteSmooth(_radarCts.Token);
             }
 
             // 3. FORMATEO DE BIENVENIDA AL USUARIO
@@ -147,39 +145,8 @@ namespace ControlInventarioMovil.Views
                 }
             });
 
-            // 6. ENCENDIDO DE LA ANIMACIÓN DE FONDO
-            _isAnimating = true;
-            _ = AnimarFondo();
-
             // Reanuda el contador para que la animación empiece de nuevo
             ResetInactivityTimer();
-        }
-
-        private async Task AnimarFondo()
-        {
-            // El bucle verificará constantemente la bandera
-            while (_isAnimating)
-            {
-                try
-                {
-                    // EJEMPLO: Efecto de "respiración" o "flotación" sutil en tu elemento de fondo.
-                    // ⚠️ NOTA: Cambia "imgFondo" por el nombre exacto de la imagen o layout que quieras animar en tu XAML.
-                    // Si no tienes una imagen de fondo específica a animar, puedes omitir estas líneas.
-
-                    /* DESCOMENTAR SI TIENES UN ELEMENTO LLAMADO imgFondo:
-                    await imgFondo.ScaleTo(1.02, 2000, Easing.SinInOut);
-                    await imgFondo.ScaleTo(1.00, 2000, Easing.SinInOut);
-                    */
-
-                    // Pausa vital de rendimiento (evita que el bucle while consuma el 100% del procesador)
-                    await Task.Delay(100);
-                }
-                catch (Exception)
-                {
-                    // Si el usuario cambia de pantalla a mitad de la animación, salimos del bucle sin crashear
-                    break;
-                }
-            }
         }
 
         private async Task EntregarCódigoAlFooterAsync(string codigo)
@@ -194,9 +161,15 @@ namespace ControlInventarioMovil.Views
         {
             base.OnDisappearing();
 
-            _isAnimating = false;
+            ContenedorOrbital.Opacity = 0;
 
-            // 1. Apagar el Radar
+            this.AbortAnimation("GiroOrbital");
+            int pasoMasCercano = (int)Math.Round(_anguloAcumuladoRad / (Math.PI / 2));
+            _pasoActual = (pasoMasCercano % 4 + 4) % 4;
+            _anguloAcumuladoRad = _pasoActual * (Math.PI / 2);
+            ActualizarPosicionesNodalesOnly(_anguloAcumuladoRad);
+            ContenedorOrbital.Opacity = 1;
+
             if (_radarCts != null && !_radarCts.IsCancellationRequested)
             {
                 _radarCts.Cancel();
@@ -204,18 +177,11 @@ namespace ControlInventarioMovil.Views
                 _radarCts = null;
             }
 
-            // 2. Apagar el motor del Dial Orbital (Esto detiene el giro)
             StopOrbitalAnimation();
             this.AbortAnimation("GiroOrbital");
-
-            // 3. Limpiar página base
             this.CancelAnimations();
 
-            // 4. Limpiar botones
-            foreach (var boton in _botonesOrbitales)
-            {
-                boton.CancelAnimations();
-            }
+            foreach (var boton in _botonesOrbitales) boton.CancelAnimations();
         }
 
         // Descarga de almacenes desde Somee al Picker de MAUI
@@ -697,5 +663,28 @@ namespace ControlInventarioMovil.Views
             }
         }
 
+        private async void OnNavigateToCustomersClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                await Shell.Current.GoToAsync("CustomersPage");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlertAsync("Error", $"No se pudo abrir Clientes: {ex.Message}", "OK");
+            }
+        }
+
+        private async void OnNavigateToEmployeesClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                await Shell.Current.GoToAsync("EmployeesPage");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlertAsync("Error", $"No se pudo abrir Personal: {ex.Message}", "OK");
+            }
+        }
     }
 }
