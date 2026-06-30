@@ -57,17 +57,45 @@
                 </HorizontalStackLayout>
             </Grid>
 
-            <VerticalStackLayout Grid.Row="1" HorizontalOptions="Center" Spacing="2" Margin="0,20,0,0">
-                <Label x:Name="lblNombre" Text="Hola..." FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalTextAlignment="Center"/>
-                <Label x:Name="lblRol" Text="Rol: ..." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" HorizontalTextAlignment="Center" FontSize="15"/>
+            <Grid Grid.Row="1" ColumnDefinitions="*, Auto, *" Padding="20,20,20,0">
 
-                <Border BackgroundColor="{AppThemeBinding Light=#D4E6D1, Dark=#1E3A1E}" HorizontalOptions="Center" Padding="15,4" Margin="0,12">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="20"/>
-                    </Border.StrokeShape>
-                    <Label Text="3 Reportes" TextColor="{AppThemeBinding Light=#4F7942, Dark=#A2D149}" FontAttributes="Bold" FontSize="13"/>
-                </Border>
-            </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="0" Spacing="5" HorizontalOptions="Center" VerticalOptions="Start">
+                    <Border HeightRequest="52" WidthRequest="52" BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}" StrokeThickness="1" Stroke="{AppThemeBinding Light=#D3D3D3, Dark=#2E3842}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="26"/>
+                        </Border.StrokeShape>
+                        <Image Source="user_icon.png" Margin="12"/>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnNavigateToCustomersClicked"/>
+                        </Border.GestureRecognizers>
+                    </Border>
+                    <Label Text="Clientes" FontSize="11" HorizontalOptions="Center" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center" Margin="15,0">
+                    <Label x:Name="lblNombre" Text="Hola..." FontSize="24" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalTextAlignment="Center"/>
+                    <Label x:Name="lblRol" Text="Rol: ..." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" HorizontalTextAlignment="Center" FontSize="14"/>
+                    <Border BackgroundColor="{AppThemeBinding Light=#D4E6D1, Dark=#1E3A1E}" HorizontalOptions="Center" Padding="12,3" Margin="0,8">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="15"/>
+                        </Border.StrokeShape>
+                        <Label Text="3 Reportes" TextColor="{AppThemeBinding Light=#4F7942, Dark=#A2D149}" FontAttributes="Bold" FontSize="11"/>
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Grid.Column="2" Spacing="5" HorizontalOptions="Center" VerticalOptions="Start">
+                    <Border HeightRequest="52" WidthRequest="52" BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}" StrokeThickness="1" Stroke="{AppThemeBinding Light=#D3D3D3, Dark=#2E3842}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="26"/>
+                        </Border.StrokeShape>
+                        <Image Source="user_icon.png" Margin="12"/>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnNavigateToEmployeesClicked"/>
+                        </Border.GestureRecognizers>
+                    </Border>
+                    <Label Text="Empleados" FontSize="11" HorizontalOptions="Center" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold"/>
+                </VerticalStackLayout>
+            </Grid>
 
             <Grid Grid.Row="2" x:Name="ContenedorOrbital" HorizontalOptions="Center" VerticalOptions="Center" HeightRequest="280" WidthRequest="280">
 

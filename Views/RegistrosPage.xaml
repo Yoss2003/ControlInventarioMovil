@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ControlInventarioMovil.Views.RegistrosPage"
+             Shell.NavBarIsVisible="False"
+             Title="Registros y Auditoría"
+             BackgroundColor="{AppThemeBinding Light=#F4F6FA, Dark=#0F151A}">
+
+    <Grid RowDefinitions="Auto, *">
+
+        <Grid Grid.Row="0" ColumnDefinitions="*, *" Margin="16,12" ColumnSpacing="8">
+            <Button x:Name="BtnTabKardex" Grid.Column="0" Text="📦 Kárdex" FontAttributes="Bold" CornerRadius="8" BackgroundColor="#8A2BE2" TextColor="White" Clicked="OnTabKardexClicked"/>
+            <Button x:Name="BtnTabLogs" Grid.Column="1" Text="🕵️ Auditoría" FontAttributes="Bold" CornerRadius="8" BackgroundColor="Transparent" TextColor="Gray" BorderColor="Gray" BorderWidth="1" Clicked="OnTabLogsClicked"/>
+        </Grid>
+
+        <RefreshView Grid.Row="1" x:Name="refreshKardex" Refreshing="OnRefreshKardexRequested">
+            <CollectionView x:Name="listKardex" SelectionMode="None" Margin="16,0">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Padding="0,0,0,12">
+                            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#171F24}" StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="4" VerticalOptions="Center">
+                                        <Label Text="{Binding Observation}" FontAttributes="Bold" FontSize="15" TextColor="{AppThemeBinding Light=Black, Dark=White}"/>
+                                        <HorizontalStackLayout Spacing="6">
+                                            <Label Text="Cant:" TextColor="Gray" FontSize="13"/>
+                                            <Label Text="{Binding Amount}" FontAttributes="Bold" TextColor="#00CED1" FontSize="13"/>
+                                            <Label Text="•" TextColor="Gray" FontSize="13"/>
+                                            <Label Text="{Binding MovementDate}" TextColor="Gray" FontSize="13"/>
+                                        </HorizontalStackLayout>
+                                        <Label Text="{Binding Recipient, StringFormat='Cliente: {0}'}" TextColor="Gray" FontSize="12" IsVisible="{Binding Recipient, Converter={x:Static String.IsNullOrWhiteSpace}}"/>
+                                    </VerticalStackLayout>
+
+                                    <Border Grid.Column="1" BackgroundColor="#208A2BE2" StrokeThickness="0" Padding="8,4" VerticalOptions="Start">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="6" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding ActionId, StringFormat='Acción {0}'}" TextColor="#8A2BE2" FontSize="11" FontAttributes="Bold"/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <RefreshView Grid.Row="1" x:Name="refreshLogs" Refreshing="OnRefreshLogsRequested" IsVisible="False">
+            <CollectionView x:Name="listLogs" SelectionMode="None" Margin="16,0">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Padding="0,0,0,12">
+                            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#171F24}" StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="6">
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Label Text="🟢" FontSize="12" VerticalOptions="Center"/>
+                                        <Label Text="{Binding Username}" FontAttributes="Bold" FontSize="14" TextColor="{AppThemeBinding Light=Black, Dark=White}"/>
+                                        <Label Text="{Binding LogDate, StringFormat='{0:dd/MM/yyyy HH:mm}'}" TextColor="Gray" FontSize="12" VerticalOptions="Center" HorizontalOptions="EndAndExpand"/>
+                                    </HorizontalStackLayout>
+
+                                    <Label Text="{Binding Detail}" TextColor="Gray" FontSize="14" LineBreakMode="WordWrap"/>
+
+                                    <Label Text="{Binding ModuleName, StringFormat='Módulo: {0}'}" TextColor="#00CED1" FontSize="11" FontAttributes="Bold" Margin="0,4,0,0"/>
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+    </Grid>
+</ContentPage>

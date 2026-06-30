@@ -1,6 +1,8 @@
 ﻿using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Modelo.API;
 using Newtonsoft.Json;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -548,7 +550,7 @@ namespace ControlInventarioMovil.Services
                 {
                     string jsonResponse = await response.Content.ReadAsStringAsync();
 
-                    var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
                     // 🌟 Devolvemos un Supplier real de la BD, solucionando los errores 1, 2 y 3 de golpe
                     return System.Text.Json.JsonSerializer.Deserialize<Supplier>(jsonResponse, options);
@@ -558,6 +560,30 @@ namespace ControlInventarioMovil.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"[API_CRITICAL_EX] ConsultarRuc: {ex.Message}");
+                return null;
+            }
+        }
+        public async Task<RequestReniec?> ConsultarDniAsync(string dni)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Customers/dni/{dni}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string jsonResponse = await response.Content.ReadAsStringAsync();
+
+                    var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+                    // Lo convertimos al modelo RequestReniec que ya tienes en tu proyecto
+                    return System.Text.Json.JsonSerializer.Deserialize<RequestReniec>(jsonResponse, options);
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[API_CRITICAL_EX] ConsultarDni: {ex.Message}");
                 return null;
             }
         }
@@ -831,7 +857,6 @@ namespace ControlInventarioMovil.Services
             }
             return null;
         }
-
         public async Task<bool> SaveSaleAsync(Sale nuevaVenta)
         {
             try
@@ -856,6 +881,81 @@ namespace ControlInventarioMovil.Services
                 Console.WriteLine($"[API_CRITICAL_EX] SaveSale: {ex.Message}");
                 return false;
             }
+        }
+        public async Task<List<Customer>> GetCustomersAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Customers");
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<List<Customer>>() ?? new List<Customer>();
+                }
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERR] GetCustomers: {ex.Message}"); }
+            return new List<Customer>();
+        }
+        public async Task<bool> SaveCustomerAsync(Customer cliente)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Customers", cliente);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERR] SaveCustomer: {ex.Message}"); return false; }
+        }
+        public async Task<bool> UpdateCustomerAsync(int id, Customer cliente)
+        {
+            try
+            {
+                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Customers/{id}", cliente);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERR] UpdateCustomer: {ex.Message}"); return false; }
+        }
+        public async Task<bool> SaveEmployeeAsync(Employee empleado)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Employees", empleado);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERR] SaveEmployee: {ex.Message}"); return false; }
+        }
+        public async Task<bool> UpdateEmployeeAsync(int id, Employee empleado)
+        {
+            try
+            {
+                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Employees/{id}", empleado);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERR] UpdateEmployee: {ex.Message}"); return false; }
+        }
+        public async Task<List<Movement>> GetMovementsAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Movements");
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<List<Movement>>() ?? new List<Movement>();
+                }
+            }
+            catch (Exception ex) { Console.WriteLine($"[API_ERR] GetMovements: {ex.Message}"); }
+            return new List<Movement>();
+        }
+        public async Task<List<HistoryLog>> GetHistoryLogsAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/HistoryLogs");
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<List<HistoryLog>>() ?? new List<HistoryLog>();
+                }
+            }
+            catch (Exception ex) { Console.WriteLine($"[API_ERR] GetHistoryLogs: {ex.Message}"); }
+            return new List<HistoryLog>();
         }
     }
 

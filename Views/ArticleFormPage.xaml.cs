@@ -531,7 +531,6 @@ namespace ControlInventarioMovil.Views
                 Tracking = string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) ? TrackingMode.Standard :
                            (string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ? TrackingMode.Serialized : TrackingMode.Standard),
 
-                // 🎯 Se guarda solo el UnitName limpio a la base de datos restando 1
                 MeasurementUnit = PkrMeasurement.SelectedIndex > 0
                                 ? _unidadesFiltradas[PkrMeasurement.SelectedIndex - 1].UnitName
                                 : "Unidad",
@@ -562,7 +561,9 @@ namespace ControlInventarioMovil.Views
                 ModificationDate = UserSession.CurrentArticleToEdit != null ? DateTime.Now : null,
                 DecommissionDate = UserSession.CurrentArticleToEdit?.DecommissionDate,
                 DepartureDate = UserSession.CurrentArticleToEdit?.DepartureDate,
-                SaleCurrency = saleCurrencyFinal
+                SaleCurrency = saleCurrencyFinal,
+                LoggedUserId = UserSession.CurrentUser?.Id,
+                LoggedUserFullName = $"{UserSession.CurrentUser?.FirstName} {UserSession.CurrentUser?.LastName}"
             };
 
             bool exito = false;
