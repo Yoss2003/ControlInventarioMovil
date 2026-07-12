@@ -64,10 +64,15 @@ namespace ControlInventarioMovil.Views
 
         private async void OnEditEmployeeClicked(object sender, EventArgs e)
         {
-            if (sender is ImageButton btn && btn.CommandParameter is Employee empleadoSeleccionado)
+            var button = sender as ImageButton;
+            if (button?.CommandParameter is Employee empleadoSeleccionado)
             {
                 await Navigation.PushAsync(new EmployeeFormPage(empleadoSeleccionado));
             }
+        }
+        private async void OnVolverClicked(object sender, EventArgs e)
+        {
+            await Shell.Current.GoToAsync("..");
         }
     }
 }

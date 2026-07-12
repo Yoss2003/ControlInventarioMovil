@@ -35,8 +35,8 @@ namespace ControlInventarioMovil.Views
                 {
                     int indiceCorrecto = rolesList.FindIndex(r =>
                         (r.Id > 0 && r.Id == _userToEdit.RoleId) ||
-                        (!string.IsNullOrWhiteSpace(r.Name) && !string.IsNullOrWhiteSpace(_userToEdit.RoleName) &&
-                         r.Name.Trim().Equals(_userToEdit.RoleName.Trim(), StringComparison.OrdinalIgnoreCase))
+                        (!string.IsNullOrWhiteSpace(r.Name) && !string.IsNullOrWhiteSpace(_userToEdit.Role?.Name) &&
+                         r.Name.Trim().Equals(_userToEdit.Role?.Name?.Trim(), StringComparison.OrdinalIgnoreCase))
                     );
 
                     MainThread.BeginInvokeOnMainThread(() =>
@@ -49,9 +49,15 @@ namespace ControlInventarioMovil.Views
                 else
                 {
                     PkrRoles.SelectedIndex = 0;
-                    MainScrollContent.IsVisible = true;
+                    MainScrollContent.IsVisible = false;
                     LoadingOverlay.IsVisible = false;
+                    MainScrollContent.IsVisible = true;
                 }
+            }
+            else
+            {
+                LoadingOverlay.IsVisible = false;
+                MainScrollContent.IsVisible = true;
             }
         }
 
@@ -59,9 +65,12 @@ namespace ControlInventarioMovil.Views
         {
             if (_userToEdit == null) return;
 
-            TxtFullName.Text = $"{_userToEdit.FirstName} {_userToEdit.LastName}".Trim();
-            TxtUsername.Text = _userToEdit.Username;
-            TxtPassword.Text = _userToEdit.Password;
+            string firstName = _userToEdit.Employee?.FirstName ?? string.Empty;
+            string lastName = _userToEdit.Employee?.LastName ?? string.Empty;
+
+            TxtFullName.Text = $"{firstName} {lastName}".Trim();
+            TxtUsername.Text = _userToEdit.Username ?? string.Empty;
+            TxtPassword.Text = _userToEdit.Password ?? string.Empty;
             SwIsActive.IsToggled = _userToEdit.IsActive;
 
             if (!string.IsNullOrEmpty(_userToEdit.ProfilePictureUrl))
@@ -213,7 +222,6 @@ namespace ControlInventarioMovil.Views
             BtnDeletePhoto.IsVisible = false;
         }
 
-        // Persistencia y empaquetamiento final hacia Somee
         private async void OnSaveClicked(object? sender, EventArgs e)
         {
             var selectedRole = (Role)PkrRoles.SelectedItem;
@@ -224,13 +232,19 @@ namespace ControlInventarioMovil.Views
                 return;
             }
 
-            if (_userToEdit == null && string.IsNullOrWhiteSpace(TxtPassword.Text))
+            var userToSave = new User();
+
+            if (_userToEdit != null)
+            {
+                userToSave.Id = _userToEdit.Id;
+            }
+            else if (string.IsNullOrWhiteSpace(TxtPassword.Text))
             {
                 await DisplayAlertAsync("Seguridad", "La contraseña es completamente obligatoria para registrar cuentas nuevas.", "OK");
                 return;
             }
 
-            var user = _userToEdit ?? new User();
+            userToSave.Employee = new Employee();
 
             string fullName = TxtFullName.Text.Trim();
             string firstName = string.Empty;
@@ -248,21 +262,22 @@ namespace ControlInventarioMovil.Views
                 lastName = string.Empty;
             }
 
-            user.FirstName = firstName;
-            user.LastName = lastName;
-            user.Username = TxtUsername.Text.Trim();
+            userToSave.Employee.FirstName = firstName;
+            userToSave.Employee.LastName = lastName;
+
+            userToSave.Username = TxtUsername.Text.Trim();
 
             if (!string.IsNullOrWhiteSpace(TxtPassword.Text))
             {
-                user.Password = TxtPassword.Text.Trim();
+                userToSave.Password = TxtPassword.Text.Trim();
             }
 
-            user.RoleId = selectedRole.Id;
-            user.IsActive = SwIsActive.IsToggled;
-            user.ProfilePictureUrl = _base64ImageString;
-            user.Role = null;
+            userToSave.RoleId = selectedRole.Id;
+            userToSave.IsActive = SwIsActive.IsToggled;
+            userToSave.ProfilePictureUrl = _base64ImageString;
+            userToSave.Role = null;
 
-            bool exito = await _apiService.SaveUserAsync(user);
+            bool exito = await _apiService.SaveUserAsync(userToSave);
             if (exito)
             {
                 await DisplayAlertAsync("Éxito", "Los cambios en el personal han sido sincronizados correctamente.", "OK");

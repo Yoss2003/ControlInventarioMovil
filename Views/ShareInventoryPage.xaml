@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ControlInventarioMovil.Views.ShareInventoryPage"
+             Shell.NavBarIsVisible="False"
+             Title="Compartir Inventario"
+             BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}">
+
+    <Grid RowDefinitions="Auto, *">
+
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="15,20,15,10" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
+            <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" Padding="0" Clicked="OnVolverClicked"/>
+            <Label Grid.Column="1" Text="COMPARTIR INVENTARIO" TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" VerticalOptions="Center" CharacterSpacing="0.5"/>
+            <BoxView Grid.Column="2" WidthRequest="30" BackgroundColor="Transparent"/>
+        </Grid>
+
+        <ScrollView Grid.Row="1" Padding="15">
+            <VerticalStackLayout Spacing="20" Padding="0,0,0,30">
+
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="CONCEDER ACCESO COLABORATIVO" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+
+                    <Border StrokeShape="RoundRectangle 12" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
+                        <VerticalStackLayout Spacing="15">
+
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="Seleccionar Miembro del Entorno *" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                    <Picker x:Name="pckEmployee" Title="Seleccione un compañero..." ItemDisplayBinding="{Binding FirstName}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" TitleColor="Gray" BackgroundColor="Transparent" VerticalOptions="Center"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="Nivel de Permiso (Rol de Contexto) *" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                    <Picker x:Name="pckAccessLevel" Title="Seleccione el permiso..." ItemDisplayBinding="{Binding Name}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" TitleColor="Gray" BackgroundColor="Transparent" VerticalOptions="Center"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <Button x:Name="btnShare" Text="OTORGAR ACCESO" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" HeightRequest="45" CornerRadius="8" Margin="0,5,0,0" Clicked="OnShareClicked"/>
+
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="COLABORADORES ACTIVOS EN ESTE INVENTARIO" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+
+                    <Border StrokeShape="RoundRectangle 12" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
+                        <VerticalStackLayout Spacing="10">
+
+                            <CollectionView x:Name="cvSharedUsers" SelectionMode="None" EmptyView="Nadie más tiene acceso a este inventario todavía.">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="10"/>
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center">
+
+                                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                                <Label Text="{Binding User.Username}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="14"/>
+                                                <Label Text="{Binding AccessLevelDescription}" TextColor="Gray" FontSize="11"/>
+                                            </VerticalStackLayout>
+
+                                            <ImageButton Grid.Column="1" Source="edit_icon.png" WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" VerticalOptions="Center" CommandParameter="{Binding .}" Clicked="OnRevokeAccessClicked"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

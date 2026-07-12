@@ -563,7 +563,7 @@ namespace ControlInventarioMovil.Views
                 DepartureDate = UserSession.CurrentArticleToEdit?.DepartureDate,
                 SaleCurrency = saleCurrencyFinal,
                 LoggedUserId = UserSession.CurrentUser?.Id,
-                LoggedUserFullName = $"{UserSession.CurrentUser?.FirstName} {UserSession.CurrentUser?.LastName}"
+                LoggedUserFullName = $"{UserSession.CurrentUser?.Employee?.FirstName} {UserSession.CurrentUser?.Employee?.LastName}".Trim()
             };
 
             bool exito = false;

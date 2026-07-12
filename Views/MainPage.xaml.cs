@@ -82,9 +82,9 @@ namespace ControlInventarioMovil.Views
                 _radarCts = new CancellationTokenSource();
             }
 
-            // 3. FORMATEO DE BIENVENIDA AL USUARIO
-            string firstName = UserSession.CurrentUser.FirstName?.Trim() ?? "";
-            string lastName = UserSession.CurrentUser.LastName?.Trim() ?? "";
+            // 3. FORMATEO DE BIENVENIDA AL USUARIO (🚨 CORREGIDO EN LÍNEA CON .Employee 🚨)
+            string firstName = UserSession.CurrentUser.Employee?.FirstName?.Trim() ?? "";
+            string lastName = UserSession.CurrentUser.Employee?.LastName?.Trim() ?? "";
             string userRole = UserSession.CurrentUser.Role?.Name?.Trim() ?? "Usuario";
 
             string apellido = "";

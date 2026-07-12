@@ -138,17 +138,7 @@
                     <Label Text="CUSTODIA Y SEGURIDAD" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
                     <Border StrokeShape="RoundRectangle 12" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
                         <VerticalStackLayout Spacing="15">
-
-                            <Grid ColumnDefinitions="*, Auto">
-                                <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="Requerir Autenticación Biométrica" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
-                                    <Label Text="Solicita Huella / FaceID cada vez que abras la aplicación." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
-                                </VerticalStackLayout>
-                                <Switch x:Name="SwUseAuthentication" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White"/>
-                            </Grid>
-
-                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
-
+                            
                             <Grid ColumnDefinitions="*, Auto">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
                                     <Label Text="Actividad de Logística Compartida" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
@@ -187,18 +177,58 @@
 
                             <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
 
-                            <VerticalStackLayout Spacing="5">
-                                <Label Text="Correo de Notificaciones Emisoras (SMTP)" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0">
-                                    <Entry x:Name="TxtSmtpEmail" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="alertas@empresa.com" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" HeightRequest="40"/>
-                                </Border>
-                            </VerticalStackLayout>
+                            <Grid ColumnDefinitions="*, Auto">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="Habilitar Envío de Correos (SMTP)" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
+                                    <Label Text="Permite al sistema enviar correos automáticos (ej. aprobaciones)." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
+                                </VerticalStackLayout>
+                                <Switch x:Name="SwSmtpEnabled" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White" Toggled="OnSmtpToggled"/>
+                            </Grid>
 
-                            <VerticalStackLayout Spacing="5">
-                                <Label Text="Contraseña del Servidor Correo (SMTP)" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor ="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0">
-                                    <Entry x:Name="TxtSmtpPassword" IsPassword="True" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="••••••••••••" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" HeightRequest="40"/>
-                                </Border>
+                            <VerticalStackLayout x:Name="SmtpFieldsContainer" IsVisible="False" Spacing="10" Margin="0,10,0,0">
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="Correo de Notificaciones Emisoras (SMTP)" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0">
+                                        <Entry x:Name="TxtSmtpEmail" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="alertas@empresa.com" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" HeightRequest="40"/>
+                                    </Border>
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="Contraseña del Servidor Correo (SMTP)" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor ="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0">
+                                        <Entry x:Name="TxtSmtpPassword" IsPassword="True" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="••••••••••••" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" HeightRequest="40"/>
+                                    </Border>
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Spacing="5" Margin="0,10,0,0">
+                                    <Label Text="Correo del Supervisor / Aprobador (Destinatario)" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                    <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0">
+                                        <Entry x:Name="TxtSmtpApproverEmail" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="gerencia@empresa.com (Opcional)" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" HeightRequest="40"/>
+                                    </Border>
+                                </VerticalStackLayout>
+
+                                <Label Text="¿No sabes cómo obtener la contraseña de aplicación? Toca aquí." 
+                                       TextColor="{AppThemeBinding Light=#1976D2, Dark=#64B5F6}" 
+                                       TextDecorations="Underline"
+                                       FontSize="12"
+                                       HorizontalTextAlignment="Center"
+                                       Margin="0,5,0,0">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnGuiaSmtpTapped" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+
+                                <Button x:Name="BtnProbarSmtp"
+                                        Text="PROBAR CONEXIÓN Y ENVIAR CORREO"
+                                        BackgroundColor="{AppThemeBinding Light=#1976D2, Dark=#3498DB}"
+                                        TextColor="White"
+                                        FontAttributes="Bold"
+                                        FontSize="12"
+                                        HeightRequest="40"
+                                        CornerRadius="6"
+                                        Margin="0,10,0,0"
+                                        Clicked="OnProbarSmtpClicked"/>
+                                
                             </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Border>

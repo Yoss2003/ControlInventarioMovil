@@ -18,7 +18,7 @@ public partial class EditProfilePage : ContentPage
         InitializeComponent();
         _apiService = new ApiService();
     }
-    
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
@@ -32,8 +32,9 @@ public partial class EditProfilePage : ContentPage
             txtFirstName.TextChanged -= OnNameFieldsChanged;
             txtLastName.TextChanged -= OnNameFieldsChanged;
 
-            txtFirstName.Text = user.FirstName;
-            txtLastName.Text = user.LastName;
+            txtFirstName.Text = user.Employee?.FirstName ?? string.Empty;
+            txtLastName.Text = user.Employee?.LastName ?? string.Empty;
+
             txtPhoneNumber.Text = user.PhoneNumber;
             txtEmail.Text = user.Email;
             txtUsername.Text = user.Username;
@@ -58,13 +59,13 @@ public partial class EditProfilePage : ContentPage
             pckRole.SelectedItem = rolesList.FirstOrDefault(r => r.Name == user.Role?.Name);
 
         if (pckArea.ItemsSource is List<Parameters> areasList)
-            pckArea.SelectedItem = areasList.FirstOrDefault(a => a.Id == user.AreaId);
+            pckArea.SelectedItem = areasList.FirstOrDefault(a => a.Id == user.Employee?.AreaId);
 
         if (pckPosition.ItemsSource is List<Parameters> puestosList)
-            pckPosition.SelectedItem = puestosList.FirstOrDefault(p => p.Id == user.JobPositionId);
+            pckPosition.SelectedItem = puestosList.FirstOrDefault(p => p.Id == user.Employee?.JobPositionId);
 
         if (pckContractType.ItemsSource is List<Parameters> contratosList)
-            pckContractType.SelectedItem = contratosList.FirstOrDefault(c => c.Id == user.ContractTypeId);
+            pckContractType.SelectedItem = contratosList.FirstOrDefault(c => c.Id == user.Employee?.ContractTypeId);
     }
 
     // Métodos para agregar nuevos registros a los catálogos
@@ -295,7 +296,6 @@ public partial class EditProfilePage : ContentPage
         catch (Exception ex) { Console.WriteLine(ex.Message); }
     }
 
-    // Metodo para guardar los cambios realizados en el perfil del usuario
     private async void OnSaveClicked(object sender, EventArgs e)
     {
         if (string.IsNullOrWhiteSpace(txtFirstName.Text) || string.IsNullOrWhiteSpace(txtLastName.Text))
@@ -310,13 +310,35 @@ public partial class EditProfilePage : ContentPage
             return;
         }
 
+        if (UserSession.CurrentUser != null && UserSession.CurrentUser.MustChangePassword)
+        {
+            if (string.IsNullOrWhiteSpace(txtPassword.Text))
+            {
+                await DisplayAlertAsync("Seguridad", "Por ser tu primer ingreso, debes crear una nueva contraseña obligatoriamente.", "OK");
+                return;
+            }
+            if (txtPassword.Text.Trim() == UserSession.CurrentUser.Password)
+            {
+                await DisplayAlertAsync("Advertencia", "La nueva contraseña no puede ser igual a la clave temporal.", "OK");
+                return;
+            }
+        }
+        // -------------------------------------------------------------------
+
         btnSave.IsEnabled = false;
         var updatedUser = UserSession.CurrentUser;
 
         if (updatedUser != null)
         {
-            updatedUser.FirstName = txtFirstName.Text.Trim();
-            updatedUser.LastName = txtLastName.Text.Trim();
+            if (updatedUser.Employee == null)
+                updatedUser.Employee = new Employee();
+
+            updatedUser.Employee.FirstName = txtFirstName.Text.Trim();
+            updatedUser.Employee.LastName = txtLastName.Text.Trim();
+            updatedUser.Employee.JobPositionId = (pckPosition.SelectedItem as Parameters)?.Id ?? 0;
+            updatedUser.Employee.AreaId = (pckArea.SelectedItem as Parameters)?.Id ?? 0;
+            updatedUser.Employee.ContractTypeId = (pckContractType.SelectedItem as Parameters)?.Id ?? 0;
+
             updatedUser.PhoneNumber = txtPhoneNumber.Text?.Trim() ?? string.Empty;
             updatedUser.Email = txtEmail.Text.Trim();
             updatedUser.Username = txtUsername.Text.Trim();
@@ -325,13 +347,11 @@ public partial class EditProfilePage : ContentPage
             if (!string.IsNullOrWhiteSpace(txtPassword.Text))
             {
                 updatedUser.Password = txtPassword.Text.Trim();
+                updatedUser.MustChangePassword = false;
             }
 
             updatedUser.Role = pckRole.SelectedItem as Role;
             updatedUser.RoleId = (pckRole.SelectedItem as Role)?.Id ?? 0;
-            updatedUser.AreaId = (pckArea.SelectedItem as Parameters)?.Id ?? 0;
-            updatedUser.JobPositionId = (pckPosition.SelectedItem as Parameters)?.Id ?? 0;
-            updatedUser.ContractTypeId = (pckContractType.SelectedItem as Parameters)?.Id ?? 0;
         }
         else
         {
@@ -381,8 +401,27 @@ public partial class EditProfilePage : ContentPage
         if (success)
         {
             UserSession.CurrentUser = updatedUser;
+
+            if (!string.IsNullOrWhiteSpace(txtPassword.Text))
+            {
+                var savedUsername = await SecureStorage.Default.GetAsync("saved_username");
+
+                if (savedUsername == updatedUser.Username)
+                {
+                    await SecureStorage.Default.SetAsync("saved_password", txtPassword.Text.Trim());
+                }
+            }
+
             await DisplayAlertAsync("Éxito", "Perfil actualizado correctamente.", "OK");
-            await Shell.Current.GoToAsync("..");
+
+            if (Application.Current?.Windows.Count > 0 && Application.Current.Windows[0].Page is not AppShell)
+            {
+                Application.Current.Windows[0].Page = new AppShell();
+            }
+            else
+            {
+                await Shell.Current.GoToAsync("..");
+            }
         }
         else
         {
@@ -394,6 +433,18 @@ public partial class EditProfilePage : ContentPage
     // Método para cancelar la edición y regresar a la pantalla anterior sin guardar cambios
     private async void OnCancelClicked(object sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync("..");
+        if (Shell.Current == null)
+        {
+            UserSession.CurrentUser = null;
+
+            if (Application.Current?.Windows.Count > 0)
+            {
+                Application.Current.Windows[0].Page = new Views.LoginPage();
+            }
+        }
+        else
+        {
+            await Shell.Current.GoToAsync("..");
+        }
     }
 }

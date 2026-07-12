@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ControlInventarioMovil.Views.EmployeeFormPage"
+             Shell.NavBarIsVisible="False"
+             x:Name="thisPage" 
+             Title="Colaborador"
+             BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}">
+
+    <Grid RowDefinitions="Auto, *">
+
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="15,20,15,10" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
+            <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" Padding="0" Clicked="OnVolverClicked"/>
+            <Label Grid.Column="1" Text="GESTIÓN DE COLABORADOR" TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" VerticalOptions="Center" CharacterSpacing="0.5"/>
+            <BoxView Grid.Column="2" WidthRequest="30" BackgroundColor="Transparent"/>
+        </Grid>
+
+        <ScrollView Grid.Row="1" Padding="15">
+            <VerticalStackLayout Spacing="20" Padding="0,0,0,40">
+
+                <VerticalStackLayout HorizontalOptions="Center" Spacing="10" Margin="0,10,0,0">
+                    <Border WidthRequest="100" HeightRequest="100" StrokeShape="RoundRectangle 50" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}">
+                        <Image x:Name="imgProfile" Aspect="AspectFill" Source="default_avatar.png"/>
+                    </Border>
+                    <Button Text="📷 Cargar Foto (Opcional)" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=#1976D2, Dark=#64B5F6}" FontAttributes="Bold" FontSize="12" Padding="0" Clicked="OnSelectPhotoClicked"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="DATOS PERSONALES" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+
+                    <Border StrokeShape="RoundRectangle 12" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
+                        <VerticalStackLayout Spacing="15">
+
+                            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                                <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                    <Label Text="Nombres *" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                    <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                        <Entry x:Name="txtFirstName" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" VerticalOptions="Center" TextChanged="OnNameTextChanged"/>
+                                    </Border>
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                    <Label Text="Apellidos *" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                    <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                        <Entry x:Name="txtLastName" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" VerticalOptions="Center" TextChanged="OnNameTextChanged"/>
+                                    </Border>
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
+                            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                                <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                    <Label Text="DNI / Documento *" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                    <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                        <Entry x:Name="txtDNI" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Keyboard="Numeric" MaxLength="8" VerticalOptions="Center" TextChanged="OnDniTextChanged"/>
+                                    </Border>
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                    <Label Text="Rol / Cargo *" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                    <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
+                                        <Picker x:Name="pkrJobPosition" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" ItemDisplayBinding="{Binding Name}" VerticalOptions="Center" HorizontalOptions="Fill"/>
+                                    </Border>
+                                </VerticalStackLayout>
+                            </Grid>
+
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout x:Name="SecCuenta" Spacing="10">
+                    <Label Text="CREACIÓN DE CUENTA" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+
+                    <Border StrokeShape="RoundRectangle 12" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
+                        <VerticalStackLayout Spacing="15">
+
+                            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                                <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                    <Label Text="Correo Electrónico *" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                    <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                        <Entry x:Name="txtEmail" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Keyboard="Email" VerticalOptions="Center"/>
+                                    </Border>
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                    <Label Text="Usuario (Auto) *" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                    <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#E8EAED, Dark=#11181D}" Padding="10,0" HeightRequest="45">
+                                        <Entry x:Name="txtUsername" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center" IsEnabled="False" FontAttributes="Bold"/>
+                                    </Border>
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Contraseña *" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="10">
+                                    <Border Grid.Column="0" StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                        <Entry x:Name="txtPassword" IsPassword="True" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" VerticalOptions="Center" IsEnabled="False" Placeholder="Genere una clave..." PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}"/>
+                                    </Border>
+                                    <Button Grid.Column="1" Text="Generar" BackgroundColor="{AppThemeBinding Light=#1976D2, Dark=#3498DB}" TextColor="White" FontAttributes="Bold" CornerRadius="6" HeightRequest="45" Clicked="OnGeneratePasswordClicked"/>
+                                </Grid>
+                            </VerticalStackLayout>
+
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <Button x:Name="btnGuardar" Text="GUARDAR COLABORADOR" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" HeightRequest="48" CornerRadius="8" Margin="0,10,0,0" Clicked="OnSaveClicked"/>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>
