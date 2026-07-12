@@ -29,20 +29,29 @@ public partial class LoginPage : ContentPage
         loading.IsRunning = true;
 
         var loginData = new { Username = txtUsername.Text.Trim(), Password = txtPassword.Text.Trim(), TwoFactorCode = (string?)null };
-        
+
         using var client = new HttpClient();
         string jsonContent = JsonConvert.SerializeObject(loginData);
         var httpContent = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
 
         var response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/Login", httpContent);
+        string resString = await response.Content.ReadAsStringAsync();
 
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            string resString = await response.Content.ReadAsStringAsync();
+            if (resString.Contains("accountPending"))
+            {
+                loading.IsRunning = false;
+                var errorObj = JsonConvert.DeserializeObject<dynamic>(resString);
+                await DisplayAlertAsync("Acceso Denegado", (string)errorObj!.mensaje, "Entendido");
+                return;
+            }
+
+            // 2. TU LÓGICA INTACTA DE 2FA
             if (resString.Contains("requires2FA") || resString.Contains("Código 2FA requerido"))
             {
                 loading.IsRunning = false;
-                
+
                 string tokenIngresado = await DisplayPromptAsync(
                     "Seguridad de Dos Pasos (2FA)",
                     "Tu cuenta está protegida. Ingresa el código de 6 dígitos de tu aplicación Google Authenticator:",
@@ -65,6 +74,7 @@ public partial class LoginPage : ContentPage
                 var httpContent2FA = new StringContent(jsonContent2FA, System.Text.Encoding.UTF8, "application/json");
 
                 response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/Login", httpContent2FA);
+                resString = await response.Content.ReadAsStringAsync();
             }
         }
 
@@ -72,8 +82,27 @@ public partial class LoginPage : ContentPage
 
         if (response.IsSuccessStatusCode)
         {
-            var responseString = await response.Content.ReadAsStringAsync();
-            var user = JsonConvert.DeserializeObject<User>(responseString);
+            if (resString.Contains("requirePasswordChange"))
+            {
+                var apiResponse = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JObject>(resString);
+                var userJson = apiResponse?["user"]?.ToString();
+
+                if (!string.IsNullOrEmpty(userJson))
+                {
+                    var userPendiente = JsonConvert.DeserializeObject<User>(userJson);
+                    UserSession.CurrentUser = userPendiente;
+                }
+
+                await DisplayAlertAsync("Seguridad Obligatoria", "Para proteger tu cuenta, debes establecer una contraseña privada antes de entrar al sistema.", "Aceptar");
+
+                if (Application.Current?.Windows.Count > 0)
+                {
+                    Application.Current.Windows[0].Page = new Views.EditProfilePage();
+                }
+                return;
+            }
+
+            var user = JsonConvert.DeserializeObject<User>(resString);
 
             if (user != null)
             {
@@ -93,7 +122,16 @@ public partial class LoginPage : ContentPage
         }
         else
         {
-            await DisplayAlertAsync("Error de Acceso", "Usuario, contraseña o código de seguridad incorrectos.", "Intentar de nuevo");
+            try
+            {
+                var errorObj = JsonConvert.DeserializeObject<dynamic>(resString);
+                string msg = errorObj?.mensaje ?? "Usuario o contraseña incorrectos.";
+                await DisplayAlertAsync("Error de Acceso", msg, "Intentar de nuevo");
+            }
+            catch
+            {
+                await DisplayAlertAsync("Error de Acceso", "Usuario, contraseña o código de seguridad incorrectos.", "Intentar de nuevo");
+            }
         }
     }
 

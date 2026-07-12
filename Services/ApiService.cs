@@ -871,7 +871,7 @@ namespace ControlInventarioMovil.Services
                 {
                     string errorDetallado = await response.Content.ReadAsStringAsync();
                     System.Diagnostics.Debug.WriteLine($"[API_ERROR_SALE] Error: {errorDetallado}");
-                    await App.Current!.MainPage!.DisplayAlertAsync("Rechazo de Servidor (Somee)", errorDetallado, "OK");
+                    await Shell.Current.DisplayAlertAsync("Rechazo de Servidor (Somee)", errorDetallado, "OK");
 
                     return false;
                 }

@@ -24,8 +24,8 @@ public partial class ProfilePage : ContentPage
         var user = UserSession.CurrentUser;
         if (user != null)
         {
-            // 1. Datos Personales
-            lblFullName.Text = $"{user.FirstName} {user.LastName}";
+            // 🚨 1. Datos Personales desde Employee
+            lblFullName.Text = $"{user.Employee?.FirstName} {user.Employee?.LastName}";
             lblRole.Text = user.Role?.Name;
             lblUsername.Text = user.Username;
             lblEmail.Text = user.Email;
@@ -50,8 +50,9 @@ public partial class ProfilePage : ContentPage
 
             if (parametros != null && parametros.Any())
             {
-                var area = parametros.FirstOrDefault(p => p.Id == user.AreaId);
-                var puesto = parametros.FirstOrDefault(p => p.Id == user.JobPositionId);
+                // 🚨 Cruzamos con el ID que está en Employee
+                var area = parametros.FirstOrDefault(p => p.Id == user.Employee?.AreaId);
+                var puesto = parametros.FirstOrDefault(p => p.Id == user.Employee?.JobPositionId);
 
                 nombreAreaReal = area != null ? area.Name : "No asignada";
 

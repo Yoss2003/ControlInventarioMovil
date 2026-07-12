@@ -99,7 +99,6 @@
 
 	<ItemGroup>
 	  <Folder Include="Data\" />
-	  <Folder Include="Views\NewFolder\" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -116,7 +115,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <MauiXaml Update="Views\ArticleFormPage.xaml">
+	  <MauiXaml Update="Views\FormPages\ArticleFormPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\CategoriasPage.xaml">
@@ -131,7 +130,7 @@
 	  <MauiXaml Update="Views\Controls\ScanBarcodePage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\CustomerFormPage.xaml">
+	  <MauiXaml Update="Views\FormPages\CustomerFormPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\CustomersPage.xaml">
@@ -140,7 +139,7 @@
 	  <MauiXaml Update="Views\EditProfilePage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\EmployeeFormPage.xaml">
+	  <MauiXaml Update="Views\FormPages\EmployeeFormPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\EmployeesPage.xaml">
@@ -164,7 +163,10 @@
 	  <MauiXaml Update="Views\SalesPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\UserFormPage.xaml">
+	  <MauiXaml Update="Views\FormPages\UserFormPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\ShareInventoryPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\UserManagementPage.xaml">

@@ -94,11 +94,11 @@ namespace ControlInventarioMovil.Views
                 if (UserSession.TodayExchangeRateEUR != null)
                     LblTcEuro.Text = $"S/. {UserSession.TodayExchangeRateEUR.SellPrice:F3}";
 
-                var configServer = await _apiService.GetUserProfileConfigAsync(UserSession.CurrentUser.Username);
-                _currentProfile = configServer ?? new Profile { Username = UserSession.CurrentUser.Username, Id = 0 };
+                var configServer = await _apiService.GetUserProfileConfigAsync(UserSession.CurrentUser.Username!);
+                _currentProfile = configServer ?? new Profile { Username = UserSession.CurrentUser.Username!, Id = 0 };
 
                 SwApplyLateFee.IsToggled = _currentProfile.ApplyLateFee;
-                SwUseAuthentication.IsToggled = _currentProfile.UseAuthentication;
+                //SwUseAuthentication.IsToggled = _currentProfile.UseAuthentication;
                 SwSharedActivity.IsToggled = _currentProfile.SharedActivity;
                 SwUseBarcodes.IsToggled = _currentProfile.UseBarcodes;
                 SwCalculateDevaluation.IsToggled = _currentProfile.CalculateDevaluation;
@@ -107,8 +107,7 @@ namespace ControlInventarioMovil.Views
                 TxtGraceDays.Text = _currentProfile.GraceDays?.ToString() ?? "0";
                 TxtLateFeePercentage.Text = _currentProfile.LateFeePercentage?.ToString("F2") ?? "0.00";
 
-                TxtSmtpEmail.Text = _currentProfile.SmtpEmail ?? string.Empty;
-                TxtSmtpPassword.Text = _currentProfile.SmtpPassword ?? string.Empty;
+                SwSmtpEnabled.IsToggled = !string.IsNullOrEmpty(_currentProfile.SmtpEmail);
 
                 PkrLanguage.SelectedIndex = (_currentProfile.LanguageId != null) ? _currentProfile.LanguageId.Value - 1 : 0;
                 PkrDateFormat.SelectedIndex = (_currentProfile.DateFormatId != null) ? _currentProfile.DateFormatId.Value - 1 : 0;
@@ -122,6 +121,10 @@ namespace ControlInventarioMovil.Views
 
                 SwShowThumbnails.IsToggled = Preferences.Default.Get("UI_ShowThumbnails", true);
                 SwCompactView.IsToggled = Preferences.Default.Get("UI_CompactView", false);
+                SwSmtpEnabled.IsToggled = !string.IsNullOrEmpty(_currentProfile.SmtpEmail);
+                TxtSmtpEmail.Text = _currentProfile.SmtpEmail ?? string.Empty;
+                TxtSmtpPassword.Text = _currentProfile.SmtpPassword ?? string.Empty;
+                TxtSmtpApproverEmail.Text = _currentProfile.SmtpApproverEmail ?? string.Empty;
 
                 var permisosGlobales = await _apiService.GetPermissionsAsync();
                 ListaPermisosDinamicos.Clear();
@@ -234,10 +237,21 @@ namespace ControlInventarioMovil.Views
                 _currentProfile.GraceDays = int.TryParse(TxtGraceDays.Text, out int gd) ? gd : 0;
                 _currentProfile.LateFeePercentage = float.TryParse(TxtLateFeePercentage.Text, out float lfp) ? lfp : 0f;
 
-                _currentProfile.UseAuthentication = SwUseAuthentication.IsToggled;
+                //_currentProfile.UseAuthentication = SwUseAuthentication.IsToggled;
                 _currentProfile.SharedActivity = SwSharedActivity.IsToggled;
-                _currentProfile.SmtpEmail = emailSmtp;
-                _currentProfile.SmtpPassword = TxtSmtpPassword.Text;
+
+                if (SwSmtpEnabled.IsToggled)
+                {
+                    _currentProfile.SmtpEmail = emailSmtp;
+                    _currentProfile.SmtpPassword = TxtSmtpPassword.Text?.Trim();
+                    _currentProfile.SmtpApproverEmail = TxtSmtpApproverEmail.Text?.Trim();
+                }
+                else
+                {
+                    _currentProfile.SmtpEmail = null;
+                    _currentProfile.SmtpPassword = null;
+                    _currentProfile.SmtpApproverEmail = null;
+                }
 
                 _currentProfile.UseBarcodes = SwUseBarcodes.IsToggled;
                 _currentProfile.GenerateCodes = SwGenerateCodes.IsToggled;
@@ -366,6 +380,82 @@ namespace ControlInventarioMovil.Views
             else
             {
                 await DisplayAlertAsync("Error de Validación", "El código ingresado no coincide con el QR o ya expiró. Inténtalo de nuevo.", "OK");
+            }
+        }
+
+        private void OnSmtpToggled(object sender, ToggledEventArgs e)
+        {
+            SmtpFieldsContainer.IsVisible = e.Value;
+
+            if (!e.Value)
+            {
+                TxtSmtpEmail.Text = string.Empty;
+                TxtSmtpPassword.Text = string.Empty;
+            }
+        }
+
+        private async void OnGuiaSmtpTapped(object sender, EventArgs e)
+        {
+            bool irAGoogle = await DisplayAlertAsync(
+                "Guía de Contraseña de Aplicación",
+                "Por seguridad, si usas Gmail o Outlook, no puedes usar tu contraseña normal.\n\n" +
+                "1. Activa la verificación en 2 pasos de tu cuenta de correo.\n" +
+                "2. Crea una 'Contraseña de Aplicación' de 16 letras.\n" +
+                "3. Pégala en la caja de texto.\n\n" +
+                "¿Quieres que abramos la página de Seguridad de Google por ti?",
+                "Sí, ir a Google",
+                "Cancelar");
+
+            if (irAGoogle)
+            {
+                await Launcher.OpenAsync(new Uri("https://myaccount.google.com/apppasswords"));
+            }
+        }
+
+        private async void OnProbarSmtpClicked(object sender, EventArgs e)
+        {
+            string email = TxtSmtpEmail.Text?.Trim() ?? "";
+            string pass = TxtSmtpPassword.Text?.Trim() ?? "";
+
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(pass))
+            {
+                await DisplayAlertAsync("Datos Incompletos", "Ingresa tu correo y contraseña de aplicación antes de probar la conexión.", "Entendido");
+                return;
+            }
+
+            // Cambiamos el estado del botón para que el usuario sepa que está cargando
+            BtnProbarSmtp.IsEnabled = false;
+            BtnProbarSmtp.Text = "PROBANDO CONEXIÓN...";
+
+            try
+            {
+                using var client = new HttpClient();
+                var payload = new { Email = email, Password = pass };
+                string json = Newtonsoft.Json.JsonConvert.SerializeObject(payload);
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+                // Llamamos al nuevo endpoint de prueba
+                var response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/TestEmailConfiguration", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    await DisplayAlertAsync("¡Conexión Exitosa! ✅", "El sistema logró comunicarse con Google. Revisa la bandeja de entrada de tu correo, deberías tener un mensaje de prueba.", "Excelente");
+                }
+                else
+                {
+                    var errorResponse = await response.Content.ReadAsStringAsync();
+                    await DisplayAlertAsync("Error de Conexión ❌", $"Google rechazó las credenciales. Verifica que la clave de 16 letras sea correcta y no tenga espacios.\n\nDetalle: {errorResponse}", "Entendido");
+                }
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlertAsync("Error de Red", $"No se pudo contactar al servidor: {ex.Message}", "OK");
+            }
+            finally
+            {
+                // Restauramos el botón a su estado normal
+                BtnProbarSmtp.IsEnabled = true;
+                BtnProbarSmtp.Text = "PROBAR CONEXIÓN Y ENVIAR CORREO";
             }
         }
     }
