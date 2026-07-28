@@ -1,3 +1,4 @@
+using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
 
@@ -29,14 +30,12 @@ namespace ControlInventarioMovil.Views
             try
             {
                 var usuarios = await _apiService.GetUsersAsync();
-
                 if (usuarios != null)
                 {
-                    CvUsers.ItemsSource = usuarios;
+                    CvUsers.ItemsSource = usuarios.Where(u => u.IsActive).ToList();
                 }
                 else
                 {
-                    // 🛡️ Alerta corregida a 'DisplayAlert'
                     await DisplayAlertAsync("Aviso", "No se encontraron usuarios registrados o tu sesión expiró.", "OK");
                 }
             }
@@ -44,6 +43,45 @@ namespace ControlInventarioMovil.Views
             {
                 System.Diagnostics.Debug.WriteLine($"[MANAGEMENT_ERR] Error al actualizar lista: {ex.Message}");
                 await DisplayAlertAsync("Error de Conexión", $"Fallo al leer el personal de la BD: {ex.Message}", "OK");
+            }
+        }
+
+        private async void OnDeleteUserClicked(object? sender, EventArgs e)
+        {
+            var boton = sender as ImageButton;
+            if (boton?.CommandParameter is User usuarioSeleccionado)
+            {
+                if (UserSession.CurrentUser != null && UserSession.CurrentUser.Id == usuarioSeleccionado.Id)
+                {
+                    await DisplayAlertAsync("Acción Denegada", "No puedes revocar tu propio acceso desde esta pantalla.", "Entendido");
+                    return;
+                }
+
+                bool confirmar = await DisplayAlertAsync("Revocar Acceso",
+                    $"¿Estás seguro de que deseas inactivar al usuario '{usuarioSeleccionado.Username}'?\n\nYa no podrá iniciar sesión en el sistema.",
+                    "Sí, revocar", "Cancelar");
+
+                if (confirmar)
+                {
+                    LoadingOverlay.IsVisible = true;
+                    RefreshUsers.IsVisible = false;
+
+                    usuarioSeleccionado.IsActive = false;
+                    bool exito = await _apiService.UpdateUserAsync(usuarioSeleccionado);
+
+                    if (exito)
+                    {
+                        await EjecutarCargaUsuariosAsync();
+                    }
+                    else
+                    {
+                        await DisplayAlertAsync("Error", "El servidor rechazó la solicitud. Intenta nuevamente.", "OK");
+                        usuarioSeleccionado.IsActive = true;
+                    }
+
+                    LoadingOverlay.IsVisible = false;
+                    RefreshUsers.IsVisible = true;
+                }
             }
         }
 

@@ -200,7 +200,7 @@ namespace ControlInventarioMovil.Views
                     PkrAmbienteTrabajo.Items.Clear();
 
                     // 👇 FILTRO SENIOR: Excluimos el inventario global de sistema (Id = 0) de la lista de memoria
-                    _almacenesDisponibles = lista.Where(i => i.Id != 0).ToList();
+                    _almacenesDisponibles = lista.Where(i => i.Id != 0 && i.IsActive).ToList();
 
                     // Llenamos el Picker mostrando el Alias limpio
                     _almacenesDisponibles.ForEach(inv =>

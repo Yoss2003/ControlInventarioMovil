@@ -28,7 +28,8 @@ namespace ControlInventarioMovil.Views
             refreshCustomers.IsRefreshing = true;
             var lista = await _apiService.GetCustomersAsync();
 
-            _allCustomers = lista.OrderBy(c => c.Name).ToList();
+            _allCustomers = lista.Where(c => c.IsActive).OrderBy(c => c.Name).ToList();
+
             FilterCustomers();
             refreshCustomers.IsRefreshing = false;
         }
@@ -71,6 +72,33 @@ namespace ControlInventarioMovil.Views
             {
                 // Navegamos al formulario pasando el cliente seleccionado (Modo Edición)
                 await Navigation.PushAsync(new CustomerFormPage(clienteSeleccionado));
+            }
+        }
+
+        private async void OnDeleteCustomerClicked(object sender, EventArgs e)
+        {
+            if (sender is ImageButton btn && btn.CommandParameter is Customer clienteSeleccionado)
+            {
+                bool confirmar = await DisplayAlertAsync("Inactivar Cliente",
+                    $"¿Estás seguro de que deseas dar de baja al cliente '{clienteSeleccionado.Name}'?",
+                    "Sí, dar de baja", "Cancelar");
+
+                if (confirmar)
+                {
+                    clienteSeleccionado.IsActive = false;
+                    bool exito = await _apiService.UpdateCustomerAsync(clienteSeleccionado.Id, clienteSeleccionado);
+
+                    if (exito)
+                    {
+                        FilteredCustomers.Remove(clienteSeleccionado);
+                        _allCustomers.Remove(clienteSeleccionado);
+                    }
+                    else
+                    {
+                        await DisplayAlertAsync("Error", "No se pudo actualizar el estado del cliente en el servidor.", "OK");
+                        clienteSeleccionado.IsActive = true;
+                    }
+                }
             }
         }
     }

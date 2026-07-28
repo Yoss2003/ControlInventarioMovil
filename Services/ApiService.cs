@@ -13,8 +13,6 @@ namespace ControlInventarioMovil.Services
     {
         private readonly HttpClient _httpClient;    
         public static string BaseApiUrl = "http://db-inventario-api.somee.com/api";
-
-        private static List<Category>? _cacheCategorias = null;
         private static List<Brand>? _cacheMarcas = null;
         private static List<Currency>? _cacheMonedas = null;
         private static List<Parameters>? _cacheParametros = null;
@@ -203,20 +201,21 @@ namespace ControlInventarioMovil.Services
         // =======================================================
         public async Task<List<Category>> GetCategoriesAsync()
         {
-            if (_cacheCategorias != null && _cacheCategorias.Count > 0) return _cacheCategorias;
             try
             {
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Categories");
                 if (response.IsSuccessStatusCode)
                 {
-                    var opcionesJson = new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    };
+                    var opcionesJson = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                     opcionesJson.Converters.Add(new IntToBoolConverter());
                     opcionesJson.Converters.Add(new TrackingModeJsonConverter());
 
                     return await response.Content.ReadFromJsonAsync<List<Category>>(opcionesJson) ?? new List<Category>();
+                }
+                else
+                {
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[API_CRITICAL_FAIL] Error {response.StatusCode}: {errorContent}");
                 }
             }
             catch (Exception ex)
@@ -237,16 +236,12 @@ namespace ControlInventarioMovil.Services
                     parentCategoryId = newCategory.ParentCategoryId,
                     name = newCategory.Name,
                     description = newCategory.Description,
-
-                    // CORRECCIÓN 1: Enviamos el nombre exacto de la columna en string ("Standard", "Serialized")
                     trackingMode = newCategory.TrackingMode?.ToString(),
-
                     namingMethod = newCategory.NamingMethod,
                     isReturnable = newCategory.IsReturnable,
-
-                    // CORRECCIÓN 2: Pasamos el objeto DateTime nativo limpio para cumplir con el formato ISO
                     creationDate = newCategory.CreationDate ?? DateTime.Now,
-                    creationUser = newCategory.CreationUser
+                    creationUser = newCategory.CreationUser,
+                    selectedUnitIds = newCategory.SelectedUnitIds
                 };
 
                 var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Categories", payload);
@@ -269,7 +264,6 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
-                // Empaquetamos el payload para la actualización (PUT)
                 var payload = new
                 {
                     id = updatedCategory.Id,
@@ -277,20 +271,14 @@ namespace ControlInventarioMovil.Services
                     parentCategoryId = updatedCategory.ParentCategoryId,
                     name = updatedCategory.Name,
                     description = updatedCategory.Description,
-
-                    // CORRECCIÓN 1: Enviamos el Enum convertido a String legible para la API
                     trackingMode = updatedCategory.TrackingMode?.ToString(),
-
                     namingMethod = updatedCategory.NamingMethod,
                     isReturnable = updatedCategory.IsReturnable,
-
-                    // Mantenemos la auditoría original pasando las fechas nativas sin alterar su estructura
                     creationDate = updatedCategory.CreationDate,
                     creationUser = updatedCategory.CreationUser,
-
-                    // CORRECCIÓN 2: Enviamos DateTime.Now puro. HttpClient le pondrá la "T" requerida por el servidor
                     modificationDate = DateTime.Now,
-                    modificationUser = updatedCategory.ModificationUser
+                    modificationUser = updatedCategory.ModificationUser,
+                    selectedUnitIds = updatedCategory.SelectedUnitIds
                 };
 
                 var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Categories/{updatedCategory.Id}", payload);
@@ -306,6 +294,29 @@ namespace ControlInventarioMovil.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"[API_ERROR] UpdateCategory: {ex.Message}");
+                return false;
+            }
+        }
+        public async Task<bool> DeleteCategoryAsync(int id)
+        {
+            try
+            {
+                var response = await _httpClient.DeleteAsync($"{BaseApiUrl}/Categories/{id}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return true;
+                }
+                else
+                {
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[API_ERROR_DELETE]: {errorContent}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EXCEPTION_DELETE_CATEGORY]: {ex.Message}");
                 return false;
             }
         }
@@ -505,7 +516,6 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
-                // Usamos PUT y le pasamos el ID en la URL, igual que hicimos con las categorías
                 var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Brands/{updatedBrand.Id}", updatedBrand);
 
                 if (!response.IsSuccessStatusCode)
@@ -519,6 +529,20 @@ namespace ControlInventarioMovil.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"[API_ERROR] UpdateBrand: {ex.Message}");
+                return false;
+            }
+        }
+        public async Task<bool> DeleteBrandAsync(int id)
+        {
+            try
+            {
+                var response = await _httpClient.DeleteAsync($"{BaseApiUrl}/Brands/{id}");
+
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[API_DELETE_BRAND_ERROR]: {ex.Message}");
                 return false;
             }
         }
@@ -672,12 +696,9 @@ namespace ControlInventarioMovil.Services
         }
 
         // ====================================================================
-        // 🌟 MÉTODOS DE CONSUMO PARA PERFIL Y CONFIGURACIONES (PROFILE)
+        // MÉTODOS DE CONSUMO PARA PERFIL Y CONFIGURACIONES (PROFILE)
         // ====================================================================
 
-        /// <summary>
-        /// Descarga la lista de perfiles de Somee y extrae la configuración amarrada al usuario activo.
-        /// </summary>
         public async Task<ControlInventario.Shared.Models.Profile?> GetUserProfileConfigAsync(string username)
         {
             try
@@ -702,10 +723,6 @@ namespace ControlInventarioMovil.Services
             }
             return null;
         }
-
-        /// <summary>
-        /// Guarda o actualiza de forma inteligente las preferencias del usuario en SQL Server a través de la API.
-        /// </summary>
         public async Task<bool> SaveUserProfileConfigAsync(ControlInventario.Shared.Models.Profile profileConfig)
         {
             try

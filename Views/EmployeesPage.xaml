@@ -51,8 +51,11 @@
                                         <Label Text="{Binding DNI, StringFormat='DNI: {0}'}" TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
                                     </VerticalStackLayout>
 
-                                    <ImageButton Grid.Column="2" Source="edit_icon.png" WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" VerticalOptions="Center" Clicked="OnEditEmployeeClicked" CommandParameter="{Binding .}"/>
-
+                                    <HorizontalStackLayout Grid.Column="2" VerticalOptions="Center" Spacing="10">
+                                        <ImageButton Source="edit_icon.png" WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" Clicked="OnEditEmployeeClicked" CommandParameter="{Binding .}"/>
+                                        <ImageButton Source="delete_icon.png" WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" Clicked="OnDeleteEmployeeClicked" CommandParameter="{Binding .}"/>
+                                    </HorizontalStackLayout>
+                                    
                                 </Grid>
                             </Border>
                         </DataTemplate>

@@ -1,11 +1,9 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.Maui.Controls;
+using ZXing.Net.Maui;
+using SkiaSharp;
+using ZXing.SkiaSharp;
 
 namespace ControlInventarioMovil.Views
 {
@@ -28,6 +26,11 @@ namespace ControlInventarioMovil.Views
 
         private string? _rutaFotoPrincipal = null;
         private string? _rutaFotoVoucher = null;
+
+        private const string TITULO_TECNOLOGIA = "Modelo / Versión";
+        private const string PLACEHOLDER_TECNOLOGIA = "Ej. L14 Gen 3, ProBook";
+        private const string TITULO_ABARROTES = "Presentación / Capacidad";
+        private const string PLACEHOLDER_ABARROTES = "Ej. 3 Litros, Six-pack, 500g";
 
         public ArticleFormPage()
         {
@@ -71,7 +74,7 @@ namespace ControlInventarioMovil.Views
                 int currentInventoryId = UserSession.CurrentInventory?.Id ?? 1;
 
                 var cats = await _apiService.GetCategoriesAsync();
-                _categoriasHijas = cats.Where(c => c.ParentCategoryId != null && c.ParentCategoryId != 0).ToList();
+                _categoriasHijas = cats.Where(c => c.ParentCategoryId != null && c.ParentCategoryId != 0 && c.IsActive).ToList();
 
                 // 🌟 CATEGORÍAS (Texto agregado al inicio)
                 PkrCategory.Items.Clear();
@@ -79,7 +82,9 @@ namespace ControlInventarioMovil.Views
                 _categoriasHijas.ForEach(c => PkrCategory.Items.Add(c.Name));
                 PkrCategory.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrCategory);
 
-                _marcasGlobales = await _apiService.GetBrandsAsync();
+                var marcasSueltas = await _apiService.GetBrandsAsync();
+                _marcasGlobales = marcasSueltas?.Where(b => b.IsActive).ToList() ?? new List<Brand>();
+
                 _monedasGlobales = await _apiService.GetCurrenciesAsync();
                 _todasLasUnidades = await _apiService.GetMeasurementUnitsAsync() ?? new();
 
@@ -100,10 +105,15 @@ namespace ControlInventarioMovil.Views
                 _ubicacionesParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Ubicacion", StringComparison.OrdinalIgnoreCase)).ToList();
                 _condicionesParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Condicion", StringComparison.OrdinalIgnoreCase)).ToList();
 
-                // 🌟 UNIDADES MEDIDA (Inicialización con texto base)
-                PkrMeasurement.Items.Clear();
-                PkrMeasurement.Items.Add("Seleccione una unidad...");
-                PkrMeasurement.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrMeasurement);
+                // 🌟 UNIDADES LOGÍSTICAS (Compra y Venta inicializadas con texto base)
+                PkrAcquisitionUnit.Items.Clear();
+                PkrSaleUnit.Items.Clear();
+                PkrAcquisitionUnit.Items.Add("Unidad de compra...");
+                PkrSaleUnit.Items.Add("Unidad de venta...");
+                PkrAcquisitionUnit.SelectedIndex = 0;
+                PkrSaleUnit.SelectedIndex = 0;
+                ControlarColorPlaceholderPicker(PkrAcquisitionUnit);
+                ControlarColorPlaceholderPicker(PkrSaleUnit);
 
                 // 🌟 MARCAS (Inicialización preventiva con texto base)
                 PkrBrand.Items.Clear();
@@ -140,7 +150,7 @@ namespace ControlInventarioMovil.Views
 
                 // 🌟 PROVEEDORES
                 var sups = await _apiService.GetSuppliersAsync();
-                _proveedoresGlobales = sups ?? new List<Supplier>();
+                _proveedoresGlobales = sups?.Where(s => s.IsActive).ToList() ?? new List<Supplier>();
                 PkrSupplier.Items.Clear();
                 PkrSupplier.Items.Add("Selecciona un distribuidor...");
                 _proveedoresGlobales.ForEach(s => PkrSupplier.Items.Add(s.BusinessName));
@@ -214,12 +224,21 @@ namespace ControlInventarioMovil.Views
             PkrCategory.SelectedIndex = _categoriasHijas.FindIndex(c => c.Id == art.CategoryId) + 1;
             PkrCategory.IsEnabled = false;
 
-            // Como la cascada ya corrió, inyectamos Marca y Unidad (+1 por sus nuevos placeholders)
-            if (!string.IsNullOrWhiteSpace(art.MeasurementUnit) && _unidadesFiltradas != null)
+            string unidadCompraGuardada = !string.IsNullOrWhiteSpace(art.AcquisitionUnit) ? art.AcquisitionUnit : art.MeasurementUnit;
+            if (!string.IsNullOrWhiteSpace(unidadCompraGuardada) && _unidadesFiltradas != null)
             {
-                int unitIdx = _unidadesFiltradas.FindIndex(u => string.Equals(u.UnitName, art.MeasurementUnit, StringComparison.OrdinalIgnoreCase));
-                if (unitIdx != -1) PkrMeasurement.SelectedIndex = unitIdx + 1;
+                int unitIdx = _unidadesFiltradas.FindIndex(u => string.Equals(u.UnitName, unidadCompraGuardada, StringComparison.OrdinalIgnoreCase));
+                if (unitIdx != -1) PkrAcquisitionUnit.SelectedIndex = unitIdx + 1;
             }
+
+            string unidadVentaGuardada = !string.IsNullOrWhiteSpace(art.SaleUnit) ? art.SaleUnit : art.MeasurementUnit;
+            if (!string.IsNullOrWhiteSpace(unidadVentaGuardada) && _unidadesFiltradas != null)
+            {
+                int unitIdx = _unidadesFiltradas.FindIndex(u => string.Equals(u.UnitName, unidadVentaGuardada, StringComparison.OrdinalIgnoreCase));
+                if (unitIdx != -1) PkrSaleUnit.SelectedIndex = unitIdx + 1;
+            }
+
+            TxtConversionFactor.Text = art.ConversionFactor.HasValue ? art.ConversionFactor.Value.ToString("0.##") : "1";
 
             if (art.BrandId > 0 && _marcasFiltradas != null)
             {
@@ -260,9 +279,9 @@ namespace ControlInventarioMovil.Views
             BtnGuardar.BackgroundColor = Color.FromArgb("#A2D149");
             PkrCategory.IsEnabled = true;
 
-            // 🎯 Todos se inicializan apuntando al índice 0 ("Seleccione...")
             PkrCategory.SelectedIndex = 0;
-            PkrMeasurement.SelectedIndex = 0;
+            PkrAcquisitionUnit.SelectedIndex = 0;
+            PkrSaleUnit.SelectedIndex = 0;
             PkrBrand.SelectedIndex = 0;
             PkrStatusParam.SelectedIndex = 0;
             PkrConditionParam.SelectedIndex = 0;
@@ -278,7 +297,11 @@ namespace ControlInventarioMovil.Views
                     if (unidadPreferida != null)
                     {
                         int indexUnidad = _unidadesFiltradas.FindIndex(u => u.Id == unidadPreferida.Id);
-                        if (indexUnidad >= 0) PkrMeasurement.SelectedIndex = indexUnidad + 1;
+                        if (indexUnidad >= 0)
+                        {
+                            PkrAcquisitionUnit.SelectedIndex = indexUnidad + 1;
+                            PkrSaleUnit.SelectedIndex = indexUnidad + 1;
+                        }
                     }
                 }
 
@@ -298,7 +321,8 @@ namespace ControlInventarioMovil.Views
             }
 
             ControlarColorPlaceholderPicker(PkrCategory);
-            ControlarColorPlaceholderPicker(PkrMeasurement);
+            ControlarColorPlaceholderPicker(PkrAcquisitionUnit);
+            ControlarColorPlaceholderPicker(PkrSaleUnit);
             ControlarColorPlaceholderPicker(PkrBrand);
             ControlarColorPlaceholderPicker(PkrStatusParam);
             ControlarColorPlaceholderPicker(PkrLocationParam);
@@ -310,102 +334,189 @@ namespace ControlInventarioMovil.Views
 
         private void OnCategoryChanged(object sender, EventArgs e)
         {
-            PkrMeasurement.Items.Clear();
-            PkrMeasurement.SelectedIndex = -1;
+            PkrAcquisitionUnit.Items.Clear();
+            PkrSaleUnit.Items.Clear();
+            PkrAcquisitionUnit.SelectedIndex = -1;
+            PkrSaleUnit.SelectedIndex = -1;
 
             if (PkrCategory.SelectedIndex <= 0)
             {
                 ContenedorNombre.IsVisible = false;
                 SecBarcode.IsVisible = false;
                 SecSku.IsVisible = false;
+                ColSerialNumber.IsVisible = false;
                 SecModelSerie.IsVisible = false;
+                SepModelSerie.IsVisible = false;
                 BloqueSerializadoCondicional.IsVisible = false;
                 LblTrackingInfo.Text = "Modo de Rastreo: Pendiente...";
 
-                PkrMeasurement.Items.Clear();
-                PkrMeasurement.Items.Add("Seleccione una unidad...");
-                PkrMeasurement.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrMeasurement);
+                PkrAcquisitionUnit.Items.Clear();
+                PkrSaleUnit.Items.Clear();
+                PkrAcquisitionUnit.Items.Add("Unidad de compra...");
+                PkrSaleUnit.Items.Add("Unidad de venta...");
+                PkrAcquisitionUnit.SelectedIndex = 0;
+                PkrSaleUnit.SelectedIndex = 0;
+                ControlarColorPlaceholderPicker(PkrAcquisitionUnit);
+                ControlarColorPlaceholderPicker(PkrSaleUnit);
 
                 PkrBrand.Items.Clear();
                 PkrBrand.Items.Add("Seleccione una marca...");
                 PkrBrand.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrBrand);
 
+                ContenedorUnidades.IsVisible = false;
+                Grid.SetColumn(ContenedorStock, 0);
+                Grid.SetColumnSpan(ContenedorStock, 2);
+                TxtStock.IsReadOnly = false;
+
+                ContenedorMarca.IsVisible = true;
+                SepMarca.IsVisible = true;
+
                 return;
             }
 
-            // Real data index shift (-1 porque el índice 0 es el texto explicativo)
             var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
 
-            LblTrackingInfo.Text = $"Modo de Rastreo: {catSel.TrackingMode}";
+            string trackingMode = catSel.TrackingMode?.Trim() ?? "Standard";
+
+            bool isSerialized = string.Equals(trackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(trackingMode, "Serializado", StringComparison.OrdinalIgnoreCase);
+
+            bool isStandard = string.Equals(trackingMode, "Standard", StringComparison.OrdinalIgnoreCase) ||
+                              string.Equals(trackingMode, "Estándar", StringComparison.OrdinalIgnoreCase) ||
+                              string.Equals(trackingMode, "Stackable", StringComparison.OrdinalIgnoreCase);
+
+            bool isBulk = string.Equals(trackingMode, "A Granel", StringComparison.OrdinalIgnoreCase) ||
+                          string.Equals(trackingMode, "Bulk", StringComparison.OrdinalIgnoreCase);
+
+            LblTrackingInfo.Text = $"Modo de Rastreo: {trackingMode}";
             ContenedorNombre.IsVisible = true;
 
-            // ====================================================================
-            // 🎯 3. RE-CONFIGURACIÓN DINÁMICA Y FILTRADO TÁCTICO DE UNIDADES
-            // ====================================================================
-            PkrMeasurement.Items.Clear();
-            PkrMeasurement.Items.Add("Seleccione una unidad...");
-
-            string[] abreviaturasPermitidas;
-
-            if (string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase))
+            if (isBulk)
             {
-                abreviaturasPermitidas = ["UND", "PAR", "JGO"];
+                ContenedorMarca.IsVisible = false;
+                SepMarca.IsVisible = false;
+                SecModelSerie.IsVisible = false;
+                SepModelSerie.IsVisible = false;
+                BloqueSerializadoCondicional.IsVisible = false;
+
+                SecCondicionFisica.IsVisible = false;
+
+                TxtStock.IsReadOnly = false;
+                if (UserSession.CurrentArticleToEdit == null) TxtStock.Text = string.Empty;
+
+                ContenedorUnidades.IsVisible = true;
+                GridUnidadStock.ColumnDefinitions = new ColumnDefinitionCollection
+                {
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = GridLength.Star }
+                };
+                Grid.SetColumn(ContenedorStock, 1);
             }
-            else if (string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase))
+            else if (isSerialized)
             {
-                abreviaturasPermitidas = ["UND", "BOX", "MCTN", "PKT", "DOC", "BLST", "TRM", "CONT", "PAR", "JGO"];
+                ContenedorMarca.IsVisible = true;
+                SepMarca.IsVisible = true;
+                SecModelSerie.IsVisible = true;
+                SepModelSerie.IsVisible = true;
+                ColSerialNumber.IsVisible = true;
+                LblModelTitle.Text = TITULO_TECNOLOGIA;
+                TxtModel.Placeholder = PLACEHOLDER_TECNOLOGIA;
+                SecCondicionFisica.IsVisible = true;
+
+                SecModelSerie.ColumnDefinitions = new ColumnDefinitionCollection
+                {
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = GridLength.Star }
+                };
+                BloqueSerializadoCondicional.IsVisible = true;
+
+                TxtStock.Text = "1";
+                TxtStock.IsReadOnly = true;
+
+                ContenedorUnidades.IsVisible = false;
+                Grid.SetColumn(ContenedorStock, 0);
+                GridUnidadStock.ColumnDefinitions = new ColumnDefinitionCollection
+                {
+                    new ColumnDefinition { Width = GridLength.Star }
+                };
             }
             else
             {
-                abreviaturasPermitidas = ["KGS", "TON", "LTS", "GAL", "ML", "GRS", "MTS", "CM", "MLN", "M2", "M3", "LBS", "OZ"];
+                ContenedorMarca.IsVisible = true;
+                SepMarca.IsVisible = true;
+                SecModelSerie.IsVisible = true;
+                SepModelSerie.IsVisible = true;
+                ColSerialNumber.IsVisible = false;
+                LblModelTitle.Text = "Modelo / Versión";
+                TxtModel.Placeholder = "Ej. L14 Gen 3, ProBook";
+                SecCondicionFisica.IsVisible = false;
+
+                SecModelSerie.ColumnDefinitions = new ColumnDefinitionCollection
+                {
+                    new ColumnDefinition { Width = GridLength.Star }
+                };
+                BloqueSerializadoCondicional.IsVisible = false;
+
+                if (UserSession.CurrentArticleToEdit == null) TxtStock.Text = string.Empty;
+                TxtStock.IsReadOnly = false;
+
+                ContenedorUnidades.IsVisible = true;
+                GridUnidadStock.ColumnDefinitions = new ColumnDefinitionCollection
+                {
+                    new ColumnDefinition { Width = GridLength.Star },
+                    new ColumnDefinition { Width = GridLength.Star }
+                };
+                Grid.SetColumn(ContenedorStock, 1);
             }
+
+            PkrAcquisitionUnit.Items.Clear();
+            PkrSaleUnit.Items.Clear();
+            PkrAcquisitionUnit.Items.Add("Unidad de compra...");
+            PkrSaleUnit.Items.Add("Unidad de venta...");
 
             if (_todasLasUnidades != null && _todasLasUnidades.Count > 0)
             {
-                _unidadesFiltradas = _todasLasUnidades
-                    .Where(u => !string.IsNullOrWhiteSpace(u.Abbreviation) &&
-                                abreviaturasPermitidas.Contains(u.Abbreviation.Trim(), StringComparer.OrdinalIgnoreCase))
-                    .ToList();
+                if (catSel.SelectedUnitIds != null && catSel.SelectedUnitIds.Any())
+                {
+                    _unidadesFiltradas = _todasLasUnidades
+                        .Where(u => catSel.SelectedUnitIds.Contains(u.Id))
+                        .ToList();
+                }
+                else
+                {
+                    string[] abreviaturasPermitidas;
+
+                    if (isSerialized)
+                    {
+                        abreviaturasPermitidas = new string[] { "UND", "PAR", "JGO" };
+                    }
+                    else if (isStandard)
+                    {
+                        abreviaturasPermitidas = new string[] { "UND", "BOX", "MCTN", "PKT", "DOC", "BLST", "TRM", "CONT", "PAR", "JGO" };
+                    }
+                    else
+                    {
+                        abreviaturasPermitidas = new string[] { "KGS", "TON", "LTS", "GAL", "ML", "GRS", "MTS", "CM", "MLN", "M2", "M3", "LBS", "OZ" };
+                    }
+
+                    _unidadesFiltradas = _todasLasUnidades
+                        .Where(u => !string.IsNullOrWhiteSpace(u.Abbreviation) &&
+                                    abreviaturasPermitidas.Contains(u.Abbreviation.Trim(), StringComparer.OrdinalIgnoreCase))
+                        .ToList();
+                }
 
                 foreach (var unidad in _unidadesFiltradas)
                 {
-                    PkrMeasurement.Items.Add(unidad.UnitName);
+                    PkrAcquisitionUnit.Items.Add(unidad.UnitName);
+                    PkrSaleUnit.Items.Add(unidad.UnitName);
                 }
             }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("🚨 [ERROR CRÍTICO]: '_todasLasUnidades' está VACÍA.");
-                DisplayAlertAsync("Error de datos", "El catálogo maestro de unidades no ha cargado desde el servidor Somee.", "OK");
-            }
 
-            PkrMeasurement.SelectedIndex = 0;
-            ControlarColorPlaceholderPicker(PkrMeasurement);
+            PkrAcquisitionUnit.SelectedIndex = 0;
+            PkrSaleUnit.SelectedIndex = 0;
+            ControlarColorPlaceholderPicker(PkrAcquisitionUnit);
+            ControlarColorPlaceholderPicker(PkrSaleUnit);
 
-            SecBarcode.IsVisible = string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase);
-            SecSku.IsVisible = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase);
-            SecModelSerie.IsVisible = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase);
-            BloqueSerializadoCondicional.IsVisible = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase);
-
-            TxtName.IsReadOnly = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase);
-
-            bool isDarkMode = Application.Current?.RequestedTheme == AppTheme.Dark;
-            if (string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase))
-            {
-                TxtName.BackgroundColor = isDarkMode ? Color.FromArgb("#12181F") : Color.FromArgb("#E9ECEF");
-            }
-            else
-            {
-                TxtName.BackgroundColor = Colors.Transparent;
-            }
-
-            if (string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) && UserSession.CurrentArticleToEdit == null)
-            {
-                OnAutoNameTriggerChanged(sender, null!);
-            }
-
-            // ====================================================================
-            // 🗃️ 4. RE-FILTRADO DINÁMICO DE MARCAS
-            // ====================================================================
             PkrBrand.Items.Clear();
             PkrBrand.Items.Add("Seleccione una marca...");
 
@@ -417,7 +528,7 @@ namespace ControlInventarioMovil.Views
 
             if (UserSession.CurrentProfile != null && UserSession.CurrentProfile.GenerateCodes)
             {
-                if (!string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase))
+                if (!isStandard)
                 {
                     if (string.IsNullOrWhiteSpace(TxtSku.Text))
                     {
@@ -429,25 +540,8 @@ namespace ControlInventarioMovil.Views
 
             PkrBrand.SelectedIndex = 0;
             ControlarColorPlaceholderPicker(PkrBrand);
-        }
-
-        private void OnAutoNameTriggerChanged(object sender, EventArgs e)
-        {
-            if (sender is Picker pck) ControlarColorPlaceholderPicker(pck);
-
-            if (PkrCategory.SelectedIndex <= 0 || UserSession.CurrentArticleToEdit != null) return;
-
-            var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
-
-            if (string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase))
-            {
-                // Si el índice es mayor a 0 hay una marca real seleccionada
-                string brandTxt = PkrBrand.SelectedIndex > 0 ? PkrBrand.SelectedItem.ToString()! : "Genérico";
-                string skuTxt = !string.IsNullOrWhiteSpace(TxtSku.Text) ? TxtSku.Text.Trim() : "S/K";
-                string serieTxt = !string.IsNullOrWhiteSpace(TxtSerialNumber.Text) ? TxtSerialNumber.Text.Trim() : "S/S";
-
-                TxtName.Text = $"{catSel.Name} {brandTxt} [{skuTxt}-{serieTxt}]";
-            }
+            ActualizarNombresDePreciosYCalculos();
+            GenerarNombrePorFormula();
         }
 
         private async void OnGuardarClicked(object sender, EventArgs e)
@@ -462,12 +556,24 @@ namespace ControlInventarioMovil.Views
 
             var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
 
-            if (string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(TxtBarcode.Text))
+            string trackingMode = catSel.TrackingMode?.Trim() ?? "Standard";
+
+            bool isSerialized = string.Equals(trackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(trackingMode, "Serializado", StringComparison.OrdinalIgnoreCase);
+
+            bool isStandard = string.Equals(trackingMode, "Standard", StringComparison.OrdinalIgnoreCase) ||
+                              string.Equals(trackingMode, "Estándar", StringComparison.OrdinalIgnoreCase) ||
+                              string.Equals(trackingMode, "Stackable", StringComparison.OrdinalIgnoreCase);
+
+            bool isBulk = string.Equals(trackingMode, "A Granel", StringComparison.OrdinalIgnoreCase) ||
+                          string.Equals(trackingMode, "Bulk", StringComparison.OrdinalIgnoreCase);
+
+            if (isStandard && string.IsNullOrWhiteSpace(TxtBarcode.Text))
             {
                 await DisplayAlertAsync("Validación", "El Código de Barras de fábrica es mandatorio para artículos en empaque.", "OK");
                 return;
             }
-            if (!string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(TxtSku.Text))
+            if (!isStandard && string.IsNullOrWhiteSpace(TxtSku.Text))
             {
                 await DisplayAlertAsync("Validación", "El campo Código SKU Interno es mandatorio.", "OK");
                 return;
@@ -478,9 +584,9 @@ namespace ControlInventarioMovil.Views
                 return;
             }
 
-            if (PkrMeasurement.SelectedIndex <= 0)
+            if (PkrAcquisitionUnit.SelectedIndex <= 0 || PkrSaleUnit.SelectedIndex <= 0)
             {
-                await DisplayAlertAsync("Validación", "Por favor, seleccione una unidad de medida.", "OK");
+                await DisplayAlertAsync("Validación", "Por favor, seleccione las unidades de logística (Compra y Venta).", "OK");
                 return;
             }
 
@@ -496,47 +602,76 @@ namespace ControlInventarioMovil.Views
 
                 if (!continuar) return;
             }
-            if (string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) && (!acqPrice.HasValue || !salePrice.HasValue))
+            if (isStandard && (!acqPrice.HasValue || !salePrice.HasValue))
             {
-                await DisplayAlertAsync("Validación Financiera", "Para artículos masivos (Stackable), el Costo de Adquisición y el Precio de Venta estimado son obligatorios.", "Corregir");
+                await DisplayAlertAsync("Validación Financiera", "Para artículos masivos (Estándar), el Costo de Adquisición y el Precio de Venta estimado son obligatorios.", "Corregir");
                 return;
             }
 
-            // 🎯 OBTENCIÓN CON DESFASE -1 POR LOS PLACEHOLDERS NUEVOS
-            int brandIdFinal = _marcasFiltradas != null && _marcasFiltradas.Count > 0 && PkrBrand.SelectedIndex > 0
-                ? _marcasFiltradas[PkrBrand.SelectedIndex - 1].Id
-                : 0;
+            int brandIdFinal = 0;
+            if (!isBulk)
+            {
+                brandIdFinal = _marcasFiltradas != null && _marcasFiltradas.Count > 0 && PkrBrand.SelectedIndex > 0
+                   ? _marcasFiltradas[PkrBrand.SelectedIndex - 1].Id
+                   : 0;
+            }
 
-            int? statusIdFinal = PkrStatusParam.SelectedIndex > 0 ? _estadosParam[PkrStatusParam.SelectedIndex - 1].Id : null;
-            int? locationIdFinal = PkrLocationParam.SelectedIndex > 0 ? _ubicacionesParam[PkrLocationParam.SelectedIndex - 1].Id : null;
             int? conditionIdFinal = PkrConditionParam.SelectedIndex > 0 ? _condicionesParam[PkrConditionParam.SelectedIndex - 1].Id : null;
+            int? locationIdFinal = PkrLocationParam.SelectedIndex > 0 ? _ubicacionesParam[PkrLocationParam.SelectedIndex - 1].Id : null;
             int? supplierIdFinal = PkrSupplier.SelectedIndex > 0 ? _proveedoresGlobales[PkrSupplier.SelectedIndex - 1].Id : null;
             string? currencyFinal = PkrCurrency.SelectedIndex > 0 ? _monedasGlobales[PkrCurrency.SelectedIndex - 1].CurrencyCode : null;
             string? saleCurrencyFinal = PkrSaleCurrency.SelectedIndex > 0 ? _monedasGlobales[PkrSaleCurrency.SelectedIndex - 1].CurrencyCode : "S/.";
 
             decimal.TryParse(TxtStock.Text, out decimal stockReal);
 
-            string codeEnvio = string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) ? $"BAR-{TxtBarcode.Text.Trim()}" : TxtSku.Text.Trim();
-            string modelEnvio = string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) ? "Empacado de Fábrica" : (string.IsNullOrWhiteSpace(TxtModel.Text) ? "N/A" : TxtModel.Text.Trim());
+            string codeEnvio = isStandard ? $"BAR-{TxtBarcode.Text.Trim()}" : TxtSku.Text.Trim();
+
+            string modelEnvio = "N/A";
+            if (isStandard)
+                modelEnvio = "Empacado de Fábrica";
+            else if (isBulk)
+                modelEnvio = "A Granel";
+            else if (!string.IsNullOrWhiteSpace(TxtModel.Text))
+                modelEnvio = TxtModel.Text.Trim();
+
+            int idEstadoAutomático = 1;
+            decimal stockIngresado = decimal.TryParse(TxtStock.Text, out decimal s) ? s : 0;
+
+            if (UserSession.CurrentArticleToEdit == null || UserSession.CurrentArticleToEdit.Id == 0)
+            {
+                var paramNuevo = _estadosParam.FirstOrDefault(p => p.Name.Contains("Nuevo") || p.Name.Contains("Recién"));
+                idEstadoAutomático = paramNuevo?.Id ?? _estadosParam.FirstOrDefault()?.Id ?? 1;
+            }
+            else
+            {
+                if (stockIngresado <= 0)
+                {
+                    var paramAgotado = _estadosParam.FirstOrDefault(p => p.Name.Contains("Agotado") || p.Name.Contains("Cero"));
+                    idEstadoAutomático = paramAgotado?.Id ?? 1;
+                }
+                else
+                {
+                    var paramDisponible = _estadosParam.FirstOrDefault(p => p.Name.Contains("Disponible") || p.Name.Contains("Venta"));
+                    idEstadoAutomático = paramDisponible?.Id ?? 1;
+                }
+            }
 
             var articuloData = new Article
             {
                 InventoryId = idAlmacenActivo,
                 Code = codeEnvio,
-                Barcode = string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) ? TxtBarcode.Text.Trim() : null,
+                Barcode = isStandard ? TxtBarcode.Text.Trim() : null,
                 Name = TxtName.Text.Trim(),
                 Model = modelEnvio,
                 CategoryId = catSel.Id,
                 BrandId = brandIdFinal,
-                Tracking = string.Equals(catSel.TrackingMode, "Stackable", StringComparison.OrdinalIgnoreCase) ? TrackingMode.Standard :
-                           (string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ? TrackingMode.Serialized : TrackingMode.Standard),
-
-                MeasurementUnit = PkrMeasurement.SelectedIndex > 0
-                                ? _unidadesFiltradas[PkrMeasurement.SelectedIndex - 1].UnitName
-                                : "Unidad",
-
+                Tracking = isSerialized ? TrackingMode.Serialized : TrackingMode.Standard,
+                AcquisitionUnit = PkrAcquisitionUnit.SelectedIndex > 0 ? (PkrAcquisitionUnit.SelectedItem?.ToString() ?? "Unidades") : null,
+                SaleUnit = PkrSaleUnit.SelectedIndex > 0 ? (PkrSaleUnit.SelectedItem?.ToString() ?? "Unidades") : null,
+                ConversionFactor = decimal.TryParse(TxtConversionFactor.Text, out decimal factorConv) ? factorConv : 1,
+                MeasurementUnit = PkrSaleUnit.SelectedIndex > 0 ? (PkrSaleUnit.SelectedItem?.ToString() ?? "Unidades") : "Unidades",
                 Stock = stockReal,
-                SerialNumber = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ? TxtSerialNumber.Text?.Trim() : null,
+                SerialNumber = isSerialized ? TxtSerialNumber.Text?.Trim() : null,
                 CurrentEmployeeId = null,
                 PreviousEmployeeId = null,
                 FixedAsset = null,
@@ -544,25 +679,23 @@ namespace ControlInventarioMovil.Views
                 SalePrice = salePrice,
                 AcquisitionCurrency = currencyFinal,
                 AcquisitionDate = DtpAcquisitionDate.Date,
-                UsefulLifeMonths = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ? (string.IsNullOrWhiteSpace(TxtUsefulLife.Text) ? null : Convert.ToInt32(TxtUsefulLife.Text.Trim())) : null,
-                WarrantyEndDate = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ? DtpWarranty.Date : null,
-                Characteristics = string.Equals(catSel.TrackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ? TxtCharacteristics.Text?.Trim() : null,
+                UsefulLifeMonths = isSerialized ? (string.IsNullOrWhiteSpace(TxtUsefulLife.Text) ? null : Convert.ToInt32(TxtUsefulLife.Text.Trim())) : null,
+                WarrantyEndDate = isSerialized ? DtpWarranty.Date : null,
+                Characteristics = isSerialized ? TxtCharacteristics.Text?.Trim() : null,
                 Observation = !string.IsNullOrWhiteSpace(TxtObservation.Text) ? TxtObservation.Text.Trim() : null,
-                StatusId = statusIdFinal,
+                StatusId = idEstadoAutomático,
                 LocationId = locationIdFinal,
                 ConditionId = conditionIdFinal,
                 SupplierId = supplierIdFinal,
                 MainPhotoPath = _rutaFotoPrincipal,
                 MainVoucherPath = _rutaFotoVoucher,
-
                 ActionId = UserSession.CurrentArticleToEdit != null ? UserSession.CurrentArticleToEdit.ActionId : 1,
                 RegistrationDate = UserSession.CurrentArticleToEdit != null ? UserSession.CurrentArticleToEdit.RegistrationDate : DateTime.Now,
-
                 ModificationDate = UserSession.CurrentArticleToEdit != null ? DateTime.Now : null,
                 DecommissionDate = UserSession.CurrentArticleToEdit?.DecommissionDate,
                 DepartureDate = UserSession.CurrentArticleToEdit?.DepartureDate,
                 SaleCurrency = saleCurrencyFinal,
-                LoggedUserId = UserSession.CurrentUser?.Id,
+                LoggedUserId = UserSession.CurrentUser?.Employee?.Id,
                 LoggedUserFullName = $"{UserSession.CurrentUser?.Employee?.FirstName} {UserSession.CurrentUser?.Employee?.LastName}".Trim()
             };
 
@@ -596,7 +729,28 @@ namespace ControlInventarioMovil.Views
             Shell.Current.GoToAsync("..", false);
         }
 
-        private void OnVolverClicked(object sender, EventArgs e) => CleanupSessionAndLeave();
+        private async void OnVolverClicked(object sender, EventArgs e)
+        {
+            bool salir = await DisplayAlertAsync("Atención", "Tienes cambios sin guardar. ¿Seguro que deseas salir y perder los datos ingresados?", "Sí, salir", "Continuar editando");
+            if (salir)
+            {
+                await Shell.Current.GoToAsync("..");
+            }
+        }
+
+        protected override bool OnBackButtonPressed()
+        {
+            Dispatcher.Dispatch(async () =>
+            {
+                bool salir = await DisplayAlertAsync("Atención", "Tienes cambios sin guardar. ¿Seguro que deseas salir y perder los datos ingresados?", "Sí, salir", "Continuar editando");
+                if (salir)
+                {
+                    await Shell.Current.GoToAsync("..");
+                }
+            });
+            return true;
+        }
+
         private void OnCancelarClicked(object sender, EventArgs e) => CleanupSessionAndLeave();
 
         private async void OnTomarFotoPrincipalClicked(object sender, EventArgs e)
@@ -826,7 +980,11 @@ namespace ControlInventarioMovil.Views
             }
         }
 
-        private void OnAcquisitionPriceChanged(object sender, TextChangedEventArgs e) => CalcularEquivalenteMoneda();
+        private void OnAcquisitionPriceChanged(object sender, TextChangedEventArgs e)
+        {
+            CalcularEquivalenteMoneda();
+            ActualizarNombresDePreciosYCalculos();
+        }
         private void OnMonedaChanged(object sender, EventArgs e) { ControlarColorPlaceholderPicker(PkrCurrency); CalcularEquivalenteMoneda(); }
 
         private void CalcularEquivalenteMoneda()
@@ -872,7 +1030,11 @@ namespace ControlInventarioMovil.Views
 
         private void OcultarConversionCompra() => LblConversionEquivalente.IsVisible = false;
 
-        private void OnSalePriceChanged(object sender, TextChangedEventArgs e) => CalcularEquivalenteMonedaVenta();
+        private void OnSalePriceChanged(object sender, TextChangedEventArgs e)
+        {
+            CalcularEquivalenteMonedaVenta();
+            ActualizarNombresDePreciosYCalculos();
+        }
         private void OnSaleMonedaChanged(object sender, EventArgs e) { ControlarColorPlaceholderPicker(PkrSaleCurrency); CalcularEquivalenteMonedaVenta(); }
 
         private void CalcularEquivalenteMonedaVenta()
@@ -1085,6 +1247,272 @@ namespace ControlInventarioMovil.Views
                 TxtAcquisitionPrice.IsPassword = false;
                 PkrCurrency.IsEnabled = true;
             }
+        }
+
+        private void OnMeasurementChanged(object sender, EventArgs e)
+        {
+            if (sender is Picker picker)
+            {
+                ControlarColorPlaceholderPicker(picker);
+            }
+
+            ActualizarNombresDePreciosYCalculos();
+        }
+
+        private void ActualizarNombresDePreciosYCalculos()
+        {
+            try
+            {
+                // 1. Extraer abreviatura de Unidad de Compra
+                string abrevCompra = "Unid.";
+                if (PkrAcquisitionUnit.SelectedIndex > 0 && _unidadesFiltradas != null && _unidadesFiltradas.Count > 0)
+                {
+                    var unidadSelC = _unidadesFiltradas[PkrAcquisitionUnit.SelectedIndex - 1];
+                    abrevCompra = unidadSelC.Abbreviation?.Trim() ?? "Unid.";
+                }
+
+                // 2. Extraer abreviatura de Unidad de Venta
+                string abrevVenta = "Unid.";
+                if (PkrSaleUnit.SelectedIndex > 0 && _unidadesFiltradas != null && _unidadesFiltradas.Count > 0)
+                {
+                    var unidadSelV = _unidadesFiltradas[PkrSaleUnit.SelectedIndex - 1];
+                    abrevVenta = unidadSelV.Abbreviation?.Trim() ?? "Unid.";
+                }
+
+                // 3. Actualizar títulos de las cajas de texto
+                LblCostoTitulo.Text = $"Costo por {abrevCompra} *";
+                LblVentaTitulo.Text = $"Precio Venta por {abrevVenta} *";
+
+                // 4. Cálculos de Lote
+                decimal.TryParse(TxtStock.Text, out decimal stock);
+                decimal.TryParse(TxtAcquisitionPrice.Text, out decimal costoUnitario);
+                decimal.TryParse(TxtSalePrice.Text, out decimal precioVentaUnitario);
+
+                string monedaSigla = PkrCurrency.SelectedIndex > 0 ? _monedasGlobales[PkrCurrency.SelectedIndex - 1].CurrencyCode ?? "S/." : "S/.";
+                string monedaVentaSigla = PkrSaleCurrency.SelectedIndex > 0 ? _monedasGlobales[PkrSaleCurrency.SelectedIndex - 1].CurrencyCode ?? "S/." : "S/.";
+
+                if (stock > 0 && costoUnitario > 0)
+                {
+                    decimal costoTotal = stock * costoUnitario;
+                    LblValorizacionCostoTotal.Text = $"Total Lote: {monedaSigla} {costoTotal:N2}";
+                    LblValorizacionCostoTotal.IsVisible = true;
+                }
+                else
+                {
+                    LblValorizacionCostoTotal.IsVisible = false;
+                }
+
+                if (stock > 0 && precioVentaUnitario > 0)
+                {
+                    decimal ventaTotal = stock * precioVentaUnitario;
+                    LblValorizacionVentaTotal.Text = $"Total Lote: {monedaVentaSigla} {ventaTotal:N2}";
+                    LblValorizacionVentaTotal.IsVisible = true;
+                }
+                else
+                {
+                    LblValorizacionVentaTotal.IsVisible = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[VALORIZACION_FAIL] {ex.Message}");
+            }
+        }
+
+        private void AdaptarInterfazPorTrackingMode(string trackingMode)
+        {
+            if (trackingMode == "Serialized")
+            {
+                // Modo Tecnología / Electrodomésticos
+                LblModelTitle.Text = "Modelo / Versión";
+                TxtModel.Placeholder = "Ej. L14 Gen 3";
+                SecCondicionFisica.IsVisible = true; // Aquí sí importa si es Nuevo o Usado
+            }
+            else
+            {
+                // Modo Abarrotes / Granel
+                LblModelTitle.Text = "Presentación / Capacidad";
+                TxtModel.Placeholder = "Ej. 3 Litros, Six-pack, 500g";
+                SecCondicionFisica.IsVisible = false; // Ocultamos la Condición para abarrotes
+            }
+        }
+
+        private async void OnScanCameraClicked(object sender, EventArgs e)
+        {
+            // 1. Pedir permisos de cámara primero
+            var status = await Permissions.CheckStatusAsync<Permissions.Camera>();
+            if (status != PermissionStatus.Granted)
+            {
+                status = await Permissions.RequestAsync<Permissions.Camera>();
+                if (status != PermissionStatus.Granted)
+                {
+                    await DisplayAlertAsync("Permiso Denegado", "La aplicación necesita acceso a la cámara para poder escanear los códigos.", "OK");
+                    return;
+                }
+            }
+
+            // 2. Mostrar la pantalla negra y encender la cámara
+            OverlayScanner.IsVisible = true;
+            await OverlayScanner.FadeToAsync(1, 250);
+            CameraScanner.IsDetecting = true;
+        }
+
+        private void CameraScanner_BarcodesDetected(object sender, BarcodeDetectionEventArgs e)
+        {
+            // 3. ¡Se detectó algo! Tomamos el primer código que la cámara vio
+            var first = e.Results?.FirstOrDefault();
+            if (first != null)
+            {
+                // Como esto ocurre en un hilo secundario de la cámara, debemos regresar al hilo principal para actualizar la UI
+                Dispatcher.Dispatch(async () =>
+                {
+                    CameraScanner.IsDetecting = false;
+
+                    // Auto-escribimos el código en la caja de texto
+                    TxtBarcode.Text = first.Value;
+
+                    // Apagamos el overlay
+                    await OverlayScanner.FadeToAsync(0, 250);
+                    OverlayScanner.IsVisible = false;
+                });
+            }
+        }
+
+        private async void OnCerrarScannerClicked(object sender, EventArgs e)
+        {
+            CameraScanner.IsDetecting = false;
+            await OverlayScanner.FadeToAsync(0, 250);
+            OverlayScanner.IsVisible = false;
+        }
+
+        private async void OnScanGalleryClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                var photos = await MediaPicker.Default.PickPhotosAsync();
+                var photo = photos?.FirstOrDefault();
+
+                if (photo != null)
+                {
+                    using var stream = await photo.OpenReadAsync();
+                    using var bitmap = SKBitmap.Decode(stream);
+
+                    if (bitmap != null)
+                    {
+                        var reader = new BarcodeReader
+                        {
+                            AutoRotate = true,
+                            Options = new ZXing.Common.DecodingOptions
+                            {
+                                TryHarder = true
+                            }
+                        };
+
+                        var result = reader.Decode(bitmap);
+
+                        if (result != null)
+                        {
+                            TxtBarcode.Text = result.Text;
+                            await DisplayAlertAsync("Escaneo Exitoso", "Código extraído de la imagen correctamente.", "OK");
+                        }
+                        else
+                        {
+                            await DisplayAlertAsync("Sin resultados", "No se pudo detectar un código legible en esta foto. Intenta con una imagen más nítida.", "Entendido");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[GALLERY_ERROR]: {ex.Message}");
+                await DisplayAlertAsync("Error de Procesamiento", "Hubo un problema al intentar leer la imagen.", "OK");
+            }
+        }
+
+        private void OnCalculoGananciaTriggered(object sender, EventArgs e)
+        {
+            // 1. Extraemos los valores digitados (Manejando si están vacíos)
+            decimal costoPaquete = decimal.TryParse(TxtAcquisitionPrice.Text, out decimal c) ? c : 0;
+            decimal precioVentaIndividual = decimal.TryParse(TxtSalePrice.Text, out decimal v) ? v : 0;
+            decimal factor = decimal.TryParse(TxtConversionFactor.Text, out decimal f) && f > 0 ? f : 1;
+
+            string uCompra = PkrAcquisitionUnit.SelectedItem?.ToString() ?? "Paquete";
+            string uVenta = PkrSaleUnit.SelectedItem?.ToString() ?? "Unidad";
+
+            // 2. Solo calculamos si hay precios válidos
+            if (costoPaquete > 0 && precioVentaIndividual > 0)
+            {
+                // Fórmula: Costo Real Unitario = Costo Total / Cantidad que trae
+                decimal costoPorUnidadVenta = costoPaquete / factor;
+
+                // Fórmula: Ganancia = Venta - Costo Real
+                decimal gananciaNeta = precioVentaIndividual - costoPorUnidadVenta;
+
+                // Fórmula: Margen % = (Ganancia / Costo Real) * 100
+                decimal margenPorcentaje = costoPorUnidadVenta > 0 ? (gananciaNeta / costoPorUnidadVenta) * 100 : 0;
+
+                // 3. Imprimimos el resultado con formato amigable
+                if (gananciaNeta >= 0)
+                {
+                    LblProfitMargin.Text = $"Costo base: {costoPorUnidadVenta:C2} por {uVenta}\n" +
+                                           $"Ganancia: +{gananciaNeta:C2} ({margenPorcentaje:F2}%) por cada {uVenta} vendida.";
+                    LblProfitMargin.TextColor = Color.FromArgb("#A2D149"); // Verde
+                }
+                else
+                {
+                    LblProfitMargin.Text = $"¡ALERTA DE PÉRDIDA!\n" +
+                                           $"Costo base: {costoPorUnidadVenta:C2} por {uVenta}\n" +
+                                           $"Pérdida: {gananciaNeta:C2} ({margenPorcentaje:F2}%) por cada {uVenta} vendida.";
+                    LblProfitMargin.TextColor = Colors.Red; // Rojo
+                }
+            }
+            else
+            {
+                LblProfitMargin.Text = "Ingrese costo, precio de venta y unidades para calcular su ganancia.";
+                LblProfitMargin.TextColor = Colors.Gray;
+            }
+        }
+
+        private void GenerarNombrePorFormula()
+        {
+            if (PkrCategory.SelectedIndex <= 0) return;
+
+            var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
+            string formula = catSel.NamingMethod ?? "Nombre";
+
+            if (formula == "Nombre" || string.IsNullOrWhiteSpace(formula))
+            {
+                ContenedorPresentacion.IsVisible = false;
+                TxtName.IsReadOnly = false;
+                return;
+            }
+
+            // Normalizamos las fórmulas estáticas
+            if (formula == "Solo Empaque") formula = "[Pres.]";
+            if (formula == "Código + Modelo") formula = "[Código] + [Modelo]";
+
+            ContenedorPresentacion.IsVisible = formula.Contains("[Pres.]");
+            TxtName.IsReadOnly = true;
+
+            string marcaReal = PkrBrand.SelectedIndex > 0 ? PkrBrand.SelectedItem.ToString() : "";
+            string codigoReal = string.IsNullOrWhiteSpace(TxtSku.Text) ? TxtBarcode.Text : TxtSku.Text;
+            string serieReal = TxtSerialNumber.Text ?? "";
+            string modeloReal = TxtModel.Text ?? "";
+            string presentacionReal = TxtPresentacion.Text ?? "";
+
+            string nombreGenerado = formula
+                .Replace("[Marca]", marcaReal)
+                .Replace("[Código]", codigoReal)
+                .Replace("[Serie]", serieReal)
+                .Replace("[Modelo]", modeloReal)
+                .Replace("[Pres.]", presentacionReal);
+
+            nombreGenerado = nombreGenerado.Replace(" +  + ", " + ").Trim();
+            if (nombreGenerado.EndsWith("+")) nombreGenerado = nombreGenerado.Substring(0, nombreGenerado.Length - 1).Trim();
+            if (nombreGenerado.StartsWith("+")) nombreGenerado = nombreGenerado.Substring(1).Trim();
+            if (nombreGenerado.EndsWith("-")) nombreGenerado = nombreGenerado.Substring(0, nombreGenerado.Length - 1).Trim();
+
+            TxtName.Text = nombreGenerado;
         }
     }
 }
