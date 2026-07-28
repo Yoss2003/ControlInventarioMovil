@@ -40,7 +40,10 @@
                                             <Label Text="{Binding Phone}" TextColor="Gray" FontSize="13"/>
                                         </HorizontalStackLayout>
                                     </VerticalStackLayout>
-                                    <ImageButton Grid.Column="2" Source="edit_icon.svg" WidthRequest="22" HeightRequest="22" CommandParameter="{Binding .}" Clicked="OnEditCustomerClicked"/>
+                                    <HorizontalStackLayout Grid.Column="2" VerticalOptions="Center" Spacing="10">
+                                        <ImageButton Source="edit_icon.svg" WidthRequest="22" HeightRequest="22" BackgroundColor="Transparent" CommandParameter="{Binding .}" Clicked="OnEditCustomerClicked"/>
+                                        <ImageButton Source="delete_icon.png" WidthRequest="22" HeightRequest="22" BackgroundColor="Transparent" CommandParameter="{Binding .}" Clicked="OnDeleteCustomerClicked"/>
+                                    </HorizontalStackLayout>
                                 </Grid>
                             </Border>
                         </Grid>

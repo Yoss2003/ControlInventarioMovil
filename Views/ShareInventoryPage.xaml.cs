@@ -1,3 +1,4 @@
+using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
 using Newtonsoft.Json;
@@ -58,7 +59,7 @@ namespace ControlInventarioMovil.Views
                     // 🚨 FILTRO FILIAL: Mostramos solo a quienes pertenezcan a la misma área/empresa 
                     // y ocultamos al usuario logueado para que no se auto-invite
                     var compañeros = todosLosEmpleados
-                        .Where(e => e.Id != UserSession.CurrentUser.EmployeeId)
+                        .Where(e => e.Id != UserSession.CurrentUser.Employee!.Id && e.IsActive) // 🚨 Agregamos && e.IsActive
                         .ToList();
 
                     pckEmployee.ItemsSource = compañeros;
@@ -83,7 +84,7 @@ namespace ControlInventarioMovil.Views
 
             if (empleadoSeleccionado == null || permisoSeleccionado == null)
             {
-                await DisplayAlert("Validación", "Seleccione un colaborador y su nivel de permiso.", "OK");
+                await DisplayAlertAsync("Validación", "Seleccione un colaborador y su nivel de permiso.", "OK");
                 return;
             }
 
@@ -93,11 +94,11 @@ namespace ControlInventarioMovil.Views
             try
             {
                 // 📦 Armamos el DTO exacto que tu API espera con el formato numérico del Enum
-                var shareRequest = new ShareRequestDTO
+                var shareRequest = new
                 {
                     InventoryId = _currentInventoryId,
-                    GuestIdentifier = empleadoSeleccionado.FirstName, // Tu API busca por Username/Email, si tienes la propiedad vinculada pásala aquí
-                    AccessLevel = permisoSeleccionado.Value // Pasa el 1 o 2 del Enum directamente
+                    GuestIdentifier = empleadoSeleccionado.FirstName,
+                    AccessLevel = (int)permisoSeleccionado.Value
                 };
 
                 using var client = new HttpClient();

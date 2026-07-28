@@ -92,7 +92,9 @@
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 		<PackageReference Include="Otp.NET" Version="1.4.1" />
 		<PackageReference Include="Plugin.Maui.ImageCropper" Version="3.0.0" />
+		<PackageReference Include="SkiaSharp" Version="4.150.1" />
 		<PackageReference Include="ZXing.Net" Version="0.16.11" />
+		<PackageReference Include="ZXing.Net.Bindings.SkiaSharp" Version="0.16.22" />
 		<PackageReference Include="ZXing.Net.Maui" Version="0.7.4" />
 		<PackageReference Include="ZXing.Net.Maui.Controls" Version="0.7.4" />
 	</ItemGroup>

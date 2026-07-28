@@ -64,7 +64,6 @@
                                     </VerticalStackLayout>
 
                                     <HorizontalStackLayout Grid.Column="2" VerticalOptions="Center" Spacing="15">
-
                                         <Border StrokeShape="RoundRectangle 6" 
                                                 BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B301F}" 
                                                 Padding="8,4" 
@@ -75,9 +74,15 @@
                                                    FontAttributes="Bold" 
                                                    TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}"/>
                                         </Border>
-
                                         <ImageButton Source="edit_icon.png" 
                                                      Clicked="OnEditUserClicked" 
+                                                     CommandParameter="{Binding .}" 
+                                                     HeightRequest="26" 
+                                                     WidthRequest="26" 
+                                                     VerticalOptions="Center" 
+                                                     BackgroundColor="Transparent"/>
+                                        <ImageButton Source="delete_icon.png" 
+                                                     Clicked="OnDeleteUserClicked" 
                                                      CommandParameter="{Binding .}" 
                                                      HeightRequest="26" 
                                                      WidthRequest="26" 

@@ -28,7 +28,8 @@ namespace ControlInventarioMovil.Views
             refreshEmployees.IsRefreshing = true;
             var lista = await _apiService.GetEmployeesAsync();
 
-            _allEmployees = lista.OrderBy(e => e.FirstName).ToList();
+            _allEmployees = lista.Where(e => e.IsActive).OrderBy(e => e.FirstName).ToList();
+            
             FilterEmployees();
             refreshEmployees.IsRefreshing = false;
         }
@@ -70,6 +71,35 @@ namespace ControlInventarioMovil.Views
                 await Navigation.PushAsync(new EmployeeFormPage(empleadoSeleccionado));
             }
         }
+
+        private async void OnDeleteEmployeeClicked(object sender, EventArgs e)
+        {
+            var button = sender as ImageButton;
+            if (button?.CommandParameter is Employee empleadoSeleccionado)
+            {
+                bool confirmar = await DisplayAlertAsync("Dar de Baja",
+                    $"¿Estás seguro de que deseas desactivar al empleado {empleadoSeleccionado.FirstName} {empleadoSeleccionado.LastName}?\n\nPerderá el acceso al sistema, pero su historial operativo se mantendrá intacto.",
+                    "Sí, desactivar", "Cancelar");
+
+                if (confirmar)
+                {
+                    empleadoSeleccionado.IsActive = false;
+                    bool exito = await _apiService.UpdateEmployeeAsync(empleadoSeleccionado.Id, empleadoSeleccionado);
+
+                    if (exito)
+                    {
+                        FilteredEmployees.Remove(empleadoSeleccionado);
+                        _allEmployees.Remove(empleadoSeleccionado);
+                    }
+                    else
+                    {
+                        await DisplayAlertAsync("Error", "El servidor rechazó la inactivación del empleado.", "OK");
+                        empleadoSeleccionado.IsActive = true;
+                    }
+                }
+            }
+        }
+
         private async void OnVolverClicked(object sender, EventArgs e)
         {
             await Shell.Current.GoToAsync("..");
