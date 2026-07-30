@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:ControlInventario.Shared.Models;assembly=ControlInventario.Shared"
              x:Class="ControlInventarioMovil.Views.ArticleFormPage"
              xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
              xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
@@ -93,25 +94,27 @@
 
                                 <VerticalStackLayout x:Name="SecBarcode" Spacing="5" IsVisible="False">
                                     <Label Text="Código de Barras EAN/UPC (Caja) *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
-                                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
-                                        <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="10">
-                                            <!-- Caja de Texto -->
-                                            <Entry Grid.Column="0" x:Name="TxtBarcode" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Escanee o digite el código" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40"/>
 
-                                            <!-- Botón Galería -->
-                                            <ImageButton Grid.Column="1" Source="image_gallery_icon.png" WidthRequest="24" HeightRequest="24" VerticalOptions="Center" BackgroundColor="Transparent" Clicked="OnScanGalleryClicked" ToolTipProperties.Text="Subir foto"/>
+                                    <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
+                                        <!-- Caja de Texto (Separada en su propia columna) -->
+                                        <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                            <Entry Grid.Column="0" x:Name="TxtBarcode" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Escanee con los botones" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40" VerticalOptions="Center" ZIndex="0" IsReadOnly="True"/>
+                                        </Border>
 
-                                            <!-- Botón Cámara -->
-                                            <ImageButton Grid.Column="2" Source="camera_icon.png" WidthRequest="24" HeightRequest="24" VerticalOptions="Center" BackgroundColor="Transparent" Clicked="OnScanCameraClicked" ToolTipProperties.Text="Usar cámara"/>
-                                        </Grid>
-                                    </Border>
+                                        <!-- Botones (Con el MISMO estilo de Marcas y Proveedores) -->
+                                        <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                            <ImageButton Source="image_gallery_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnScanGalleryClicked" ToolTipProperties.Text="Subir foto"/>
+                                            <ImageButton Source="camera_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnScanCameraClicked" ToolTipProperties.Text="Usar cámara"/>
+                                        </HorizontalStackLayout>
+                                    </Grid>
                                 </VerticalStackLayout>
+                                <BoxView IsVisible="{Binding Source={x:Reference SecBarcode}, Path=IsVisible}" HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
                                 <BoxView IsVisible="{Binding Source={x:Reference SecBarcode}, Path=IsVisible}" HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
 
                                 <VerticalStackLayout x:Name="SecSku" Spacing="5">
                                     <Label Text="Código SKU / Interno *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                     <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
-                                        <Entry x:Name="TxtSku" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ingrese SKU" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnAutoNameTriggerChanged"/>
+                                        <Entry x:Name="TxtSku" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ingrese SKU" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnGeneradorNombreTriggered"/>
                                     </Border>
                                 </VerticalStackLayout>
                                 <BoxView IsVisible="{Binding Source={x:Reference SecSku}, Path=IsVisible}" HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
@@ -120,14 +123,14 @@
                                     <VerticalStackLayout Grid.Column="0" Spacing="5">
                                         <Label x:Name="LblModelTitle" Text="Modelo" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                         <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
-                                            <Entry x:Name="TxtModel" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ej. L14 Gen 3" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnAutoNameTriggerChanged"/>
+                                            <Entry x:Name="TxtModel" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ej. L14 Gen 3" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnGeneradorNombreTriggered"/>
                                         </Border>
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout x:Name="ColSerialNumber" Grid.Column="1" Spacing="5">
                                         <Label Text="Número de Serie" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                         <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
-                                            <Entry x:Name="TxtSerialNumber" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="S/N de fábrica" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnAutoNameTriggerChanged"/>
+                                            <Entry x:Name="TxtSerialNumber" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="S/N de fábrica" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnGeneradorNombreTriggered"/>
                                         </Border>
                                     </VerticalStackLayout>
                                 </Grid>
@@ -153,7 +156,7 @@
                                     <Label Text="Marca *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                     <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
                                         <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                            <Picker x:Name="PkrBrand" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Fill" VerticalTextAlignment="Center" SelectedIndexChanged="OnAutoNameTriggerChanged"/>
+                                            <Picker x:Name="PkrBrand" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Fill" VerticalTextAlignment="Center" SelectedIndexChanged="OnGeneradorNombreTriggered"/>
                                         </Border>
                                         <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
                                             <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarMarcasClicked"/>
@@ -442,22 +445,21 @@
                             <Button Grid.Column="0" Text="CANCELAR" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=#939CA5}" CornerRadius="6" HeightRequest="40" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnCerrarOverlayProveedoresClicked"/>
                             <Button Grid.Column="1" Text="GUARDAR PROV" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="6" HeightRequest="40" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnGuardarProveedorClicked"/>
                         </Grid>
-
-                        <Grid x:Name="OverlayScanner" BackgroundColor="#E6000000" IsVisible="False" Opacity="0" ZIndex="100">
-                            <Grid RowDefinitions="Auto, *, Auto" Margin="0,50,0,40">
-                                <Label Grid.Row="0" Text="ESCANEANDO CÓDIGO..." TextColor="#A2D149" FontAttributes="Bold" FontSize="18" HorizontalOptions="Center" Margin="0,20"/>
-
-                                <Border Grid.Row="1" Stroke="#A2D149" StrokeThickness="3" StrokeShape="RoundRectangle 20" BackgroundColor="Transparent" Margin="30" HorizontalOptions="Fill" VerticalOptions="Fill">
-                                    <zxing:CameraBarcodeReaderView x:Name="CameraScanner" BarcodesDetected="CameraScanner_BarcodesDetected" IsDetecting="False"/>
-                                </Border>
-
-                                <Button Grid.Row="2" Text="CANCELAR ESCANEO" BackgroundColor="#E65100" TextColor="White" FontAttributes="Bold" CornerRadius="8" Margin="30,0" HeightRequest="50" Clicked="OnCerrarScannerClicked"/>
-                            </Grid>
-                        </Grid>
                     </VerticalStackLayout>
                 </ScrollView>
             </Border>
         </Grid>
 
+        <Grid x:Name="OverlayScanner" BackgroundColor="#E6000000" IsVisible="False" Opacity="0" ZIndex="100">
+            <Grid RowDefinitions="Auto, *, Auto" Margin="0,50,0,40">
+                <Label Grid.Row="0" Text="ESCANEANDO CÓDIGO..." TextColor="#A2D149" FontAttributes="Bold" FontSize="18" HorizontalOptions="Center" Margin="0,20"/>
+
+                <Border Grid.Row="1" Stroke="#A2D149" StrokeThickness="3" StrokeShape="RoundRectangle 20" BackgroundColor="Transparent" Margin="30" HorizontalOptions="Fill" VerticalOptions="Fill">
+                    <zxing:CameraBarcodeReaderView x:Name="CameraScanner" BarcodesDetected="CameraScanner_BarcodesDetected" IsDetecting="False"/>
+                </Border>
+
+                <Button Grid.Row="2" Text="CANCELAR ESCANEO" BackgroundColor="#E65100" TextColor="White" FontAttributes="Bold" CornerRadius="8" Margin="30,0" HeightRequest="50" Clicked="OnCerrarScannerClicked"/>
+            </Grid>
+        </Grid>
     </Grid>
 </ContentPage>

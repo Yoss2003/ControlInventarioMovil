@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:ControlInventario.Shared.Models;assembly=ControlInventario.Shared"
              x:Class="ControlInventarioMovil.Views.CustomersPage"
              Shell.NavBarIsVisible="False"
              Title="Mis Caseritos" BackgroundColor="{AppThemeBinding Light=#F4F6FA, Dark=#0F151A}">
@@ -19,7 +20,7 @@
         <RefreshView Grid.Row="1" x:Name="refreshCustomers" Refreshing="OnRefreshRequested">
             <CollectionView x:Name="listCustomers" SelectionMode="None" Margin="16,0">
                 <CollectionView.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="models:Customer">
                         <Grid Padding="0,0,0,12">
                             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#171F24}" StrokeThickness="0">
                                 <Border.StrokeShape>
@@ -30,7 +31,7 @@
                                         <Border.StrokeShape>
                                             <RoundRectangle CornerRadius="22" />
                                         </Border.StrokeShape>
-                                        <Label Text="{Binding Name[0]}" TextColor="White" FontAttributes="Bold" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                        <Label Text="{Binding Initial}" TextColor="White" FontAttributes="Bold" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center"/>
                                     </Border>
                                     <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
                                         <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="16"/>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:ControlInventario.Shared.Models;assembly=ControlInventario.Shared"
              x:Class="ControlInventarioMovil.Views.RegistrosPage"
              Shell.NavBarIsVisible="False"
              Title="Registros y Auditoría"
@@ -31,7 +32,7 @@
                                             <Label Text="•" TextColor="Gray" FontSize="13"/>
                                             <Label Text="{Binding MovementDate}" TextColor="Gray" FontSize="13"/>
                                         </HorizontalStackLayout>
-                                        <Label Text="{Binding Recipient, StringFormat='Cliente: {0}'}" TextColor="Gray" FontSize="12" IsVisible="{Binding Recipient, Converter={x:Static String.IsNullOrWhiteSpace}}"/>
+                                        <Label Text="{Binding Recipient, StringFormat='Cliente: {0}'}" TextColor="Gray" FontSize="12"/>
                                     </VerticalStackLayout>
 
                                     <Border Grid.Column="1" BackgroundColor="#208A2BE2" StrokeThickness="0" Padding="8,4" VerticalOptions="Start">
@@ -58,11 +59,11 @@
                                     <RoundRectangle CornerRadius="12" />
                                 </Border.StrokeShape>
                                 <VerticalStackLayout Spacing="6">
-                                    <HorizontalStackLayout Spacing="8">
-                                        <Label Text="🟢" FontSize="12" VerticalOptions="Center"/>
-                                        <Label Text="{Binding Username}" FontAttributes="Bold" FontSize="14" TextColor="{AppThemeBinding Light=Black, Dark=White}"/>
-                                        <Label Text="{Binding LogDate, StringFormat='{0:dd/MM/yyyy HH:mm}'}" TextColor="Gray" FontSize="12" VerticalOptions="Center" HorizontalOptions="EndAndExpand"/>
-                                    </HorizontalStackLayout>
+                                    <Grid ColumnDefinitions="Auto, *, Auto" Padding="0,0,0,6">
+                                        <Label Grid.Column="0" Text="🟢" FontSize="12" VerticalOptions="Center" Margin="0,0,8,0"/>
+                                        <Label Grid.Column="1" Text="{Binding Username}" FontAttributes="Bold" FontSize="14" TextColor="{AppThemeBinding Light=Black, Dark=White}"/>
+                                        <Label Grid.Column="2" Text="{Binding LogDate, StringFormat='{0:dd/MM/yyyy HH:mm}'}" TextColor="Gray" FontSize="12" VerticalOptions="Center" HorizontalOptions="End"/>
+                                    </Grid>
 
                                     <Label Text="{Binding Detail}" TextColor="Gray" FontSize="14" LineBreakMode="WordWrap"/>
 

@@ -240,12 +240,12 @@ public partial class EditProfilePage : ContentPage
     }
 
     // Método para generar el nombre de usuario basado en el primer nombre y las iniciales de los apellidos
-    private string GenerarNombreUsuario(string nombres, string apellidos)
+    private static string GenerarNombreUsuario(string nombres, string apellidos)
     {
         if (string.IsNullOrWhiteSpace(nombres) && string.IsNullOrWhiteSpace(apellidos)) return string.Empty;
 
         string primerNombre = nombres.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.ToLower() ?? "";
-        if (primerNombre.Length > 4) primerNombre = primerNombre.Substring(0, 4);
+        if (primerNombre.Length > 4) primerNombre = primerNombre[..4];
 
         string inicialesApellidos = "";
         var palabrasApellido = apellidos.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -258,7 +258,7 @@ public partial class EditProfilePage : ContentPage
     }
 
     // Método para manejar la selección de foto, ya sea desde la cámara o la galería, y luego recortarla
-    private async void OnChangePhotoTapped(object sender, TappedEventArgs e)
+    private async void OnChangePhotoTapped(object sender, EventArgs e)
     {
         string action = await DisplayActionSheetAsync("Seleccionar Foto", "Cancelar", null, "Tomar Foto (Cámara)", "Elegir de Galería");
         try
@@ -330,8 +330,7 @@ public partial class EditProfilePage : ContentPage
 
         if (updatedUser != null)
         {
-            if (updatedUser.Employee == null)
-                updatedUser.Employee = new Employee();
+            updatedUser.Employee ??= new Employee();
 
             updatedUser.Employee.FirstName = txtFirstName.Text.Trim();
             updatedUser.Employee.LastName = txtLastName.Text.Trim();

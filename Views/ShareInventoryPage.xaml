@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:ControlInventario.Shared.Models;assembly=ControlInventario.Shared"
              x:Class="ControlInventarioMovil.Views.ShareInventoryPage"
              Shell.NavBarIsVisible="False"
              Title="Compartir Inventario"
@@ -26,14 +27,14 @@
                             <VerticalStackLayout Spacing="5">
                                 <Label Text="Seleccionar Miembro del Entorno *" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                 <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                    <Picker x:Name="pckEmployee" Title="Seleccione un compañero..." ItemDisplayBinding="{Binding FirstName}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" TitleColor="Gray" BackgroundColor="Transparent" VerticalOptions="Center"/>
+                                    <Picker x:Name="pckEmployee" Title="Seleccione un compañero..." ItemDisplayBinding="{Binding FirstName}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" TitleColor="Gray" BackgroundColor="Transparent" VerticalOptions="Center" x:DataType="models:Employee"/>
                                 </Border>
                             </VerticalStackLayout>
 
                             <VerticalStackLayout Spacing="5">
                                 <Label Text="Nivel de Permiso (Rol de Contexto) *" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                 <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                    <Picker x:Name="pckAccessLevel" Title="Seleccione el permiso..." ItemDisplayBinding="{Binding Name}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" TitleColor="Gray" BackgroundColor="Transparent" VerticalOptions="Center"/>
+                                    <Picker x:Name="pckAccessLevel" Title="Seleccione el permiso..." ItemDisplayBinding="{Binding Name}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" TitleColor="Gray" BackgroundColor="Transparent" VerticalOptions="Center" x:DataType="models:RolePermission"/>
                                 </Border>
                             </VerticalStackLayout>
 
@@ -54,7 +55,7 @@
                                     <LinearItemsLayout Orientation="Vertical" ItemSpacing="10"/>
                                 </CollectionView.ItemsLayout>
                                 <CollectionView.ItemTemplate>
-                                    <DataTemplate>
+                                    <DataTemplate x:DataType="models:SharedInventory">
                                         <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center">
 
                                             <VerticalStackLayout Grid.Column="0" Spacing="2">
