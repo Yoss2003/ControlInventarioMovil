@@ -870,22 +870,28 @@ namespace ControlInventarioMovil.Views
             }
         }
 
-        private void OnNamingTagClicked(object sender, EventArgs e)
+        private async void  OnNamingTagClicked(object sender, EventArgs e)
         {
             var btn = (Button)sender;
             string tag = btn.Text;
 
             if (_etiquetasNombramiento.Contains(tag) && _etiquetasNombramiento.Count == 1)
             {
-                Application.Current?.MainPage?.DisplayAlert("Fórmula", "Debe dejar al menos una etiqueta activa para el nombre.", "OK");
+                var currentPage = btn.Window?.Page;
+
+                if (currentPage == null && Application.Current?.Windows.Count > 0)
+                {
+                    currentPage = Application.Current.Windows[0].Page;
+                }
+
+                if (currentPage != null)
+                {
+                    await currentPage.DisplayAlertAsync("Fórmula", "Debe dejar al menos una etiqueta activa para el nombre.", "OK");
+                }
                 return;
             }
 
-            if (_etiquetasNombramiento.Contains(tag))
-            {
-                _etiquetasNombramiento.Remove(tag);
-            }
-            else
+            if (!_etiquetasNombramiento.Remove(tag))
             {
                 _etiquetasNombramiento.Add(tag);
             }

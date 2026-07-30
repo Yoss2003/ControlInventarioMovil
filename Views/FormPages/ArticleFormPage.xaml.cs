@@ -332,6 +332,12 @@ namespace ControlInventarioMovil.Views
             ControlarColorPlaceholderPicker(PkrSaleCurrency);
         }
 
+        private void OnGeneradorNombreTriggered(object sender, EventArgs e)
+        {
+            GenerarNombrePorFormula();
+            GenerarSkuInteligente();
+        }
+
         private void OnCategoryChanged(object sender, EventArgs e)
         {
             PkrAcquisitionUnit.Items.Clear();
@@ -393,6 +399,8 @@ namespace ControlInventarioMovil.Views
 
             if (isBulk)
             {
+                SecBarcode.IsVisible = false;
+                SecSku.IsVisible = true;
                 ContenedorMarca.IsVisible = false;
                 SepMarca.IsVisible = false;
                 SecModelSerie.IsVisible = false;
@@ -414,6 +422,7 @@ namespace ControlInventarioMovil.Views
             }
             else if (isSerialized)
             {
+                SecSku.IsVisible = true;
                 ContenedorMarca.IsVisible = true;
                 SepMarca.IsVisible = true;
                 SecModelSerie.IsVisible = true;
@@ -444,17 +453,11 @@ namespace ControlInventarioMovil.Views
             {
                 ContenedorMarca.IsVisible = true;
                 SepMarca.IsVisible = true;
-                SecModelSerie.IsVisible = true;
-                SepModelSerie.IsVisible = true;
+                SecModelSerie.IsVisible = false;
+                SepModelSerie.IsVisible = false;
                 ColSerialNumber.IsVisible = false;
-                LblModelTitle.Text = "Modelo / Versión";
-                TxtModel.Placeholder = "Ej. L14 Gen 3, ProBook";
+                SecBarcode.IsVisible = true;
                 SecCondicionFisica.IsVisible = false;
-
-                SecModelSerie.ColumnDefinitions = new ColumnDefinitionCollection
-                {
-                    new ColumnDefinition { Width = GridLength.Star }
-                };
                 BloqueSerializadoCondicional.IsVisible = false;
 
                 if (UserSession.CurrentArticleToEdit == null) TxtStock.Text = string.Empty;
@@ -524,24 +527,42 @@ namespace ControlInventarioMovil.Views
             {
                 _marcasFiltradas = _marcasGlobales.Where(m => m.CategoryId == catSel.Id).ToList();
                 _marcasFiltradas.ForEach(m => PkrBrand.Items.Add(m.Name));
-            }
-
-            if (UserSession.CurrentProfile != null && UserSession.CurrentProfile.GenerateCodes)
-            {
-                if (!isStandard)
-                {
-                    if (string.IsNullOrWhiteSpace(TxtSku.Text))
-                    {
-                        string randomSuffix = Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper();
-                        TxtSku.Text = $"SKU-{DateTime.Now:yyMM}-{randomSuffix}";
-                    }
-                }
-            }
+            }           
 
             PkrBrand.SelectedIndex = 0;
             ControlarColorPlaceholderPicker(PkrBrand);
             ActualizarNombresDePreciosYCalculos();
             GenerarNombrePorFormula();
+            GenerarSkuInteligente();
+        }
+
+        private void GenerarSkuInteligente()
+        {
+            if (PkrCategory.SelectedIndex <= 0 || UserSession.CurrentArticleToEdit != null) return;
+
+            var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
+
+            string trackingMode = catSel.TrackingMode?.Trim() ?? "Standard";
+            bool isStandard = string.Equals(trackingMode, "Standard", StringComparison.OrdinalIgnoreCase) ||
+                              string.Equals(trackingMode, "Estándar", StringComparison.OrdinalIgnoreCase);
+
+            if (isStandard) return;
+            if (!string.IsNullOrWhiteSpace(TxtSku.Text) && TxtSku.Text.Length > 8 && !TxtSku.Text.Contains("-GEN-")) return;
+
+            string catPrefix = catSel.Name.Replace(" ", "").Length >= 3
+                ? catSel.Name.Replace(" ", "").Substring(0, 3).ToUpper()
+                : catSel.Name.ToUpper();
+
+            string brandPrefix = "GEN";
+            if (PkrBrand.SelectedIndex > 0 && _marcasFiltradas != null && _marcasFiltradas.Count > 0)
+            {
+                string brandName = _marcasFiltradas[PkrBrand.SelectedIndex - 1].Name.Replace(" ", "");
+                brandPrefix = brandName.Length >= 3 ? brandName.Substring(0, 3).ToUpper() : brandName.ToUpper();
+            }
+
+            string randomSuffix = Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper();
+
+            TxtSku.Text = $"{catPrefix}-{brandPrefix}-{randomSuffix}";
         }
 
         private async void OnGuardarClicked(object sender, EventArgs e)
@@ -1319,62 +1340,64 @@ namespace ControlInventarioMovil.Views
             }
         }
 
-        private void AdaptarInterfazPorTrackingMode(string trackingMode)
-        {
-            if (trackingMode == "Serialized")
-            {
-                // Modo Tecnología / Electrodomésticos
-                LblModelTitle.Text = "Modelo / Versión";
-                TxtModel.Placeholder = "Ej. L14 Gen 3";
-                SecCondicionFisica.IsVisible = true; // Aquí sí importa si es Nuevo o Usado
-            }
-            else
-            {
-                // Modo Abarrotes / Granel
-                LblModelTitle.Text = "Presentación / Capacidad";
-                TxtModel.Placeholder = "Ej. 3 Litros, Six-pack, 500g";
-                SecCondicionFisica.IsVisible = false; // Ocultamos la Condición para abarrotes
-            }
-        }
-
         private async void OnScanCameraClicked(object sender, EventArgs e)
         {
-            // 1. Pedir permisos de cámara primero
-            var status = await Permissions.CheckStatusAsync<Permissions.Camera>();
-            if (status != PermissionStatus.Granted)
+            try
             {
-                status = await Permissions.RequestAsync<Permissions.Camera>();
-                if (status != PermissionStatus.Granted)
+                // 1. Pedir permisos
+                try
                 {
-                    await DisplayAlertAsync("Permiso Denegado", "La aplicación necesita acceso a la cámara para poder escanear los códigos.", "OK");
-                    return;
+                    var status = await Permissions.CheckStatusAsync<Permissions.Camera>();
+                    if (status != PermissionStatus.Granted)
+                    {
+                        status = await Permissions.RequestAsync<Permissions.Camera>();
+                        if (status != PermissionStatus.Granted)
+                        {
+                            await DisplayAlertAsync("Permiso Denegado", "Se necesita acceso a la cámara.", "OK");
+                            return;
+                        }
+                    }
                 }
-            }
+                catch { /* Ignoramos fallos nativos de Windows */ }
+                CameraScanner.Options = new BarcodeReaderOptions
+                {
+                    AutoRotate = true,
+                    Multiple = false,
+                    TryHarder = true,
+                    Formats = BarcodeFormat.Ean13 |
+                              BarcodeFormat.UpcA |
+                              BarcodeFormat.Ean8 |
+                              BarcodeFormat.Code128
+                };
 
-            // 2. Mostrar la pantalla negra y encender la cámara
-            OverlayScanner.IsVisible = true;
-            await OverlayScanner.FadeToAsync(1, 250);
-            CameraScanner.IsDetecting = true;
+                OverlayScanner.IsVisible = true;
+                await OverlayScanner.FadeToAsync(1, 250);
+                await Task.Delay(500);
+                CameraScanner.IsDetecting = true;
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlertAsync("Error", $"No se pudo iniciar la cámara: {ex.Message}", "OK");
+            }
         }
 
         private void CameraScanner_BarcodesDetected(object sender, BarcodeDetectionEventArgs e)
         {
-            // 3. ¡Se detectó algo! Tomamos el primer código que la cámara vio
-            var first = e.Results?.FirstOrDefault();
-            if (first != null)
+            if (e.Results != null && e.Results.Any())
             {
-                // Como esto ocurre en un hilo secundario de la cámara, debemos regresar al hilo principal para actualizar la UI
-                Dispatcher.Dispatch(async () =>
+                var primerCodigo = e.Results.FirstOrDefault()?.Value;
+
+                if (!string.IsNullOrEmpty(primerCodigo))
                 {
                     CameraScanner.IsDetecting = false;
 
-                    // Auto-escribimos el código en la caja de texto
-                    TxtBarcode.Text = first.Value;
-
-                    // Apagamos el overlay
-                    await OverlayScanner.FadeToAsync(0, 250);
-                    OverlayScanner.IsVisible = false;
-                });
+                    Dispatcher.Dispatch(async () =>
+                    {
+                        TxtBarcode.Text = primerCodigo;
+                        await OverlayScanner.FadeToAsync(0, 250);
+                        OverlayScanner.IsVisible = false;
+                    });
+                }
             }
         }
 
@@ -1494,7 +1517,7 @@ namespace ControlInventarioMovil.Views
             ContenedorPresentacion.IsVisible = formula.Contains("[Pres.]");
             TxtName.IsReadOnly = true;
 
-            string marcaReal = PkrBrand.SelectedIndex > 0 ? PkrBrand.SelectedItem.ToString() : "";
+            string marcaReal = PkrBrand.SelectedIndex > 0 ? PkrBrand.SelectedItem.ToString() ?? "" : "";
             string codigoReal = string.IsNullOrWhiteSpace(TxtSku.Text) ? TxtBarcode.Text : TxtSku.Text;
             string serieReal = TxtSerialNumber.Text ?? "";
             string modeloReal = TxtModel.Text ?? "";

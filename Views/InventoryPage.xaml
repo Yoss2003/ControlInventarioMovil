@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:ControlInventario.Shared.Models;assembly=ControlInventario.Shared"
              xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
              x:Class="ControlInventarioMovil.Views.InventoryPage"
              Title="Inventario Real"
@@ -46,7 +47,7 @@
                 <Grid x:Name="ContenedorLista">
                     <CollectionView x:Name="CvwArticulos" SelectionMode="None">
                         <CollectionView.ItemTemplate>
-                            <DataTemplate>
+                            <DataTemplate x:DataType="models:Article">
                                 <Grid Padding="0,0,0,10">
                                     <Border StrokeShape="RoundRectangle 8" 
                                             Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#26313C}" 

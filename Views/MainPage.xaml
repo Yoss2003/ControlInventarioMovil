@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:ControlInventarioMovil.Views.Controls"
              xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
+             xmlns:models="clr-namespace:ControlInventario.Shared.Models;assembly=ControlInventario.Shared"
              x:Class="ControlInventarioMovil.Views.MainPage"
              BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}"
              Shell.NavBarIsVisible="False">

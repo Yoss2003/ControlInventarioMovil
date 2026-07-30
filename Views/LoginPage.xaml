@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:ControlInventario.Shared.Models;assembly=ControlInventario.Shared"
              xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
              x:Class="ControlInventarioMovil.Views.LoginPage"
              NavigationPage.HasNavigationBar="False" 
@@ -57,7 +58,7 @@
                                 <RoundRectangle CornerRadius="8" />
                             </Border.StrokeShape>
                             <Border.Triggers>
-                                <DataTrigger TargetType="Border" Binding="{Binding Source={x:Reference txtUsername}, Path=IsFocused}" Value="True" x:DataType="Entry">
+                                <DataTrigger Binding="{Binding Source={x:Reference txtUsername}, Path=IsFocused}" TargetType="Border" Value="True" x:DataType="Entry">
                                     <Setter Property="Stroke" Value="#00CED1" />
                                     <Setter Property="StrokeThickness" Value="2" />
                                     <Setter Property="BackgroundColor" Value="#40000000" />
@@ -65,7 +66,7 @@
                             </Border.Triggers>
                             <Entry x:Name="txtUsername" TextColor="White" Placeholder="Tu usuario" PlaceholderColor="#80FFFFFF" BackgroundColor="Transparent" VerticalOptions="Center">
                                 <Entry.Triggers>
-                                    <DataTrigger TargetType="Entry" Binding="{Binding Source={x:Reference loading}, Path=IsRunning}" Value="True">
+                                    <DataTrigger TargetType="Entry" Binding="{Binding Source={x:Reference loading}, Path=IsRunning}" Value="True" x:DataType="ActivityIndicator">
                                         <Setter Property="IsEnabled" Value="False"/>
                                     </DataTrigger>
                                 </Entry.Triggers>
@@ -79,7 +80,7 @@
                                 <RoundRectangle CornerRadius="8" />
                             </Border.StrokeShape>
                             <Border.Triggers>
-                                <DataTrigger TargetType="Border" Binding="{Binding Source={x:Reference txtPassword}, Path=IsFocused}" Value="True" x:DataType="Entry">
+                                <DataTrigger Binding="{Binding Source={x:Reference txtPassword}, Path=IsFocused}" TargetType="Border" Value="True" x:DataType="Entry">
                                     <Setter Property="Stroke" Value="#00CED1" />
                                     <Setter Property="StrokeThickness" Value="2" />
                                     <Setter Property="BackgroundColor" Value="#40000000" />
@@ -96,7 +97,7 @@
                                        BackgroundColor="Transparent" 
                                        VerticalOptions="Center">
                                     <Entry.Triggers>
-                                        <DataTrigger TargetType="Entry" Binding="{Binding Source={x:Reference loading}, Path=IsRunning}" Value="True">
+                                        <DataTrigger TargetType="Entry" Binding="{Binding Source={x:Reference loading}, Path=IsRunning}" Value="True" x:DataType="ActivityIndicator">
                                             <Setter Property="IsEnabled" Value="False"/>
                                         </DataTrigger>
                                     </Entry.Triggers>
@@ -114,7 +115,7 @@
                                              Clicked="OnShowPasswordTapped"
                                              helpers:EfectosVisualesHelper.Animar="True">
                                     <ImageButton.Triggers>
-                                        <DataTrigger TargetType="ImageButton" Binding="{Binding Source={x:Reference loading}, Path=IsRunning}" Value="True">
+                                        <DataTrigger TargetType="ImageButton" Binding="{Binding Source={x:Reference loading}, Path=IsRunning}" Value="True" x:DataType="ActivityIndicator">
                                             <Setter Property="IsEnabled" Value="False"/>
                                         </DataTrigger>
                                     </ImageButton.Triggers>
@@ -125,7 +126,7 @@
                         <HorizontalStackLayout VerticalOptions="Center" Margin="0,15,0,0">
                             <CheckBox x:Name="chkRememberMe" Color="#00CED1">
                                 <CheckBox.Triggers>
-                                    <DataTrigger TargetType="CheckBox" Binding="{Binding Source={x:Reference loading}, Path=IsRunning}" Value="True">
+                                    <DataTrigger TargetType="CheckBox" Binding="{Binding Source={x:Reference loading}, Path=IsRunning}" Value="True" x:DataType="ActivityIndicator">
                                         <Setter Property="IsEnabled" Value="False"/>
                                     </DataTrigger>
                                 </CheckBox.Triggers>
@@ -147,7 +148,7 @@
                                 </LinearGradientBrush>
                             </Button.Background>
                             <Button.Triggers>
-                                <DataTrigger TargetType="Button" Binding="{Binding Source={x:Reference loading}, Path=IsRunning}" Value="True">
+                                <DataTrigger TargetType="Button" Binding="{Binding Source={x:Reference loading}, Path=IsRunning}" Value="True" x:DataType="ActivityIndicator">
                                     <Setter Property="IsEnabled" Value="False"/>
                                 </DataTrigger>
                             </Button.Triggers>
