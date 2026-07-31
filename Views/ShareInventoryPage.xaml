@@ -55,7 +55,7 @@
                                     <LinearItemsLayout Orientation="Vertical" ItemSpacing="10"/>
                                 </CollectionView.ItemsLayout>
                                 <CollectionView.ItemTemplate>
-                                    <DataTemplate x:DataType="models:SharedInventory">
+                                    <DataTemplate x:DataType="{x:Null}">
                                         <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center">
 
                                             <VerticalStackLayout Grid.Column="0" Spacing="2">

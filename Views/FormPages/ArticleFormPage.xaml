@@ -73,7 +73,7 @@
                             <VerticalStackLayout Spacing="5">
                                 <Label Text="Categoría *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                 <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                    <Picker x:Name="PkrCategory" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnCategoryChanged"/>
+                                    <Picker x:Name="PkrCategory" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnCategoryChanged" x:DataType="{x:Null}"/>
                                 </Border>
                                 <Label x:Name="LblTrackingInfo" Text="Modo de Rastreo: Pendiente..." TextColor="{AppThemeBinding Light=#E65100, Dark=#EFA72F}" FontSize="11" FontAttributes="Bold" Margin="5,0,0,0"/>
                             </VerticalStackLayout>
@@ -156,7 +156,7 @@
                                     <Label Text="Marca *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                     <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
                                         <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                            <Picker x:Name="PkrBrand" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Fill" VerticalTextAlignment="Center" SelectedIndexChanged="OnGeneradorNombreTriggered"/>
+                                            <Picker x:Name="PkrBrand" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Fill" VerticalTextAlignment="Center" SelectedIndexChanged="OnGeneradorNombreTriggered" x:DataType="{x:Null}"/>
                                         </Border>
                                         <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
                                             <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarMarcasClicked"/>
@@ -170,7 +170,7 @@
                                     <Label Text="Proveedor Asociado" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                     <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
                                         <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45" VerticalOptions="Center">
-                                            <Picker x:Name="PkrSupplier" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged"/>
+                                            <Picker x:Name="PkrSupplier" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged" x:DataType="{x:Null}"/>
                                         </Border>
                                         <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
                                             <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarProveedoresClicked"/>
@@ -201,7 +201,7 @@
                                         <VerticalStackLayout Grid.Column="0" Spacing="3">
                                             <Label Text="Se compra por:" FontSize="10" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}"/>
                                             <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                                <Picker x:Name="PkrAcquisitionUnit" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" SelectedIndexChanged="OnCalculoGananciaTriggered"/>
+                                                <Picker x:Name="PkrAcquisitionUnit" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" SelectedIndexChanged="OnCalculoGananciaTriggered" x:DataType="{x:Null}"/>
                                             </Border>
                                         </VerticalStackLayout>
 
@@ -215,7 +215,7 @@
                                         <VerticalStackLayout Grid.Column="2" Spacing="3">
                                             <Label Text="Se vende por:" FontSize="10" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}"/>
                                             <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                                <Picker x:Name="PkrSaleUnit" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" SelectedIndexChanged="OnCalculoGananciaTriggered"/>
+                                                <Picker x:Name="PkrSaleUnit" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" SelectedIndexChanged="OnCalculoGananciaTriggered" x:DataType="{x:Null}"/>
                                             </Border>
                                         </VerticalStackLayout>
 
@@ -236,7 +236,7 @@
                                     <Label Text="Estado *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                     <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
                                         <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                            <Picker x:Name="PkrStatusParam" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged"/>
+                                            <Picker x:Name="PkrStatusParam" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged" x:DataType="{x:Null}"/>
                                         </Border>
                                         <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
                                             <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="38" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarEstadoClicked"/>
@@ -248,7 +248,7 @@
                                     <Label Text="Ubicación / Almacén *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                     <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
                                         <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                            <Picker x:Name="PkrLocationParam" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged"/>
+                                            <Picker x:Name="PkrLocationParam" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged" x:DataType="{x:Null}"/>
                                         </Border>
                                         <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
                                             <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="38" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarUbicacionClicked"/>
@@ -263,7 +263,7 @@
                                 <Label Text="Condición Física *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                 <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
                                     <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                        <Picker x:Name="PkrConditionParam" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged"/>
+                                        <Picker x:Name="PkrConditionParam" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged" x:DataType="{x:Null}"/>
                                     </Border>
                                     <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
                                         <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarCondicionClicked"/>
@@ -319,13 +319,13 @@
                                 <VerticalStackLayout Grid.Column="0" Spacing="5">
                                     <Label Text="Moneda Adquisición" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                     <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                        <Picker x:Name="PkrCurrency" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnMonedaChanged"/>
+                                        <Picker x:Name="PkrCurrency" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnMonedaChanged" x:DataType="{x:Null}"/>
                                     </Border>
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Grid.Column="1" Spacing="5">
                                     <Label Text="Moneda Venta" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                     <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                        <Picker x:Name="PkrSaleCurrency" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnSaleMonedaChanged"/>
+                                        <Picker x:Name="PkrSaleCurrency" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnSaleMonedaChanged" x:DataType="{x:Null}"/>
                                     </Border>
                                 </VerticalStackLayout>
                             </Grid>

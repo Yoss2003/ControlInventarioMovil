@@ -308,9 +308,9 @@
 
                             <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
 
-                            <VerticalStackLayout x:Name="ContenedorPermisos" Spacing="10" BindableLayout.ItemsSource="{Binding ListaPermisosDinamicos}">
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding ListaPermisosDinamicos}" Spacing="10" x:DataType="{x:Null}">
                                 <BindableLayout.ItemTemplate>
-                                    <DataTemplate>
+                                    <DataTemplate x:DataType="{x:Null}">
                                         <Grid ColumnDefinitions="*, Auto">
                                             <Label Text="{Binding Name}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="13" VerticalOptions="Center"/>
                                             <Switch IsToggled="{Binding HasPermission}" Grid.Column="1" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" ThumbColor="White" Scale="0.8"/>

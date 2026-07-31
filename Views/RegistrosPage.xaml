@@ -17,7 +17,7 @@
         <RefreshView Grid.Row="1" x:Name="refreshKardex" Refreshing="OnRefreshKardexRequested">
             <CollectionView x:Name="listKardex" SelectionMode="None" Margin="16,0">
                 <CollectionView.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="{x:Null}">
                         <Grid Padding="0,0,0,12">
                             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#171F24}" StrokeThickness="0">
                                 <Border.StrokeShape>
@@ -52,7 +52,7 @@
         <RefreshView Grid.Row="1" x:Name="refreshLogs" Refreshing="OnRefreshLogsRequested" IsVisible="False">
             <CollectionView x:Name="listLogs" SelectionMode="None" Margin="16,0">
                 <CollectionView.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="{x:Null}">
                         <Grid Padding="0,0,0,12">
                             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#171F24}" StrokeThickness="0">
                                 <Border.StrokeShape>
