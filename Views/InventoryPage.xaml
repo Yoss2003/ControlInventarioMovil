@@ -47,7 +47,7 @@
                 <Grid x:Name="ContenedorLista">
                     <CollectionView x:Name="CvwArticulos" SelectionMode="None">
                         <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="models:Article">
+                            <DataTemplate x:DataType="{x:Null}">
                                 <Grid Padding="0,0,0,10">
                                     <Border StrokeShape="RoundRectangle 8" 
                                             Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#26313C}" 

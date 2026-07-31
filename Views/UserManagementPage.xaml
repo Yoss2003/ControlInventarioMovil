@@ -26,7 +26,7 @@
                     </CollectionView.ItemsLayout>
 
                     <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="models:User">
+                        <DataTemplate x:DataType="{x:Null}">
                             <Border StrokeShape="RoundRectangle 10" 
                                     Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" 
                                     BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" 

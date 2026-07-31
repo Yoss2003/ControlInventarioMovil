@@ -148,7 +148,7 @@
                                 </LinearGradientBrush>
                             </Button.Background>
                             <Button.Triggers>
-                                <DataTrigger TargetType="Button" Binding="{Binding Source={x:Reference loading}, Path=IsRunning}" Value="True" x:DataType="ActivityIndicator">
+                                <DataTrigger TargetType="Button" Binding="{Binding Source={x:Reference loading}, Path=IsRunning}" Value="True" x:DataType="{x:Null}">
                                     <Setter Property="IsEnabled" Value="False"/>
                                 </DataTrigger>
                             </Button.Triggers>

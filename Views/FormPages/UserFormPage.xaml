@@ -65,7 +65,7 @@
                     <VerticalStackLayout Spacing="5">
                         <Label Text="ROL OPERATIVO" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" FontAttributes="Bold" CharacterSpacing="0.5"/>
                         <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="12,0">
-                            <Picker x:Name="PkrRoles" ItemDisplayBinding="{Binding Name}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HeightRequest="42"/>
+                            <Picker x:Name="PkrRoles" ItemDisplayBinding="{Binding Name}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HeightRequest="42" x:DataType="{x:Null}"/>
                         </Border>
                     </VerticalStackLayout>
 

@@ -61,7 +61,7 @@
                                 <VerticalStackLayout Grid.Column="1" Spacing="4">
                                     <Label Text="Rol / Cargo *" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
                                     <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                        <Picker x:Name="pkrJobPosition" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" ItemDisplayBinding="{Binding Name}" VerticalOptions="Center" HorizontalOptions="Fill"/>
+                                        <Picker x:Name="pkrJobPosition" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" ItemDisplayBinding="{Binding Name}" VerticalOptions="Center" HorizontalOptions="Fill" x:DataType="{x:Null}"/>
                                     </Border>
                                 </VerticalStackLayout>
                             </Grid>
