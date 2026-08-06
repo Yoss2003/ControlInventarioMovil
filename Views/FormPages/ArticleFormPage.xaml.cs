@@ -4,6 +4,7 @@ using ControlInventarioMovil.Services;
 using ZXing.Net.Maui;
 using SkiaSharp;
 using ZXing.SkiaSharp;
+using ZXing.Common;
 
 namespace ControlInventarioMovil.Views
 {
@@ -36,11 +37,13 @@ namespace ControlInventarioMovil.Views
         {
             InitializeComponent();
             _apiService = new ApiService();
+            TxtCantidadInicial.TextChanged += OnCalculoGananciaTriggered;
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+            EvaluarYActualizarLayoutLogistico();
 
             await CargarCatalogosFormularioAsync();
 
@@ -73,39 +76,57 @@ namespace ControlInventarioMovil.Views
             {
                 int currentInventoryId = UserSession.CurrentInventory?.Id ?? 1;
 
-                var cats = await _apiService.GetCategoriesAsync();
-                _categoriasHijas = cats.Where(c => c.ParentCategoryId != null && c.ParentCategoryId != 0 && c.IsActive).ToList();
+                // LANZAMOS TODAS LAS PETICIONES AL MISMO TIEMPO
+                var catsTask = _apiService.GetCategoriesAsync();
+                var marcasTask = _apiService.GetBrandsAsync();
+                var monedasTask = _apiService.GetCurrenciesAsync();
+                var unidadesTask = _apiService.GetMeasurementUnitsAsync();
+                var parametrosTask = _apiService.GetParametersAsync();
+                var proveedoresTask = _apiService.GetSuppliersAsync();
 
-                // 🌟 CATEGORÍAS (Texto agregado al inicio)
+                // ESPERAMOS A QUE TODAS RESPONDAN SIMULTÁNEAMENTE (Aquí está el ahorro de tiempo)
+                await Task.WhenAll(catsTask, marcasTask, monedasTask, unidadesTask, parametrosTask, proveedoresTask);
+
+                // EXTRAEMOS LOS RESULTADOS
+                var cats = await catsTask;
+                var marcasSueltas = await marcasTask;
+                _monedasGlobales = await monedasTask ?? new();
+                _todasLasUnidades = await unidadesTask ?? new();
+                _parametrosGlobales = await parametrosTask ?? new();
+                var sups = await proveedoresTask;
+
+                // PROCESAMOS LAS LISTAS EN MEMORIA
+                _categoriasHijas = cats?.Where(c => c.ParentCategoryId != null && c.ParentCategoryId != 0 && c.IsActive).ToList() ?? new();
+                _marcasGlobales = marcasSueltas?.Where(b => b.IsActive).ToList() ?? new();
+                _estadosParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Estado", StringComparison.OrdinalIgnoreCase)).ToList();
+                _ubicacionesParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Ubicacion", StringComparison.OrdinalIgnoreCase)).ToList();
+                _condicionesParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Condicion", StringComparison.OrdinalIgnoreCase)).ToList();
+                _proveedoresGlobales = sups?.Where(s => s.IsActive).ToList() ?? new();
+
+                // LLENAMOS LA INTERFAZ VISUAL
+        
+                // CATEGORÍAS
                 PkrCategory.Items.Clear();
                 PkrCategory.Items.Add("Seleccione una categoría...");
                 _categoriasHijas.ForEach(c => PkrCategory.Items.Add(c.Name));
-                PkrCategory.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrCategory);
-
-                var marcasSueltas = await _apiService.GetBrandsAsync();
-                _marcasGlobales = marcasSueltas?.Where(b => b.IsActive).ToList() ?? new List<Brand>();
-
-                _monedasGlobales = await _apiService.GetCurrenciesAsync();
-                _todasLasUnidades = await _apiService.GetMeasurementUnitsAsync() ?? new();
+                PkrCategory.SelectedIndex = 0; 
+                ControlarColorPlaceholderPicker(PkrCategory);
 
                 // MONEDA DE COMPRA
                 PkrCurrency.Items.Clear();
                 PkrCurrency.Items.Add("Seleccione moneda...");
                 _monedasGlobales.ForEach(curr => PkrCurrency.Items.Add($"{curr.CurrencyName} ({(string.IsNullOrWhiteSpace(curr.CurrencyCode) ? "" : curr.CurrencyCode)})"));
-                PkrCurrency.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrCurrency);
+                PkrCurrency.SelectedIndex = 0; 
+                ControlarColorPlaceholderPicker(PkrCurrency);
 
                 // MONEDA DE VENTA
                 PkrSaleCurrency.Items.Clear();
                 PkrSaleCurrency.Items.Add("Seleccione moneda...");
                 _monedasGlobales.ForEach(curr => PkrSaleCurrency.Items.Add($"{curr.CurrencyName} ({(string.IsNullOrWhiteSpace(curr.CurrencyCode) ? "" : curr.CurrencyCode)})"));
-                PkrSaleCurrency.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrSaleCurrency);
+                PkrSaleCurrency.SelectedIndex = 0; 
+                ControlarColorPlaceholderPicker(PkrSaleCurrency);
 
-                _parametrosGlobales = await _apiService.GetParametersAsync();
-                _estadosParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Estado", StringComparison.OrdinalIgnoreCase)).ToList();
-                _ubicacionesParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Ubicacion", StringComparison.OrdinalIgnoreCase)).ToList();
-                _condicionesParam = _parametrosGlobales.Where(p => p.ParameterType.Equals("Condicion", StringComparison.OrdinalIgnoreCase)).ToList();
-
-                // 🌟 UNIDADES LOGÍSTICAS (Compra y Venta inicializadas con texto base)
+                // UNIDADES LOGÍSTICAS
                 PkrAcquisitionUnit.Items.Clear();
                 PkrSaleUnit.Items.Clear();
                 PkrAcquisitionUnit.Items.Add("Unidad de compra...");
@@ -115,18 +136,20 @@ namespace ControlInventarioMovil.Views
                 ControlarColorPlaceholderPicker(PkrAcquisitionUnit);
                 ControlarColorPlaceholderPicker(PkrSaleUnit);
 
-                // 🌟 MARCAS (Inicialización preventiva con texto base)
+                // MARCAS
                 PkrBrand.Items.Clear();
                 PkrBrand.Items.Add("Seleccione una marca...");
-                PkrBrand.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrBrand);
+                PkrBrand.SelectedIndex = 0; 
+                ControlarColorPlaceholderPicker(PkrBrand);
 
-                // 🌟 ESTADOS
+                // ESTADOS
                 PkrStatusParam.Items.Clear();
                 PkrStatusParam.Items.Add("Seleccione un estado...");
                 _estadosParam.ForEach(p => PkrStatusParam.Items.Add(p.Name));
-                PkrStatusParam.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrStatusParam);
+                PkrStatusParam.SelectedIndex = 0; 
+                ControlarColorPlaceholderPicker(PkrStatusParam);
 
-                // 🌟 UBICACIONES
+                // UBICACIONES
                 PkrLocationParam.Items.Clear();
                 PkrLocationParam.Items.Add("Seleccione una ubicación...");
                 _ubicacionesParam.ForEach(p => PkrLocationParam.Items.Add(p.Name));
@@ -142,20 +165,21 @@ namespace ControlInventarioMovil.Views
                 }
                 ControlarColorPlaceholderPicker(PkrLocationParam);
 
-                // 🌟 CONDICIONES
+                // CONDICIONES
                 PkrConditionParam.Items.Clear();
                 PkrConditionParam.Items.Add("Seleccione una condición...");
                 _condicionesParam.ForEach(p => PkrConditionParam.Items.Add(p.Name));
-                PkrConditionParam.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrConditionParam);
+                PkrConditionParam.SelectedIndex = 0; 
+                ControlarColorPlaceholderPicker(PkrConditionParam);
 
-                // 🌟 PROVEEDORES
-                var sups = await _apiService.GetSuppliersAsync();
-                _proveedoresGlobales = sups?.Where(s => s.IsActive).ToList() ?? new List<Supplier>();
+                // PROVEEDORES
                 PkrSupplier.Items.Clear();
                 PkrSupplier.Items.Add("Selecciona un distribuidor...");
                 _proveedoresGlobales.ForEach(s => PkrSupplier.Items.Add(s.BusinessName));
-                PkrSupplier.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrSupplier);
+                PkrSupplier.SelectedIndex = 0; 
+                ControlarColorPlaceholderPicker(PkrSupplier);
 
+                // MONEDA BASE POR DEFECTO
                 var paramMonedaBase = _parametrosGlobales.FirstOrDefault(p => p.InventoryId == currentInventoryId && p.ParameterType == "MonedaBase");
                 if (paramMonedaBase != null && int.TryParse(paramMonedaBase.Name, out int currencyIdAsociado))
                 {
@@ -170,7 +194,10 @@ namespace ControlInventarioMovil.Views
                     }
                 }
             }
-            catch (Exception ex) { Console.WriteLine($"[CATALOG_FAIL] {ex.Message}"); }
+            catch (Exception ex) 
+            { 
+                Console.WriteLine($"[CATALOG_FAIL] {ex.Message}"); 
+            }
         }
 
         private void HydrateFormularioParaEdicion(Article art)
@@ -240,6 +267,19 @@ namespace ControlInventarioMovil.Views
 
             TxtConversionFactor.Text = art.ConversionFactor.HasValue ? art.ConversionFactor.Value.ToString("0.##") : "1";
 
+            string uCompraArt = !string.IsNullOrWhiteSpace(art.AcquisitionUnit) ? art.AcquisitionUnit : art.MeasurementUnit;
+            string uVentaArt = !string.IsNullOrWhiteSpace(art.SaleUnit) ? art.SaleUnit : art.MeasurementUnit;
+
+            if (!string.IsNullOrWhiteSpace(uCompraArt) && !string.IsNullOrWhiteSpace(uVentaArt) && uCompraArt != uVentaArt && art.ConversionFactor.HasValue && art.ConversionFactor.Value > 0)
+            {
+                decimal cantidadInicial = art.Stock / art.ConversionFactor.Value;
+                TxtCantidadInicial.Text = cantidadInicial.ToString("0.##");
+            }
+            else
+            {
+                TxtCantidadInicial.Text = "";
+            }
+
             if (art.BrandId > 0 && _marcasFiltradas != null)
             {
                 int brandIdx = _marcasFiltradas.FindIndex(m => m.Id == art.BrandId);
@@ -286,36 +326,32 @@ namespace ControlInventarioMovil.Views
             PkrStatusParam.SelectedIndex = 0;
             PkrConditionParam.SelectedIndex = 0;
             PkrSupplier.SelectedIndex = 0;
-            PkrCurrency.SelectedIndex = 0;
-            PkrSaleCurrency.SelectedIndex = 0;
 
-            if (UserSession.CurrentProfile != null)
+            // 🚀 BUSCAR MONEDA PREDETERMINADA (Perfil de usuario o MonedaBase global)
+            int indexMonedaPredeterminada = 0;
+
+            if (UserSession.CurrentProfile?.CurrencyId.HasValue == true)
             {
-                if (UserSession.CurrentProfile.MeasurementUnitId.HasValue)
-                {
-                    var unidadPreferida = _todasLasUnidades.FirstOrDefault(u => u.Id == UserSession.CurrentProfile.MeasurementUnitId.Value);
-                    if (unidadPreferida != null)
-                    {
-                        int indexUnidad = _unidadesFiltradas.FindIndex(u => u.Id == unidadPreferida.Id);
-                        if (indexUnidad >= 0)
-                        {
-                            PkrAcquisitionUnit.SelectedIndex = indexUnidad + 1;
-                            PkrSaleUnit.SelectedIndex = indexUnidad + 1;
-                        }
-                    }
-                }
+                int idx = _monedasGlobales.FindIndex(m => m.Id == UserSession.CurrentProfile.CurrencyId.Value);
+                if (idx >= 0) indexMonedaPredeterminada = idx + 1;
+            }
 
-                if (UserSession.CurrentProfile.CurrencyId.HasValue)
+            if (indexMonedaPredeterminada == 0)
+            {
+                int currentInventoryId = UserSession.CurrentInventory?.Id ?? 1;
+                var paramMonedaBase = _parametrosGlobales.FirstOrDefault(p => p.InventoryId == currentInventoryId && p.ParameterType == "MonedaBase");
+                if (paramMonedaBase != null && int.TryParse(paramMonedaBase.Name, out int currencyIdAsociado))
                 {
-                    int indexMoneda = _monedasGlobales.FindIndex(m => m.Id == UserSession.CurrentProfile.CurrencyId.Value);
-                    if (indexMoneda >= 0)
-                    {
-                        PkrCurrency.SelectedIndex = indexMoneda + 1;
-                        PkrSaleCurrency.SelectedIndex = indexMoneda + 1;
-                    }
+                    int idx = _monedasGlobales.FindIndex(m => m.Id == currencyIdAsociado);
+                    if (idx >= 0) indexMonedaPredeterminada = idx + 1;
                 }
             }
-            else
+
+            // Aplicar la moneda predeterminada o dejar en 0 si no se encontró
+            PkrCurrency.SelectedIndex = indexMonedaPredeterminada;
+            PkrSaleCurrency.SelectedIndex = indexMonedaPredeterminada;
+
+            if (UserSession.CurrentProfile == null)
             {
                 PkrLocationParam.SelectedIndex = 0;
             }
@@ -338,202 +374,316 @@ namespace ControlInventarioMovil.Views
             GenerarSkuInteligente();
         }
 
+        private void UpdateGridLayout(bool showCantidadInicial, bool showFactor)
+        {
+            GridCalculoLogistico.ColumnDefinitions.Clear();
+
+            if (showCantidadInicial && showFactor)
+            {
+                // 3 COLUMNAS IGUALES: Cant. Paquetes (0), Factor (1), Stock (2)
+                GridCalculoLogistico.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+                GridCalculoLogistico.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+                GridCalculoLogistico.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+
+                ContenedorCantidadInicial.IsVisible = true;
+                ContenedorFactor.IsVisible = true;
+                ContenedorStock.IsVisible = true;
+
+                Grid.SetColumn(ContenedorCantidadInicial, 0);
+                Grid.SetColumnSpan(ContenedorCantidadInicial, 1);
+
+                Grid.SetColumn(ContenedorFactor, 1);
+                Grid.SetColumnSpan(ContenedorFactor, 1);
+
+                Grid.SetColumn(ContenedorStock, 2);
+                Grid.SetColumnSpan(ContenedorStock, 1);
+            }
+            else if (showCantidadInicial && !showFactor)
+            {
+                // 2 COLUMNAS: Cant. Paquetes (0), Stock (1)
+                GridCalculoLogistico.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+                GridCalculoLogistico.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+
+                ContenedorCantidadInicial.IsVisible = true;
+                ContenedorFactor.IsVisible = false;
+                ContenedorStock.IsVisible = true;
+
+                Grid.SetColumn(ContenedorCantidadInicial, 0);
+                Grid.SetColumnSpan(ContenedorCantidadInicial, 1);
+
+                Grid.SetColumn(ContenedorStock, 1);
+                Grid.SetColumnSpan(ContenedorStock, 1);
+            }
+            else if (!showCantidadInicial && showFactor)
+            {
+                // 2 COLUMNAS: Factor (0), Stock (1)
+                GridCalculoLogistico.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+                GridCalculoLogistico.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+
+                ContenedorCantidadInicial.IsVisible = false;
+                ContenedorFactor.IsVisible = true;
+                ContenedorStock.IsVisible = true;
+
+                Grid.SetColumn(ContenedorFactor, 0);
+                Grid.SetColumnSpan(ContenedorFactor, 1);
+
+                Grid.SetColumn(ContenedorStock, 1);
+                Grid.SetColumnSpan(ContenedorStock, 1);
+            }
+            else
+            {
+                // 1 COLUMNA TOTAL: Stock abarca el 100% de la fila
+                GridCalculoLogistico.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+
+                ContenedorCantidadInicial.IsVisible = false;
+                ContenedorFactor.IsVisible = false;
+                ContenedorStock.IsVisible = true;
+
+                Grid.SetColumn(ContenedorStock, 0);
+                Grid.SetColumnSpan(ContenedorStock, 1);
+            }
+        }
+
+        // 2. Mantener la compatibilidad con las llamadas anteriores de OnCategoryChanged
+        private void UpdateGridLayout(bool showCantidadInicial)
+        {
+            EvaluarYActualizarLayoutLogistico();
+        }
+
+        // 3. Evaluador inteligente de unidades seleccionadas
+        private void EvaluarYActualizarLayoutLogistico()
+        {
+            // A. Si no hay categoría o es Serializado (Stock fijo = 1), el Stock abarca el 100%
+            bool isSerialized = false;
+            if (PkrCategory.SelectedIndex > 0)
+            {
+                var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
+                string trackingMode = catSel.TrackingMode?.Trim() ?? "Standard";
+                isSerialized = string.Equals(trackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ||
+                               string.Equals(trackingMode, "Serializado", StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (isSerialized || PkrCategory.SelectedIndex <= 0)
+            {
+                UpdateGridLayout(showCantidadInicial: false, showFactor: false);
+                return;
+            }
+
+            // B. Evaluamos si el usuario ya seleccionó ambas unidades
+            bool unidadesSeleccionadas = PkrAcquisitionUnit.SelectedIndex > 0 && PkrSaleUnit.SelectedIndex > 0;
+            string uCompra = unidadesSeleccionadas ? (PkrAcquisitionUnit.SelectedItem?.ToString() ?? "") : "";
+            string uVenta = unidadesSeleccionadas ? (PkrSaleUnit.SelectedItem?.ToString() ?? "") : "";
+
+            // C. Si la unidad de compra es DISTINTA a la de venta (ej: Caja vs Unidad), revelamos el cálculo completo
+            bool requiereConversion = unidadesSeleccionadas && !string.Equals(uCompra, uVenta, StringComparison.OrdinalIgnoreCase);
+
+            if (requiereConversion)
+            {
+                UpdateGridLayout(showCantidadInicial: true, showFactor: true);
+            }
+            else
+            {
+                // Si no hay unidades o son idénticas (Unidad vs Unidad), Stock abarca el 100%
+                UpdateGridLayout(showCantidadInicial: false, showFactor: false);
+            }
+        }
+
         private void OnCategoryChanged(object sender, EventArgs e)
         {
-            PkrAcquisitionUnit.Items.Clear();
-            PkrSaleUnit.Items.Clear();
-            PkrAcquisitionUnit.SelectedIndex = -1;
-            PkrSaleUnit.SelectedIndex = -1;
-
-            if (PkrCategory.SelectedIndex <= 0)
+            try
             {
-                ContenedorNombre.IsVisible = false;
-                SecBarcode.IsVisible = false;
-                SecSku.IsVisible = false;
-                ColSerialNumber.IsVisible = false;
-                SecModelSerie.IsVisible = false;
-                SepModelSerie.IsVisible = false;
-                BloqueSerializadoCondicional.IsVisible = false;
-                LblTrackingInfo.Text = "Modo de Rastreo: Pendiente...";
+                PkrAcquisitionUnit.Items.Clear();
+                PkrSaleUnit.Items.Clear();
+                PkrAcquisitionUnit.SelectedIndex = -1;
+                PkrSaleUnit.SelectedIndex = -1;
+
+                if (PkrCategory.SelectedIndex <= 0)
+                {
+                    ContenedorNombre.IsVisible = false;
+                    SecBarcode.IsVisible = false;
+                    SecSku.IsVisible = false;
+                    ColSerialNumber.IsVisible = false;
+                    SecModelSerie.IsVisible = false;
+                    SepModelSerie.IsVisible = false;
+                    BloqueSerializadoCondicional.IsVisible = false;
+                    LblTrackingInfo.Text = "Modo de Rastreo: Pendiente...";
+
+                    PkrAcquisitionUnit.Items.Clear();
+                    PkrSaleUnit.Items.Clear();
+                    PkrAcquisitionUnit.Items.Add("Unidad de compra...");
+                    PkrSaleUnit.Items.Add("Unidad de venta...");
+                    PkrAcquisitionUnit.SelectedIndex = 0;
+                    PkrSaleUnit.SelectedIndex = 0;
+                    ControlarColorPlaceholderPicker(PkrAcquisitionUnit);
+                    ControlarColorPlaceholderPicker(PkrSaleUnit);
+
+                    PkrBrand.Items.Clear();
+                    PkrBrand.Items.Add("Seleccione una marca...");
+                    PkrBrand.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrBrand);
+
+                    ContenedorUnidades.IsVisible = false;
+                    ContenedorMarca.IsVisible = true;
+                    SepMarca.IsVisible = true;
+
+                    UpdateGridLayout(showCantidadInicial: true);
+
+                    TxtStock.IsReadOnly = false;
+                    return;
+                }
+
+                var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
+                string trackingMode = catSel.TrackingMode?.Trim() ?? "Standard";
+
+                bool isSerialized = string.Equals(trackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ||
+                                    string.Equals(trackingMode, "Serializado", StringComparison.OrdinalIgnoreCase);
+
+                bool isStandard = string.Equals(trackingMode, "Standard", StringComparison.OrdinalIgnoreCase) ||
+                                    string.Equals(trackingMode, "Estándar", StringComparison.OrdinalIgnoreCase) ||
+                                    string.Equals(trackingMode, "Stackable", StringComparison.OrdinalIgnoreCase);
+
+                bool isBulk = string.Equals(trackingMode, "A Granel", StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(trackingMode, "Bulk", StringComparison.OrdinalIgnoreCase);
+
+                LblTrackingInfo.Text = $"Modo de Rastreo: {trackingMode}";
+                ContenedorNombre.IsVisible = true;
+
+                if (isBulk)
+                {
+                    SecBarcode.IsVisible = false;
+                    SecSku.IsVisible = true;
+                    ContenedorMarca.IsVisible = false;
+                    SepMarca.IsVisible = false;
+                    SecModelSerie.IsVisible = false;
+                    SepModelSerie.IsVisible = false;
+                    BloqueSerializadoCondicional.IsVisible = false;
+                    SecCondicionFisica.IsVisible = false;
+
+                    TxtStock.IsReadOnly = false;
+                    if (UserSession.CurrentArticleToEdit == null) TxtStock.Text = string.Empty;
+
+                    ContenedorUnidades.IsVisible = true;
+
+                    UpdateGridLayout(showCantidadInicial: true);
+                }
+                else if (isSerialized)
+                {
+                    SecSku.IsVisible = true;
+                    ContenedorMarca.IsVisible = true;
+                    SepMarca.IsVisible = true;
+                    SecModelSerie.IsVisible = true;
+                    SepModelSerie.IsVisible = true;
+                    ColSerialNumber.IsVisible = true;
+                    LblModelTitle.Text = TITULO_TECNOLOGIA;
+                    TxtModel.Placeholder = PLACEHOLDER_TECNOLOGIA;
+                    SecCondicionFisica.IsVisible = true;
+                    BloqueSerializadoCondicional.IsVisible = true;
+
+                    TxtStock.Text = "1";
+                    TxtStock.IsReadOnly = true;
+
+                    ContenedorUnidades.IsVisible = false;
+
+                    UpdateGridLayout(showCantidadInicial: false);
+                }
+                else
+                {
+                    ContenedorMarca.IsVisible = true;
+                    SepMarca.IsVisible = true;
+                    SecModelSerie.IsVisible = false;
+                    SepModelSerie.IsVisible = false;
+                    ColSerialNumber.IsVisible = false;
+                    SecBarcode.IsVisible = true;
+                    SecCondicionFisica.IsVisible = false;
+                    BloqueSerializadoCondicional.IsVisible = false;
+
+                    if (UserSession.CurrentArticleToEdit == null) TxtStock.Text = string.Empty;
+                    TxtStock.IsReadOnly = false;
+
+                    ContenedorUnidades.IsVisible = true;
+
+                    UpdateGridLayout(showCantidadInicial: true);
+                }
 
                 PkrAcquisitionUnit.Items.Clear();
                 PkrSaleUnit.Items.Clear();
                 PkrAcquisitionUnit.Items.Add("Unidad de compra...");
                 PkrSaleUnit.Items.Add("Unidad de venta...");
-                PkrAcquisitionUnit.SelectedIndex = 0;
-                PkrSaleUnit.SelectedIndex = 0;
-                ControlarColorPlaceholderPicker(PkrAcquisitionUnit);
-                ControlarColorPlaceholderPicker(PkrSaleUnit);
 
-                PkrBrand.Items.Clear();
-                PkrBrand.Items.Add("Seleccione una marca...");
-                PkrBrand.SelectedIndex = 0; ControlarColorPlaceholderPicker(PkrBrand);
-
-                ContenedorUnidades.IsVisible = false;
-                Grid.SetColumn(ContenedorStock, 0);
-                Grid.SetColumnSpan(ContenedorStock, 2);
-                TxtStock.IsReadOnly = false;
-
-                ContenedorMarca.IsVisible = true;
-                SepMarca.IsVisible = true;
-
-                return;
-            }
-
-            var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
-
-            string trackingMode = catSel.TrackingMode?.Trim() ?? "Standard";
-
-            bool isSerialized = string.Equals(trackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ||
-                                string.Equals(trackingMode, "Serializado", StringComparison.OrdinalIgnoreCase);
-
-            bool isStandard = string.Equals(trackingMode, "Standard", StringComparison.OrdinalIgnoreCase) ||
-                              string.Equals(trackingMode, "Estándar", StringComparison.OrdinalIgnoreCase) ||
-                              string.Equals(trackingMode, "Stackable", StringComparison.OrdinalIgnoreCase);
-
-            bool isBulk = string.Equals(trackingMode, "A Granel", StringComparison.OrdinalIgnoreCase) ||
-                          string.Equals(trackingMode, "Bulk", StringComparison.OrdinalIgnoreCase);
-
-            LblTrackingInfo.Text = $"Modo de Rastreo: {trackingMode}";
-            ContenedorNombre.IsVisible = true;
-
-            if (isBulk)
-            {
-                SecBarcode.IsVisible = false;
-                SecSku.IsVisible = true;
-                ContenedorMarca.IsVisible = false;
-                SepMarca.IsVisible = false;
-                SecModelSerie.IsVisible = false;
-                SepModelSerie.IsVisible = false;
-                BloqueSerializadoCondicional.IsVisible = false;
-
-                SecCondicionFisica.IsVisible = false;
-
-                TxtStock.IsReadOnly = false;
-                if (UserSession.CurrentArticleToEdit == null) TxtStock.Text = string.Empty;
-
-                ContenedorUnidades.IsVisible = true;
-                GridUnidadStock.ColumnDefinitions = new ColumnDefinitionCollection
+                if (_todasLasUnidades != null && _todasLasUnidades.Count > 0)
                 {
-                    new ColumnDefinition { Width = GridLength.Star },
-                    new ColumnDefinition { Width = GridLength.Star }
-                };
-                Grid.SetColumn(ContenedorStock, 1);
-            }
-            else if (isSerialized)
-            {
-                SecSku.IsVisible = true;
-                ContenedorMarca.IsVisible = true;
-                SepMarca.IsVisible = true;
-                SecModelSerie.IsVisible = true;
-                SepModelSerie.IsVisible = true;
-                ColSerialNumber.IsVisible = true;
-                LblModelTitle.Text = TITULO_TECNOLOGIA;
-                TxtModel.Placeholder = PLACEHOLDER_TECNOLOGIA;
-                SecCondicionFisica.IsVisible = true;
-
-                SecModelSerie.ColumnDefinitions = new ColumnDefinitionCollection
-                {
-                    new ColumnDefinition { Width = GridLength.Star },
-                    new ColumnDefinition { Width = GridLength.Star }
-                };
-                BloqueSerializadoCondicional.IsVisible = true;
-
-                TxtStock.Text = "1";
-                TxtStock.IsReadOnly = true;
-
-                ContenedorUnidades.IsVisible = false;
-                Grid.SetColumn(ContenedorStock, 0);
-                GridUnidadStock.ColumnDefinitions = new ColumnDefinitionCollection
-                {
-                    new ColumnDefinition { Width = GridLength.Star }
-                };
-            }
-            else
-            {
-                ContenedorMarca.IsVisible = true;
-                SepMarca.IsVisible = true;
-                SecModelSerie.IsVisible = false;
-                SepModelSerie.IsVisible = false;
-                ColSerialNumber.IsVisible = false;
-                SecBarcode.IsVisible = true;
-                SecCondicionFisica.IsVisible = false;
-                BloqueSerializadoCondicional.IsVisible = false;
-
-                if (UserSession.CurrentArticleToEdit == null) TxtStock.Text = string.Empty;
-                TxtStock.IsReadOnly = false;
-
-                ContenedorUnidades.IsVisible = true;
-                GridUnidadStock.ColumnDefinitions = new ColumnDefinitionCollection
-                {
-                    new ColumnDefinition { Width = GridLength.Star },
-                    new ColumnDefinition { Width = GridLength.Star }
-                };
-                Grid.SetColumn(ContenedorStock, 1);
-            }
-
-            PkrAcquisitionUnit.Items.Clear();
-            PkrSaleUnit.Items.Clear();
-            PkrAcquisitionUnit.Items.Add("Unidad de compra...");
-            PkrSaleUnit.Items.Add("Unidad de venta...");
-
-            if (_todasLasUnidades != null && _todasLasUnidades.Count > 0)
-            {
-                if (catSel.SelectedUnitIds != null && catSel.SelectedUnitIds.Any())
-                {
-                    _unidadesFiltradas = _todasLasUnidades
-                        .Where(u => catSel.SelectedUnitIds.Contains(u.Id))
-                        .ToList();
-                }
-                else
-                {
-                    string[] abreviaturasPermitidas;
-
-                    if (isSerialized)
+                    if (catSel.SelectedUnitIds != null && catSel.SelectedUnitIds.Any())
                     {
-                        abreviaturasPermitidas = new string[] { "UND", "PAR", "JGO" };
-                    }
-                    else if (isStandard)
-                    {
-                        abreviaturasPermitidas = new string[] { "UND", "BOX", "MCTN", "PKT", "DOC", "BLST", "TRM", "CONT", "PAR", "JGO" };
+                        _unidadesFiltradas = _todasLasUnidades
+                            .Where(u => catSel.SelectedUnitIds.Contains(u.Id))
+                            .ToList();
                     }
                     else
                     {
-                        abreviaturasPermitidas = new string[] { "KGS", "TON", "LTS", "GAL", "ML", "GRS", "MTS", "CM", "MLN", "M2", "M3", "LBS", "OZ" };
+                        string[] abreviaturasPermitidas;
+
+                        if (isSerialized)
+                        {
+                            abreviaturasPermitidas = new string[] { "UND", "PAR", "JGO" };
+                        }
+                        else if (isStandard)
+                        {
+                            abreviaturasPermitidas = new string[] { "UND", "BOX", "MCTN", "PKT", "DOC", "BLST", "TRM", "CONT", "PAR", "JGO" };
+                        }
+                        else
+                        {
+                            abreviaturasPermitidas = new string[] { "KGS", "TON", "LTS", "GAL", "ML", "GRS", "MTS", "CM", "MLN", "M2", "M3", "LBS", "OZ" };
+                        }
+
+                        _unidadesFiltradas = _todasLasUnidades
+                            .Where(u => !string.IsNullOrWhiteSpace(u.Abbreviation) &&
+                                        abreviaturasPermitidas.Contains(u.Abbreviation.Trim(), StringComparer.OrdinalIgnoreCase))
+                            .ToList();
                     }
 
-                    _unidadesFiltradas = _todasLasUnidades
-                        .Where(u => !string.IsNullOrWhiteSpace(u.Abbreviation) &&
-                                    abreviaturasPermitidas.Contains(u.Abbreviation.Trim(), StringComparer.OrdinalIgnoreCase))
-                        .ToList();
+                    var unidadesCompra = new List<string> { "Unidad de compra..." };
+                    var unidadesVenta = new List<string> { "Unidad de venta..." };
+
+                    if (_unidadesFiltradas != null)
+                    {
+                        foreach (var unidad in _unidadesFiltradas)
+                        {
+                            if (unidad != null && !string.IsNullOrWhiteSpace(unidad.UnitName))
+                            {
+                                unidadesCompra.Add(unidad.UnitName.Trim());
+                                unidadesVenta.Add(unidad.UnitName.Trim());
+                            }
+                        }
+                    }
+
+                    PkrAcquisitionUnit.ItemsSource = unidadesCompra;
+                    PkrSaleUnit.ItemsSource = unidadesVenta;
+
+                    PkrAcquisitionUnit.SelectedIndex = 0;
+                    PkrSaleUnit.SelectedIndex = 0;
+                    ControlarColorPlaceholderPicker(PkrAcquisitionUnit);
+                    ControlarColorPlaceholderPicker(PkrSaleUnit);
                 }
 
-                foreach (var unidad in _unidadesFiltradas)
+                PkrBrand.Items.Clear();
+                PkrBrand.Items.Add("Seleccione una marca...");
+
+                if (_marcasGlobales != null)
                 {
-                    PkrAcquisitionUnit.Items.Add(unidad.UnitName);
-                    PkrSaleUnit.Items.Add(unidad.UnitName);
+                    _marcasFiltradas = _marcasGlobales.Where(m => m.CategoryId == catSel.Id).ToList();
+                    _marcasFiltradas.ForEach(m => PkrBrand.Items.Add(m.Name));
                 }
+
+                PkrBrand.SelectedIndex = 0;
+                ControlarColorPlaceholderPicker(PkrBrand);
+                ActualizarNombresDePreciosYCalculos();
+                GenerarNombrePorFormula();
+                GenerarSkuInteligente();
             }
-
-            PkrAcquisitionUnit.SelectedIndex = 0;
-            PkrSaleUnit.SelectedIndex = 0;
-            ControlarColorPlaceholderPicker(PkrAcquisitionUnit);
-            ControlarColorPlaceholderPicker(PkrSaleUnit);
-
-            PkrBrand.Items.Clear();
-            PkrBrand.Items.Add("Seleccione una marca...");
-
-            if (_marcasGlobales != null)
+            catch (Exception ex)
             {
-                _marcasFiltradas = _marcasGlobales.Where(m => m.CategoryId == catSel.Id).ToList();
-                _marcasFiltradas.ForEach(m => PkrBrand.Items.Add(m.Name));
-            }           
-
-            PkrBrand.SelectedIndex = 0;
-            ControlarColorPlaceholderPicker(PkrBrand);
-            ActualizarNombresDePreciosYCalculos();
-            GenerarNombrePorFormula();
-            GenerarSkuInteligente();
+                System.Diagnostics.Debug.WriteLine($"[ERROR_CATEGORY] {ex.Message}\n{ex.StackTrace}");
+                DisplayAlertAsync("Error", $"Error al cambiar categoría: {ex.Message}", "OK");
+            }
         }
 
         private void GenerarSkuInteligente()
@@ -1278,6 +1428,7 @@ namespace ControlInventarioMovil.Views
             }
 
             ActualizarNombresDePreciosYCalculos();
+            EvaluarYActualizarLayoutLogistico();
         }
 
         private void ActualizarNombresDePreciosYCalculos()
@@ -1308,13 +1459,22 @@ namespace ControlInventarioMovil.Views
                 decimal.TryParse(TxtStock.Text, out decimal stock);
                 decimal.TryParse(TxtAcquisitionPrice.Text, out decimal costoUnitario);
                 decimal.TryParse(TxtSalePrice.Text, out decimal precioVentaUnitario);
+                decimal.TryParse(TxtConversionFactor.Text, out decimal factorConv);
+                if (factorConv <= 0) factorConv = 1;
 
                 string monedaSigla = PkrCurrency.SelectedIndex > 0 ? _monedasGlobales[PkrCurrency.SelectedIndex - 1].CurrencyCode ?? "S/." : "S/.";
                 string monedaVentaSigla = PkrSaleCurrency.SelectedIndex > 0 ? _monedasGlobales[PkrSaleCurrency.SelectedIndex - 1].CurrencyCode ?? "S/." : "S/.";
 
+                string abrevCompraSel = PkrAcquisitionUnit.SelectedIndex > 0 ? PkrAcquisitionUnit.SelectedItem?.ToString() ?? "" : "";
+                string abrevVentaSel = PkrSaleUnit.SelectedIndex > 0 ? PkrSaleUnit.SelectedItem?.ToString() ?? "" : "";
+
                 if (stock > 0 && costoUnitario > 0)
                 {
-                    decimal costoTotal = stock * costoUnitario;
+                    // Si la unidad de compra es distinta a la de venta, dividimos el stock entre el factor para hallar el costo real
+                    decimal costoTotal = (abrevCompraSel != abrevVentaSel && factorConv > 1)
+                        ? (stock / factorConv) * costoUnitario
+                        : stock * costoUnitario;
+
                     LblValorizacionCostoTotal.Text = $"Total Lote: {monedaSigla} {costoTotal:N2}";
                     LblValorizacionCostoTotal.IsVisible = true;
                 }
@@ -1425,7 +1585,7 @@ namespace ControlInventarioMovil.Views
                         var reader = new BarcodeReader
                         {
                             AutoRotate = true,
-                            Options = new ZXing.Common.DecodingOptions
+                            Options = new DecodingOptions
                             {
                                 TryHarder = true
                             }
@@ -1452,48 +1612,143 @@ namespace ControlInventarioMovil.Views
             }
         }
 
-        private void OnCalculoGananciaTriggered(object sender, EventArgs e)
+        private void OnCalculoGananciaTriggered(object? sender, EventArgs e)
         {
-            // 1. Extraemos los valores digitados (Manejando si están vacíos)
+            if (sender is Picker picker)
+            {
+                ControlarColorPlaceholderPicker(picker);
+            }
+
+            // 1. Lectura de valores de entrada
             decimal costoPaquete = decimal.TryParse(TxtAcquisitionPrice.Text, out decimal c) ? c : 0;
             decimal precioVentaIndividual = decimal.TryParse(TxtSalePrice.Text, out decimal v) ? v : 0;
             decimal factor = decimal.TryParse(TxtConversionFactor.Text, out decimal f) && f > 0 ? f : 1;
 
-            string uCompra = PkrAcquisitionUnit.SelectedItem?.ToString() ?? "Paquete";
-            string uVenta = PkrSaleUnit.SelectedItem?.ToString() ?? "Unidad";
+            string uCompra = PkrAcquisitionUnit.SelectedIndex > 0 ? PkrAcquisitionUnit.SelectedItem?.ToString() ?? "Paquete" : "Paquete";
+            string uVenta = PkrSaleUnit.SelectedIndex > 0 ? PkrSaleUnit.SelectedItem?.ToString() ?? "Unidad" : "Unidad";
 
-            // 2. Solo calculamos si hay precios válidos
-            if (costoPaquete > 0 && precioVentaIndividual > 0)
+            // 2. Control visual de Unidades y Stock Inicial
+            bool compraPorPaquete = PkrAcquisitionUnit.SelectedIndex > 0 &&
+                                    PkrSaleUnit.SelectedIndex > 0 &&
+                                    uCompra != uVenta;
+
+            LblCantidadInicial.IsVisible = compraPorPaquete;
+            BorderCantidadInicial.IsVisible = compraPorPaquete;
+            LblConversionTitle.Text = compraPorPaquete ? $"Unds. por {uCompra}:" : "Unds. por Paquete:";
+
+            bool isSerialized = false;
+            if (PkrCategory.SelectedIndex > 0)
             {
-                // Fórmula: Costo Real Unitario = Costo Total / Cantidad que trae
-                decimal costoPorUnidadVenta = costoPaquete / factor;
+                var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
+                string trackingMode = catSel.TrackingMode?.Trim() ?? "Standard";
+                isSerialized = string.Equals(trackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ||
+                               string.Equals(trackingMode, "Serializado", StringComparison.OrdinalIgnoreCase);
+            }
 
-                // Fórmula: Ganancia = Venta - Costo Real
-                decimal gananciaNeta = precioVentaIndividual - costoPorUnidadVenta;
-
-                // Fórmula: Margen % = (Ganancia / Costo Real) * 100
-                decimal margenPorcentaje = costoPorUnidadVenta > 0 ? (gananciaNeta / costoPorUnidadVenta) * 100 : 0;
-
-                // 3. Imprimimos el resultado con formato amigable
-                if (gananciaNeta >= 0)
+            if (!isSerialized)
+            {
+                if (compraPorPaquete)
                 {
-                    LblProfitMargin.Text = $"Costo base: {costoPorUnidadVenta:C2} por {uVenta}\n" +
-                                           $"Ganancia: +{gananciaNeta:C2} ({margenPorcentaje:F2}%) por cada {uVenta} vendida.";
-                    LblProfitMargin.TextColor = Color.FromArgb("#A2D149"); // Verde
+                    TxtStock.IsReadOnly = true;
+                    decimal cantInicial = decimal.TryParse(TxtCantidadInicial.Text, out decimal ci) ? ci : 0;
+                    TxtStock.Text = (cantInicial * factor).ToString("0.##");
                 }
                 else
                 {
+                    TxtStock.IsReadOnly = false;
+                }
+            }
+
+            // 3. 💰 MULTIMONEDA Y TIPO DE CAMBIO EN TIEMPO REAL
+            if (costoPaquete > 0 && precioVentaIndividual > 0)
+            {
+                // Obtener datos de Moneda de Compra
+                string codigoMonedaCompra = "S/.";
+                string simboloCompra = "S/.";
+                if (PkrCurrency.SelectedIndex > 0 && _monedasGlobales.Count >= PkrCurrency.SelectedIndex)
+                {
+                    var monC = _monedasGlobales[PkrCurrency.SelectedIndex - 1];
+                    codigoMonedaCompra = monC.CurrencyCode?.Trim() ?? "S/.";
+                    simboloCompra = string.IsNullOrWhiteSpace(monC.CurrencyCode) ? "S/." : monC.CurrencyCode;
+                }
+
+                // Obtener datos de Moneda de Venta
+                string codigoMonedaVenta = "S/.";
+                string simboloVenta = "S/.";
+                if (PkrSaleCurrency.SelectedIndex > 0 && _monedasGlobales.Count >= PkrSaleCurrency.SelectedIndex)
+                {
+                    var monV = _monedasGlobales[PkrSaleCurrency.SelectedIndex - 1];
+                    codigoMonedaVenta = monV.CurrencyCode?.Trim() ?? "S/.";
+                    simboloVenta = string.IsNullOrWhiteSpace(monV.CurrencyCode) ? "S/." : monV.CurrencyCode;
+                }
+
+                // Obtener tipos de cambio a Soles
+                decimal tcCompra = ObtenerTipoCambioASoles(codigoMonedaCompra);
+                decimal tcVenta = ObtenerTipoCambioASoles(codigoMonedaVenta);
+
+                // Costo Base Unitario en la moneda de compra
+                decimal costoUnitarioCompra = costoPaquete / factor;
+
+                // Homologación a Soles (Base contable para comparar peras con peras)
+                decimal costoUnitarioEnSoles = costoUnitarioCompra * tcCompra;
+                decimal precioVentaEnSoles = precioVentaIndividual * tcVenta;
+
+                // Ganancia neta en Soles y Margen Porcentual Real
+                decimal gananciaNetaEnSoles = precioVentaEnSoles - costoUnitarioEnSoles;
+                decimal margenPorcentaje = costoUnitarioEnSoles > 0 ? (gananciaNetaEnSoles / costoUnitarioEnSoles) * 100 : 0;
+
+                // Formatear la etiqueta de Costo Base según la moneda usada
+                string textoCostoBase = $"{simboloCompra} {costoUnitarioCompra:N2}";
+                if (codigoMonedaCompra != "S/." && tcCompra > 1)
+                {
+                    textoCostoBase += $" (≈ S/. {costoUnitarioEnSoles:N2})";
+                }
+
+                if (gananciaNetaEnSoles >= 0)
+                {
+                    string textoGanancia = (codigoMonedaVenta == "S/.")
+                        ? $"S/. {gananciaNetaEnSoles:N2}"
+                        : $"{simboloVenta} {(gananciaNetaEnSoles / (tcVenta > 0 ? tcVenta : 1)):N2} (≈ S/. {gananciaNetaEnSoles:N2})";
+
+                    LblProfitMargin.Text = $"Costo base: {textoCostoBase} por {uVenta}\n" +
+                                           $"Ganancia: +{textoGanancia} ({margenPorcentaje:F2}%) por cada {uVenta} vendida.";
+                    LblProfitMargin.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
+                }
+                else
+                {
+                    decimal perdidaAbsolutaSoles = Math.Abs(gananciaNetaEnSoles);
+                    string textoPerdida = (codigoMonedaVenta == "S/.")
+                        ? $"S/. {perdidaAbsolutaSoles:N2}"
+                        : $"{simboloVenta} {(perdidaAbsolutaSoles / (tcVenta > 0 ? tcVenta : 1)):N2} (≈ S/. {perdidaAbsolutaSoles:N2})";
+
                     LblProfitMargin.Text = $"¡ALERTA DE PÉRDIDA!\n" +
-                                           $"Costo base: {costoPorUnidadVenta:C2} por {uVenta}\n" +
-                                           $"Pérdida: {gananciaNeta:C2} ({margenPorcentaje:F2}%) por cada {uVenta} vendida.";
-                    LblProfitMargin.TextColor = Colors.Red; // Rojo
+                                           $"Costo base: {textoCostoBase} por {uVenta}\n" +
+                                           $"Pérdida: -{textoPerdida} ({margenPorcentaje:F2}%) por cada {uVenta} vendida.";
+                    LblProfitMargin.TextColor = Colors.Red;
                 }
             }
             else
             {
-                LblProfitMargin.Text = "Ingrese costo, precio de venta y unidades para calcular su ganancia.";
-                LblProfitMargin.TextColor = Colors.Gray;
+                LblProfitMargin.Text = "Ingrese costo, precio de venta y factor de conversión para calcular su margen de ganancia real.";
+                LblProfitMargin.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#A2D149") : Color.FromArgb("#2A4A11");
             }
+
+            ActualizarNombresDePreciosYCalculos();
+        }
+
+        // 🛠️ Método Auxiliar para consultar Tipo de Cambio a Soles (S/.)
+        private decimal ObtenerTipoCambioASoles(string codigoMoneda)
+        {
+            if (string.IsNullOrWhiteSpace(codigoMoneda) || codigoMoneda == "S/." || codigoMoneda.Equals("PEN", StringComparison.OrdinalIgnoreCase))
+                return 1.0m;
+
+            if ((codigoMoneda == "$" || codigoMoneda.Equals("USD", StringComparison.OrdinalIgnoreCase)) && UserSession.TodayExchangeRateUSD != null)
+                return UserSession.TodayExchangeRateUSD.SellPrice > 0 ? UserSession.TodayExchangeRateUSD.SellPrice : 1.0m;
+
+            if ((codigoMoneda == "€" || codigoMoneda.Equals("EUR", StringComparison.OrdinalIgnoreCase)) && UserSession.TodayExchangeRateEUR != null)
+                return UserSession.TodayExchangeRateEUR.SellPrice > 0 ? UserSession.TodayExchangeRateEUR.SellPrice : 1.0m;
+
+            return 1.0m;
         }
 
         private void GenerarNombrePorFormula()

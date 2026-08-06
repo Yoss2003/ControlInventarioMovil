@@ -103,14 +103,12 @@
 
                                         <!-- Botones (Con el MISMO estilo de Marcas y Proveedores) -->
                                         <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
-                                            <ImageButton Source="image_gallery_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnScanGalleryClicked" ToolTipProperties.Text="Subir foto"/>
+                                            <ImageButton Source="" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnScanGalleryClicked" ToolTipProperties.Text="Subir foto"/>
                                             <ImageButton Source="camera_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnScanCameraClicked" ToolTipProperties.Text="Usar cámara"/>
                                         </HorizontalStackLayout>
                                     </Grid>
                                 </VerticalStackLayout>
                                 <BoxView IsVisible="{Binding Source={x:Reference SecBarcode}, Path=IsVisible}" HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
-                                <BoxView IsVisible="{Binding Source={x:Reference SecBarcode}, Path=IsVisible}" HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
-
                                 <VerticalStackLayout x:Name="SecSku" Spacing="5">
                                     <Label Text="Código SKU / Interno *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                     <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
@@ -173,8 +171,24 @@
                                             <Picker x:Name="PkrSupplier" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged" x:DataType="{x:Null}"/>
                                         </Border>
                                         <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
-                                            <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarProveedoresClicked"/>
-                                            <ImageButton Source="edit_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditarProveedorClicked"/>
+                                            <ImageButton 
+                                                Source="add_icon.png" 
+                                                BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" 
+                                                WidthRequest="42" 
+                                                HeightRequest="45" 
+                                                Padding="10" 
+                                                CornerRadius="6" 
+                                                helpers:EfectosVisualesHelper.Animar="True" 
+                                                Clicked="OnAdministrarProveedoresClicked"/>
+                                            <ImageButton 
+                                                Source="edit_icon.png" 
+                                                BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" 
+                                                WidthRequest="42" 
+                                                HeightRequest="45" 
+                                                Padding="10" 
+                                                CornerRadius="6" 
+                                                helpers:EfectosVisualesHelper.Animar="True" 
+                                                Clicked="OnEditarProveedorClicked"/>
                                         </HorizontalStackLayout>
                                     </Grid>
                                 </VerticalStackLayout>
@@ -189,96 +203,157 @@
                         <Border.Shadow>
                             <Shadow Brush="Black" Offset="0,2" Radius="4" Opacity="0.08"/>
                         </Border.Shadow>
-                        <VerticalStackLayout Spacing="15">
-                            <Label Text="LOGÍSTICA, ALMACENAMIENTO Y STOCK" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
 
-                            <Grid x:Name="GridUnidadStock" ColumnDefinitions="*, *" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="14">
 
-                                <VerticalStackLayout x:Name="ContenedorUnidades" Spacing="5">
-                                    <Label Text="Logística de Unidades *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
-                                    <Grid ColumnDefinitions="*, *, *" ColumnSpacing="8">
+                            <Label Text="LOGÍSTICA, ALMACENAMIENTO Y STOCK" TextColor="#A2D149" FontAttributes="Bold" FontSize="14"/>
 
-                                        <VerticalStackLayout Grid.Column="0" Spacing="3">
-                                            <Label Text="Se compra por:" FontSize="10" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}"/>
-                                            <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                                <Picker x:Name="PkrAcquisitionUnit" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" SelectedIndexChanged="OnCalculoGananciaTriggered" x:DataType="{x:Null}"/>
-                                            </Border>
-                                        </VerticalStackLayout>
-
-                                        <VerticalStackLayout Grid.Column="1" Spacing="3">
-                                            <Label Text="Trae (Cant.):" FontSize="10" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}"/>
-                                            <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
-                                                <Entry x:Name="TxtConversionFactor" Text="1" Keyboard="Numeric" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" TextChanged="OnCalculoGananciaTriggered" ToolTipProperties.Text="¿Cuántas unidades de venta vienen en la unidad de compra?"/>
-                                            </Border>
-                                        </VerticalStackLayout>
-
-                                        <VerticalStackLayout Grid.Column="2" Spacing="3">
-                                            <Label Text="Se vende por:" FontSize="10" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}"/>
-                                            <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                                <Picker x:Name="PkrSaleUnit" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" SelectedIndexChanged="OnCalculoGananciaTriggered" x:DataType="{x:Null}"/>
-                                            </Border>
-                                        </VerticalStackLayout>
-
-                                    </Grid>
+                            <!-- 1. UNIDADES DE MEDIDA (RESTAURADO: ContenedorUnidades) -->
+                            <Grid x:Name="ContenedorUnidades" ColumnDefinitions="*,*" ColumnSpacing="12">
+                                <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                    <Label Text="Se compra por *" FontSize="12" TextColor="{AppThemeBinding Light=#606A72, Dark=#A0AAB2}"/>
+                                    <Border StrokeShape="RoundRectangle 8" Padding="0">
+                                        <Picker x:Name="PkrAcquisitionUnit" Title="Unidad compra..." SelectedIndexChanged="OnCalculoGananciaTriggered"/>
+                                    </Border>
                                 </VerticalStackLayout>
 
-                                <VerticalStackLayout x:Name="ContenedorStock" Grid.Column="1" Spacing="5">
-                                    <Label Text="Stock Inicial *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
-                                    <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
-                                        <Entry x:Name="TxtStock" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="0" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=Gray}" BackgroundColor="Transparent" HeightRequest="40" Keyboard="Numeric"/>
+                                <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                    <Label Text="Se vende por *" FontSize="12" TextColor="{AppThemeBinding Light=#606A72, Dark=#A0AAB2}"/>
+                                    <Border StrokeShape="RoundRectangle 8" Padding="0">
+                                        <Picker x:Name="PkrSaleUnit" Title="Unidad venta..." SelectedIndexChanged="OnCalculoGananciaTriggered"/>
                                     </Border>
                                 </VerticalStackLayout>
                             </Grid>
 
-                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
-                            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
-                                <VerticalStackLayout Grid.Column="0" Spacing="5">
-                                    <Label Text="Estado *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
-                                    <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
-                                        <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                            <Picker x:Name="PkrStatusParam" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged" x:DataType="{x:Null}"/>
-                                        </Border>
-                                        <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
-                                            <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="38" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarEstadoClicked"/>
-                                            <ImageButton Source="edit_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="38" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditarEstadoClicked"/>
-                                        </HorizontalStackLayout>
-                                    </Grid>
+                            <!-- 2. CONVERSIÓN Y STOCK (3 COLUMNAS PARALELAS) -->
+                            <Grid x:Name="GridCalculoLogistico" ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Cantidad de Paquetes -->
+                                <VerticalStackLayout Grid.Column="0" Spacing="4" x:Name="ContenedorCantidadInicial" IsVisible="False">
+                                    <Label x:Name="LblCantidadInicial" Text="Cant. Paquetes" FontSize="12" TextColor="{AppThemeBinding Light=#606A72, Dark=#A0AAB2}"/>
+                                    <Border x:Name="BorderCantidadInicial" StrokeShape="RoundRectangle 8" Padding="8,0">
+                                        <Entry x:Name="TxtCantidadInicial" Keyboard="Numeric" Placeholder="0" TextChanged="OnCalculoGananciaTriggered"/>
+                                    </Border>
                                 </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Column="1" Spacing="5">
-                                    <Label Text="Ubicación / Almacén *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
-                                    <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
-                                        <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                            <Picker x:Name="PkrLocationParam" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged" x:DataType="{x:Null}"/>
-                                        </Border>
-                                        <HorizontalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
-                                            <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="38" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarUbicacionClicked"/>
-                                            <ImageButton Source="edit_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="38" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditarUbicacionClicked"/>
-                                        </HorizontalStackLayout>
-                                    </Grid>
+
+                                <!-- Factor de Conversión -->
+                                <VerticalStackLayout Grid.Column="0" Spacing="4" x:Name="ContenedorFactor" IsVisible="False">
+                                    <Label x:Name="LblConversionTitle" Text="Unds. / Paquete" FontSize="12" TextColor="{AppThemeBinding Light=#606A72, Dark=#A0AAB2}"/>
+                                    <Border StrokeShape="RoundRectangle 8" Padding="8,0">
+                                        <Entry x:Name="TxtConversionFactor" Keyboard="Numeric" Placeholder="0" TextChanged="OnCalculoGananciaTriggered"/>
+                                    </Border>
+                                </VerticalStackLayout>
+
+                                <!-- Stock Total (Resultado) CORREGIDO: Grid.Column="2" -->
+                                <VerticalStackLayout Grid.Column="0" Spacing="4" x:Name="ContenedorStock" IsVisible="False">
+                                    <Label Text="Stock Total *" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1C262E, Dark=#FFFFFF}"/>
+                                    <Border StrokeShape="RoundRectangle 8" Padding="8,0" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#2A363F}">
+                                        <Entry x:Name="TxtStock" Keyboard="Numeric" Placeholder="0" FontAttributes="Bold"/>
+                                    </Border>
                                 </VerticalStackLayout>
                             </Grid>
 
-                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
-                            <VerticalStackLayout Spacing="5" x:Name="SecCondicionFisica">
-                                <Label Text="Condición Física *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
-                                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
-                                    <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                        <Picker x:Name="PkrConditionParam" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged" x:DataType="{x:Null}"/>
+                            <!-- LÍNEA SEPARADORA ÚNICA -->
+                            <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#E0E8F0, Dark=#33414D}" Margin="0,4"/>
+
+                            <!-- 3. ESTADO (FILA COMPLETA) -->
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Estado *" FontSize="12" TextColor="{AppThemeBinding Light=#606A72, Dark=#A0AAB2}"/>
+                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                    <Border Grid.Column="0" StrokeShape="RoundRectangle 8" Padding="0">
+                                        <Picker x:Name="PkrStatusParam" SelectedIndexChanged="OnPickerIndexChanged"/>
                                     </Border>
-                                    <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
-                                        <ImageButton Source="add_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAdministrarCondicionClicked"/>
-                                        <ImageButton Source="edit_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditarCondicionClicked"/>
-                                    </HorizontalStackLayout>
+                                    <ImageButton Grid.Column="1" 
+                                                Source="add_icon.png" 
+                                                BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" 
+                                                WidthRequest="42" 
+                                                HeightRequest="45" 
+                                                Padding="10" 
+                                                CornerRadius="6" 
+                                                helpers:EfectosVisualesHelper.Animar="True" 
+                                                Clicked="OnAdministrarEstadoClicked"/>
+                                    <ImageButton Grid.Column="2" 
+                                                Source="edit_icon.png" 
+                                                BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" 
+                                                WidthRequest="42" 
+                                                HeightRequest="45" 
+                                                Padding="10" 
+                                                CornerRadius="6" 
+                                                helpers:EfectosVisualesHelper.Animar="True" 
+                                                Clicked="OnEditarEstadoClicked"/>
                                 </Grid>
                             </VerticalStackLayout>
 
-                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
-                            <VerticalStackLayout Spacing="5">
-                                <Label Text="Observaciones Generales (Visible / Opcional)" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,5" HeightRequest="80">
-                                    <Editor x:Name="TxtObservation" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Detalles sobre el estado del empaque, lote, etc..." PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="60"/>
+                            <!-- 4. CONDICIÓN FÍSICA (RESTAURADO: SecCondicionFisica) -->
+                            <VerticalStackLayout x:Name="SecCondicionFisica" Spacing="4">
+                                <Label Text="Condición del Artículo *" FontSize="12" TextColor="{AppThemeBinding Light=#606A72, Dark=#A0AAB2}"/>
+                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                    <Border Grid.Column="0" StrokeShape="RoundRectangle 8" Padding="0">
+                                        <Picker x:Name="PkrConditionParam" SelectedIndexChanged="OnPickerIndexChanged"/>
+                                    </Border>
+                                    <ImageButton Grid.Column="1" 
+                                                Source="add_icon.png" 
+                                                BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" 
+                                                WidthRequest="42" 
+                                                HeightRequest="45" 
+                                                Padding="10" 
+                                                CornerRadius="6" 
+                                                helpers:EfectosVisualesHelper.Animar="True" 
+                                                Clicked="OnAdministrarCondicionClicked"/>
+                                    <ImageButton Grid.Column="2" 
+                                                Source="edit_icon.png" 
+                                                BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" 
+                                                WidthRequest="42" 
+                                                HeightRequest="45" 
+                                                Padding="10" 
+                                                CornerRadius="6" 
+                                                helpers:EfectosVisualesHelper.Animar="True" 
+                                                Clicked="OnEditarCondicionClicked"/>
+                                </Grid>
+                            </VerticalStackLayout>
+
+                            <!-- 5. UBICACIÓN / ALMACÉN (FILA COMPLETA) -->
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Ubicación / Almacén *" FontSize="12" TextColor="{AppThemeBinding Light=#606A72, Dark=#A0AAB2}"/>
+                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                    <Border Grid.Column="0" StrokeShape="RoundRectangle 8" Padding="0">
+                                        <Picker x:Name="PkrLocationParam" SelectedIndexChanged="OnPickerIndexChanged"/>
+                                    </Border>
+                                    <ImageButton Grid.Column="1" 
+                                                Source="add_icon.png" 
+                                                BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" 
+                                                WidthRequest="42" 
+                                                HeightRequest="45" 
+                                                Padding="10" 
+                                                CornerRadius="6" 
+                                                helpers:EfectosVisualesHelper.Animar="True" 
+                                                Clicked="OnAdministrarUbicacionClicked"/>
+                                    <ImageButton Grid.Column="2" 
+                                                Source="edit_icon.png" 
+                                                BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" 
+                                                WidthRequest="42" 
+                                                HeightRequest="45" 
+                                                Padding="10" 
+                                                CornerRadius="6" 
+                                                helpers:EfectosVisualesHelper.Animar="True" 
+                                                Clicked="OnEditarUbicacionClicked"/>
+                                </Grid>
+                            </VerticalStackLayout>
+
+                            <!-- LÍNEA SEPARADORA ÚNICA -->
+                            <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#E0E8F0, Dark=#33414D}" Margin="0,4"/>
+
+                            <!-- 6. OBSERVACIONES -->
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Observaciones Generales (Opcional)" FontSize="12" TextColor="{AppThemeBinding Light=#606A72, Dark=#A0AAB2}"/>
+                                <Border StrokeShape="RoundRectangle 8" Padding="8">
+                                    <Editor x:Name="TxtObservation" Placeholder="Detalles sobre el estado del empaque, lote, etc." AutoSize="TextChanges" HeightRequest="70"/>
                                 </Border>
                             </VerticalStackLayout>
+
                         </VerticalStackLayout>
                     </Border>
 
@@ -292,8 +367,9 @@
                         <VerticalStackLayout Spacing="15">
                             <Label Text="INFORMACIÓN FINANCIERA DE TRANSACCIÓN" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
 
-                            <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
-                                <VerticalStackLayout Grid.Column="0" Spacing="5">
+                            <Grid RowDefinitions="Auto, Auto" ColumnDefinitions="*, *" ColumnSpacing="12" RowSpacing="15">
+
+                                <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="5">
                                     <Label x:Name="LblCostoTitulo" Text="Costo Adquisición" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                     <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
                                         <Entry x:Name="TxtAcquisitionPrice" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="0.00" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=Gray}" Keyboard="Numeric" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnAcquisitionPriceChanged"/>
@@ -301,7 +377,8 @@
                                     <Label x:Name="LblConversionEquivalente" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" Margin="5,2,0,0" IsVisible="False"/>
                                     <Label x:Name="LblValorizacionCostoTotal" TextColor="{AppThemeBinding Light=#E65100, Dark=#EFA72F}" FontSize="11" FontAttributes="Bold" Margin="5,2,0,0" IsVisible="False"/>
                                 </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Column="1" Spacing="5">
+
+                                <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="5">
                                     <Label x:Name="LblVentaTitulo" Text="Precio Venta Estimado" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                     <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
                                         <Entry x:Name="TxtSalePrice" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="0.00" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=Gray}" Keyboard="Numeric" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnSalePriceChanged"/>
@@ -309,7 +386,8 @@
                                     <Label x:Name="LblConversionEquivalenteVenta" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" Margin="5,2,0,0" IsVisible="False"/>
                                     <Label x:Name="LblValorizacionVentaTotal" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" Margin="5,2,0,0" IsVisible="False"/>
                                 </VerticalStackLayout>
-                                <Border BackgroundColor="{AppThemeBinding Light=#EBF5E4, Dark=#1E2E1B}" Stroke="{AppThemeBinding Light=#A2D149, Dark=#A2D149}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="12" Margin="0,10,0,0">
+
+                                <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" BackgroundColor="{AppThemeBinding Light=#EBF5E4, Dark=#1E2E1B}" Stroke="{AppThemeBinding Light=#A2D149, Dark=#A2D149}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="12">
                                     <Label x:Name="LblProfitMargin" Text="Ingrese costo, precio de venta y factor de conversión para calcular su margen de ganancia real." TextColor="{AppThemeBinding Light=#2A4A11, Dark=#A2D149}" FontSize="12" FontAttributes="Italic" HorizontalTextAlignment="Center"/>
                                 </Border>
                             </Grid>

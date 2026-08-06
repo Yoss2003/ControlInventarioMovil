@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 public partial class LoginPage : ContentPage
 {
     private readonly ApiService _apiService;
+    private CancellationTokenSource _animacionCts;
     public LoginPage()
 	{
 		InitializeComponent();
@@ -157,7 +158,14 @@ public partial class LoginPage : ContentPage
             SecureStorage.Default.RemoveAll();
         }
 
-        _ = AnimarFondo();
+        _animacionCts = new CancellationTokenSource();
+        _ = AnimarFondo(_animacionCts.Token);
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _animacionCts?.Cancel();
     }
 
     private void OnShowPasswordTapped(object sender, EventArgs e)
@@ -167,21 +175,27 @@ public partial class LoginPage : ContentPage
         imgShowPassword.Source = txtPassword.IsPassword ? "eye_closed.png" : "eye_open.png";
     }
 
-    private async Task AnimarFondo()
+    private async Task AnimarFondo(CancellationToken token)
     {
         Random random = new Random();
 
-        while (true)
+        try
         {
-            var moveMorado = orbMorado.TranslateToAsync(random.Next(-50, 150), random.Next(-50, 150), 8000, Easing.SinInOut);
-            var moveAzul = orbAzul.TranslateToAsync(random.Next(-150, 50), random.Next(-150, 50), 9000, Easing.SinInOut);
-            var moveCeleste = orbCeleste.TranslateToAsync(random.Next(-100, 100), random.Next(-100, 100), 7000, Easing.SinInOut);
+            while (!token.IsCancellationRequested)
+            {
+                var moveMorado = orbMorado.TranslateToAsync(random.Next(-50, 150), random.Next(-50, 150), 8000, Easing.SinInOut);
+                var moveAzul = orbAzul.TranslateToAsync(random.Next(-150, 50), random.Next(-150, 50), 9000, Easing.SinInOut);
+                var moveCeleste = orbCeleste.TranslateToAsync(random.Next(-100, 100), random.Next(-100, 100), 7000, Easing.SinInOut);
 
-            var scaleMorado = orbMorado.ScaleToAsync(random.NextDouble() * 0.5 + 1, 8000, Easing.SinInOut);
-            var scaleAzul = orbAzul.ScaleToAsync(random.NextDouble() * 0.5 + 1, 9000, Easing.SinInOut);
-            var scaleCeleste = orbCeleste.ScaleToAsync(random.NextDouble() * 0.5 + 1, 7000, Easing.SinInOut);
+                var scaleMorado = orbMorado.ScaleToAsync(random.NextDouble() * 0.5 + 1, 8000, Easing.SinInOut);
+                var scaleAzul = orbAzul.ScaleToAsync(random.NextDouble() * 0.5 + 1, 9000, Easing.SinInOut);
+                var scaleCeleste = orbCeleste.ScaleToAsync(random.NextDouble() * 0.5 + 1, 7000, Easing.SinInOut);
 
-            await Task.WhenAll(moveMorado, moveAzul, moveCeleste, scaleMorado, scaleAzul, scaleCeleste);
+                await Task.WhenAll(moveMorado, moveAzul, moveCeleste, scaleMorado, scaleAzul, scaleCeleste);
+            }
+        }
+        catch (Exception)
+        {
         }
     }
 }
