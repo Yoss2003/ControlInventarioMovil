@@ -213,21 +213,22 @@
                                 <VerticalStackLayout Grid.Column="0" Spacing="4">
                                     <Label Text="Se compra por *" FontSize="12" TextColor="{AppThemeBinding Light=#606A72, Dark=#A0AAB2}"/>
                                     <Border StrokeShape="RoundRectangle 8" Padding="0">
-                                        <Picker x:Name="PkrAcquisitionUnit" Title="Unidad compra..." SelectedIndexChanged="OnCalculoGananciaTriggered"/>
+                                        <Picker x:Name="PkrAcquisitionUnit" SelectedIndexChanged="OnCalculoGananciaTriggered"/>
                                     </Border>
                                 </VerticalStackLayout>
 
                                 <VerticalStackLayout Grid.Column="1" Spacing="4">
                                     <Label Text="Se vende por *" FontSize="12" TextColor="{AppThemeBinding Light=#606A72, Dark=#A0AAB2}"/>
                                     <Border StrokeShape="RoundRectangle 8" Padding="0">
-                                        <Picker x:Name="PkrSaleUnit" Title="Unidad venta..." SelectedIndexChanged="OnCalculoGananciaTriggered"/>
+                                        <Picker x:Name="PkrSaleUnit" SelectedIndexChanged="OnCalculoGananciaTriggered"/>
                                     </Border>
                                 </VerticalStackLayout>
                             </Grid>
 
-                            <!-- 2. CONVERSIÓN Y STOCK (3 COLUMNAS PARALELAS) -->
+                            <!-- 2. CONVERSIÓN Y STOCK (GRILLA DINÁMICA) -->
                             <Grid x:Name="GridCalculoLogistico" ColumnSpacing="10">
                                 <Grid.ColumnDefinitions>
+                                    <!-- Inicia con 1 sola columna que ocupa todo el ancho -->
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
 
@@ -247,8 +248,8 @@
                                     </Border>
                                 </VerticalStackLayout>
 
-                                <!-- Stock Total (Resultado) CORREGIDO: Grid.Column="2" -->
-                                <VerticalStackLayout Grid.Column="0" Spacing="4" x:Name="ContenedorStock" IsVisible="False">
+                                <!-- Stock Total -->
+                                <VerticalStackLayout Grid.Column="0" Spacing="4" x:Name="ContenedorStock">
                                     <Label Text="Stock Total *" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1C262E, Dark=#FFFFFF}"/>
                                     <Border StrokeShape="RoundRectangle 8" Padding="8,0" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#2A363F}">
                                         <Entry x:Name="TxtStock" Keyboard="Numeric" Placeholder="0" FontAttributes="Bold"/>
@@ -527,17 +528,11 @@
                 </ScrollView>
             </Border>
         </Grid>
-
-        <Grid x:Name="OverlayScanner" BackgroundColor="#E6000000" IsVisible="False" Opacity="0" ZIndex="100">
-            <Grid RowDefinitions="Auto, *, Auto" Margin="0,50,0,40">
-                <Label Grid.Row="0" Text="ESCANEANDO CÓDIGO..." TextColor="#A2D149" FontAttributes="Bold" FontSize="18" HorizontalOptions="Center" Margin="0,20"/>
-
-                <Border Grid.Row="1" Stroke="#A2D149" StrokeThickness="3" StrokeShape="RoundRectangle 20" BackgroundColor="Transparent" Margin="30" HorizontalOptions="Fill" VerticalOptions="Fill">
-                    <zxing:CameraBarcodeReaderView x:Name="CameraScanner" BarcodesDetected="CameraScanner_BarcodesDetected" IsDetecting="False"/>
-                </Border>
-
-                <Button Grid.Row="2" Text="CANCELAR ESCANEO" BackgroundColor="#E65100" TextColor="White" FontAttributes="Bold" CornerRadius="8" Margin="30,0" HeightRequest="50" Clicked="OnCerrarScannerClicked"/>
-            </Grid>
+        <Grid x:Name="OverlayCargando" BackgroundColor="#B3000000" IsVisible="False" ZIndex="100">
+            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="20">
+                <ActivityIndicator IsRunning="True" Color="#A2D149" WidthRequest="60" HeightRequest="60" />
+                <Label x:Name="LblOverlayTexto" Text="Procesando..." TextColor="White" FontAttributes="Bold" FontSize="16" HorizontalOptions="Center" />
+            </VerticalStackLayout>
         </Grid>
     </Grid>
 </ContentPage>

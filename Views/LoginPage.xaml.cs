@@ -31,7 +31,12 @@ public partial class LoginPage : ContentPage
 
         var loginData = new { Username = txtUsername.Text.Trim(), Password = txtPassword.Text.Trim(), TwoFactorCode = (string?)null };
 
-        using var client = new HttpClient();
+        var handler = new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+        };
+
+        using var client = new HttpClient(handler);
         string jsonContent = JsonConvert.SerializeObject(loginData);
         var httpContent = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
 

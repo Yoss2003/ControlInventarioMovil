@@ -389,7 +389,8 @@ public partial class EditProfilePage : ContentPage
             catch { compressedPath = _croppedPhotoPath; }
 
             btnSave.Text = "Subiendo foto...";
-            string? nuevaUrl = await _apiService.UploadPhotoAsync(compressedPath);
+            string? nuevaUrl = await _apiService.UploadPhotoAsync(updatedUser.Id, compressedPath);
+
             if (nuevaUrl != null) updatedUser.ProfilePictureUrl = nuevaUrl;
             if (compressedPath != _croppedPhotoPath && File.Exists(compressedPath)) File.Delete(compressedPath);
         }

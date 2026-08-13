@@ -1,18 +1,24 @@
-using ControlInventario.Shared.Models;
-using ControlInventarioMovil.Services; // 🔌 IMPORTANTE: Tu espacio de servicios
-using System.Collections.ObjectModel;
 using ControlInventario.Models;
+using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Services;
+using System.Collections.ObjectModel;
+using System.Xml.Linq;
 
 namespace ControlInventarioMovil.Views
 {
     public partial class SalesPage : ContentPage
     {
-        // 🌟 Replicamos tu patrón de ApiService
         private readonly ApiService _apiService;
         private List<Article> _allArticles = new List<Article>();
         public ObservableCollection<Article> FilteredArticles { get; set; } = new ObservableCollection<Article>();
+
         private int _currentSalesModeId = 5;
         private string _selectedSubWallet = "";
+
+        // 🌟 VARIABLES PARA MATEMÁTICA PURA
+        private decimal _totalVentaActual = 0m;
+        private decimal _montoRecibidoActual = 0m;
+        private decimal _vueltoActual = 0m;
 
         public SalesPage()
         {
@@ -22,7 +28,6 @@ namespace ControlInventarioMovil.Views
 
             pickerPaymentType.SelectedIndex = 0;
             pickerPaymentType.SelectedIndexChanged += OnPaymentTypeChanged;
-
             pickerSubWallet.SelectedIndexChanged += OnSubWalletChanged;
             pickerSalesMode.SelectedIndexChanged += OnSalesModeChanged;
         }
@@ -31,7 +36,6 @@ namespace ControlInventarioMovil.Views
         {
             string opcionMadre = pickerPaymentType.SelectedItem?.ToString() ?? "";
 
-            // Ocultamos y limpiamos ambos sub-pickers por seguridad
             pickerSubWallet.IsVisible = false;
             pickerSalesMode.IsVisible = false;
             pickerSubWallet.SelectedIndex = -1;
@@ -40,25 +44,27 @@ namespace ControlInventarioMovil.Views
             _currentSalesModeId = 5;
             _selectedSubWallet = "";
 
-            if (opcionMadre == "Billetera digital")
+            if (opcionMadre == "Billetera digital") pickerSubWallet.IsVisible = true;
+            else if (opcionMadre == "Venta a Cuotas") pickerSalesMode.IsVisible = true;
+
+            // 🌟 LÓGICA DE UX: Mostramos u ocultamos la calculadora
+            if (opcionMadre == "Efectivo")
             {
-                pickerSubWallet.IsVisible = true; // 🌟 Aparece al costado
+                if (gridEfectivoInfo != null) gridEfectivoInfo.IsVisible = true;
+                CalcularVueltoEnVivo();
             }
-            else if (opcionMadre == "Venta a Cuotas")
+            else
             {
-                pickerSalesMode.IsVisible = true; // 🌟 Aparece al costado
+                if (gridEfectivoInfo != null) gridEfectivoInfo.IsVisible = false;
+                if (btnCerrarVenta != null) btnCerrarVenta.IsEnabled = true;
             }
         }
 
-        private void OnSubWalletChanged(object? sender, EventArgs e)
-        {
-            _selectedSubWallet = pickerSubWallet.SelectedItem?.ToString() ?? "";
-        }
+        private void OnSubWalletChanged(object? sender, EventArgs e) => _selectedSubWallet = pickerSubWallet.SelectedItem?.ToString() ?? "";
 
         private void OnSalesModeChanged(object? sender, EventArgs e)
         {
             string plazo = pickerSalesMode.SelectedItem?.ToString() ?? "";
-
             if (plazo == "Diario") _currentSalesModeId = 1;
             else if (plazo == "Semanal") _currentSalesModeId = 2;
             else if (plazo == "Mensual") _currentSalesModeId = 3;
@@ -72,22 +78,12 @@ namespace ControlInventarioMovil.Views
             await LoadArticlesAsync();
         }
 
-        // ====================================================================
-        // 📥 CARGA DE DATOS REALES DESDE TU API
-        // ====================================================================
         private async Task LoadArticlesAsync()
         {
             try
             {
-                // 🚀 Llamamos a tu servicio de red para traer los artículos de la BD
                 var articulosServidor = await _apiService.GetArticlesAsync();
-
-                if (articulosServidor != null)
-                {
-                    _allArticles = articulosServidor.ToList();
-                }
-
-                // Aplicamos tus filtros de búsqueda y tu regla de negocio (Gris/Agotados)
+                if (articulosServidor != null) _allArticles = articulosServidor.ToList();
                 FilterArticles();
             }
             catch (Exception ex)
@@ -96,15 +92,11 @@ namespace ControlInventarioMovil.Views
             }
         }
 
-        // ====================================================================
-        // 🔍 FILTROS INTELIGENTES (Buscador + Switch de Agotados)
-        // ====================================================================
         private void FilterArticles()
         {
             var searchText = searchArticle.Text?.ToLower() ?? "";
             var hideAgotados = switchHideAgotados.IsToggled;
 
-            // Filtro inteligente usando tus campos reales: Name, Model y Code
             var query = _allArticles.Where(a =>
                 (string.IsNullOrEmpty(searchText) ||
                  a.Name.ToLower().Contains(searchText) ||
@@ -114,38 +106,24 @@ namespace ControlInventarioMovil.Views
             ).ToList();
 
             FilteredArticles.Clear();
-            foreach (var article in query)
-            {
-                FilteredArticles.Add(article);
-            }
+            foreach (var article in query) FilteredArticles.Add(article);
         }
 
         private void OnSearchTextChanged(object sender, TextChangedEventArgs e) => FilterArticles();
-
         private void OnHideAgotadosToggled(object sender, ToggledEventArgs e) => FilterArticles();
 
-        // ====================================================================
-        // 🛒 LOGICA DEL CARRITO (+ / -)
-        // ====================================================================
         private void OnIncreaseQuantityClicked(object sender, EventArgs e)
         {
             if (sender is Button boton && boton.BindingContext is Article articulo)
             {
                 int stockDisponible = (int)articulo.Stock;
-
                 if (articulo.QuantityInCart < stockDisponible)
                 {
                     articulo.QuantityInCart++;
-
-                    // 🌟 TRUCO: Buscamos la etiqueta del medio y cambiamos su texto en vivo
                     UpdateCellLabel(sender, articulo.QuantityInCart);
-
                     CalculateTotals();
                 }
-                else
-                {
-                    DisplayAlertAsync("Límite de Stock", $"Solo quedan {stockDisponible} unidades disponibles.", "OK");
-                }
+                else DisplayAlertAsync("Límite de Stock", $"Solo quedan {stockDisponible} unidades disponibles.", "OK");
             }
         }
 
@@ -156,25 +134,18 @@ namespace ControlInventarioMovil.Views
                 if (articulo.QuantityInCart > 0)
                 {
                     articulo.QuantityInCart--;
-
-                    // 🌟 TRUCO: Buscamos la etiqueta del medio y cambiamos su texto en vivo
                     UpdateCellLabel(sender, articulo.QuantityInCart);
-
                     CalculateTotals();
                 }
             }
         }
 
-        // 🧠 FUNCIÓN AUXILIAR: Actualiza el número de la celda de forma instantánea
         private void UpdateCellLabel(object sender, int cantidad)
         {
             if (sender is Button boton && boton.Parent is HorizontalStackLayout stack)
             {
                 var labelNumero = stack.Children.OfType<Label>().FirstOrDefault();
-                if (labelNumero != null)
-                {
-                    labelNumero.Text = cantidad.ToString();
-                }
+                if (labelNumero != null) labelNumero.Text = cantidad.ToString();
             }
         }
 
@@ -183,18 +154,71 @@ namespace ControlInventarioMovil.Views
             int totalUnidades = _allArticles.Sum(a => a.QuantityInCart);
             lblTotalItems.Text = $"{totalUnidades} artículos seleccionados";
 
-            // Matemática basada en tu propiedad real: SalePrice
-            decimal dineroTotal = _allArticles.Sum(a => a.QuantityInCart * (a.SalePrice ?? 0m));
-            lblTotalAmount.Text = $"S/. {dineroTotal:F2}";
+            // 1. Asignamos la matemática pura
+            _totalVentaActual = _allArticles.Sum(a => a.QuantityInCart * (a.SalePrice ?? 0m));
+
+            // 2. Mostramos visualmente respetando tu diseño (S/. 0.00)
+            lblTotalAmount.Text = $"S/. {_totalVentaActual:F2}";
+
+            // 3. Disparamos la validación de vuelto (por si agregaron o quitaron productos)
+            CalcularVueltoEnVivo();
         }
 
         // ====================================================================
-        // 🚀 ACCIONES DE NAVEGACIÓN
+        // 💰 LÓGICA DE VUELTO (EN VIVO)
         // ====================================================================
-        private async void OnBackClicked(object sender, EventArgs e)
+        private void OnMontoRecibidoTextChanged(object sender, TextChangedEventArgs e)
         {
-            await Shell.Current.GoToAsync("..");
+            CalcularVueltoEnVivo();
         }
+
+        private void CalcularVueltoEnVivo()
+        {
+            // 🚨 PROTECCIÓN FANTASMA: Evitamos que estalle al dibujar la pantalla
+            if (btnCerrarVenta == null || txtMontoRecibido == null || lblVueltoValor == null)
+                return;
+
+            // Si el método no es Efectivo, no calculamos nada
+            if (pickerPaymentType.SelectedItem?.ToString() != "Efectivo") return;
+
+            if (_totalVentaActual == 0)
+            {
+                txtMontoRecibido.Text = string.Empty;
+                lblVueltoValor.Text = "0.00";
+                lblVueltoValor.TextColor = Colors.Gray;
+                btnCerrarVenta.IsEnabled = false;
+                return;
+            }
+
+            string textoLimpio = txtMontoRecibido.Text?.Replace(",", ".") ?? "0";
+
+            if (decimal.TryParse(textoLimpio, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _montoRecibidoActual))
+            {
+                _vueltoActual = _montoRecibidoActual - _totalVentaActual;
+
+                if (_vueltoActual >= 0)
+                {
+                    lblVueltoValor.Text = _vueltoActual.ToString("0.00");
+                    lblVueltoValor.TextColor = Colors.Green;
+                    btnCerrarVenta.IsEnabled = true;
+                }
+                else
+                {
+                    lblVueltoValor.Text = "Falta dinero";
+                    lblVueltoValor.TextColor = Colors.Red;
+                    btnCerrarVenta.IsEnabled = false;
+                }
+            }
+            else
+            {
+                _vueltoActual = 0;
+                lblVueltoValor.Text = "0.00";
+                lblVueltoValor.TextColor = Colors.Gray;
+                btnCerrarVenta.IsEnabled = false;
+            }
+        }
+
+        private async void OnBackClicked(object sender, EventArgs e) => await Shell.Current.GoToAsync("..");
 
         private async void OnCheckoutClicked(object sender, EventArgs e)
         {
@@ -202,13 +226,13 @@ namespace ControlInventarioMovil.Views
 
             if (!productosEnCarrito.Any())
             {
-                await DisplayAlertAsync("Carrito vacío", "Por favor, selecciona al menos un producto antes de cerrar la venta.", "OK");
+                await DisplayAlertAsync("Carrito vacío", "Selecciona al menos un producto.", "OK");
                 return;
             }
 
             if (pickerPaymentType.SelectedIndex == -1)
             {
-                await DisplayAlertAsync("Método de Pago", "Por favor, selecciona un método de pago.", "OK");
+                await DisplayAlertAsync("Método de Pago", "Selecciona un método de pago.", "OK");
                 return;
             }
 
@@ -216,12 +240,11 @@ namespace ControlInventarioMovil.Views
             PaymentType tipoPago = PaymentType.Efectivo;
             string textoConfirmacion = metodoSeleccionado;
 
-            // VALIDACIONES DE SELECCIÓN INTERNA
             if (metodoSeleccionado == "Billetera digital")
             {
                 if (pickerSubWallet.SelectedIndex == -1)
                 {
-                    await DisplayAlertAsync("Sub-Método Requerido", "Por favor, especifica qué Billetera Digital usarás al costado.", "OK");
+                    await DisplayAlertAsync("Requerido", "Especifica qué Billetera Digital usarás.", "OK");
                     return;
                 }
                 textoConfirmacion = _selectedSubWallet;
@@ -234,7 +257,7 @@ namespace ControlInventarioMovil.Views
             {
                 if (pickerSalesMode.SelectedIndex == -1)
                 {
-                    await DisplayAlertAsync("Plazo Requerido", "Por favor, especifica la Frecuencia de amortización al costado.", "OK");
+                    await DisplayAlertAsync("Requerido", "Especifica la Frecuencia de amortización.", "OK");
                     return;
                 }
                 textoConfirmacion = $"Crédito ({pickerSalesMode.SelectedItem})";
@@ -246,23 +269,24 @@ namespace ControlInventarioMovil.Views
                 else if (metodoSeleccionado == "Transferencia") tipoPago = PaymentType.Transferencia;
             }
 
-            decimal dineroTotal = _allArticles.Sum(a => a.QuantityInCart * (a.SalePrice ?? 0m));
-
-            // 🌟 LA PREGUNTA ULTRA CORTA QUE ME PEDISTE
-            bool confirmar = await DisplayAlertAsync("Confirmar Venta", $"¿Está seguro de realizar esta venta por S/. {dineroTotal:F2} vía {textoConfirmacion}?", "Sí, Confirmar", "Cancelar");
-
+            bool confirmar = await DisplayAlertAsync("Confirmar Venta", $"¿Realizar venta por S/. {_totalVentaActual:F2} vía {textoConfirmacion}?", "Sí, Confirmar", "Cancelar");
             if (!confirmar) return;
 
-            // Empaquetado final hacia la API
+            // 🌟 EMPAQUETADO FINAL (Con campos mapeados)
             var nuevaVenta = new Sale
             {
                 UserId = UserSession.CurrentUser?.Id ?? 1,
                 SaleDate = DateTime.Now,
                 PaymentType = tipoPago,
                 SalesModeId = _currentSalesModeId,
-                TotalAmount = dineroTotal,
-                Notes = $"Venta procesada desde la aplicación móvil.",
-                CustomerName = null
+                TotalAmount = _totalVentaActual,
+                AmountReceived = (tipoPago == PaymentType.Efectivo) ? _montoRecibidoActual : null,
+                ChangeGiven = (tipoPago == PaymentType.Efectivo) ? _vueltoActual : null,
+
+                // MAPEAMOS EL NOMBRE DEL CLIENTE (Si está vacío, enviamos null)
+                CustomerName = string.IsNullOrWhiteSpace(txtCustomerName.Text) ? null : txtCustomerName.Text.Trim(),
+
+                Notes = $"Venta móvil."
             };
 
             foreach (var art in productosEnCarrito)
@@ -280,13 +304,16 @@ namespace ControlInventarioMovil.Views
 
             if (exito)
             {
-                await DisplayAlertAsync("¡Venta Exitosa!", "La transacción se ha registrado correctamente.", "Perfecto");
+                await DisplayAlertAsync("¡Éxito!", "Venta registrada correctamente.", "Perfecto");
 
-                // Limpieza impecable
+                // 🧹 LIMPIEZA TOTAL PARA LA SIGUIENTE VENTA
                 foreach (var a in _allArticles) a.QuantityInCart = 0;
                 pickerPaymentType.SelectedIndex = 0;
                 pickerSubWallet.SelectedIndex = -1;
                 pickerSalesMode.SelectedIndex = -1;
+                txtCustomerName.Text = string.Empty;
+                txtDocument.Text = string.Empty;
+                txtMontoRecibido.Text = string.Empty;
                 _currentSalesModeId = 5;
                 _selectedSubWallet = "";
 
@@ -296,8 +323,97 @@ namespace ControlInventarioMovil.Views
             }
             else
             {
-                await DisplayAlertAsync("Error", "No se pudo registrar la venta. Intente nuevamente.", "OK");
+                await DisplayAlertAsync("Error", "No se pudo registrar la venta.", "OK");
             }
+        }
+
+        private async void OnSearchDocumentClicked(object sender, EventArgs e)
+        {
+            string documento = txtDocument.Text?.Trim() ?? "";
+
+            if (documento.Length != 8 && documento.Length != 11)
+            {
+                await DisplayAlertAsync("Atención", "Ingrese un DNI válido (8 dígitos) o RUC (11 dígitos).", "OK");
+                return;
+            }
+
+            // Bloqueamos la interfaz mientras busca
+            btnSearchDoc.IsEnabled = false;
+            txtCustomerName.Placeholder = "Buscando...";
+            txtCustomerName.Text = string.Empty;
+
+            try
+            {
+                string nombreEncontrado = "";
+
+                if (documento.Length == 8)
+                {
+                    var persona = await _apiService.ConsultarDniAsync(documento);
+
+                    if (persona != null)
+                    {
+                        nombreEncontrado = persona.NombreCompleto ?? "";
+                    }
+                }
+                else if (documento.Length == 11)
+                {
+                    var empresa = await _apiService.ConsultarRucAsync(documento);
+
+                    if (empresa != null)
+                    {
+                        nombreEncontrado = empresa.ContactName?.Trim() ?? "";
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(nombreEncontrado))
+                {
+                    txtCustomerName.Text = nombreEncontrado;
+                }
+                else
+                {
+                    await DisplayAlertAsync("Sin resultados", "No se encontró información para este documento en la base de datos externa.", "OK");
+                }
+            }
+            catch (Exception)
+            {
+                await DisplayAlertAsync("Error", "Hubo un problema de conexión con el servidor de consultas.", "OK");
+            }
+            finally
+            {
+                btnSearchDoc.IsEnabled = true;
+                txtCustomerName.Placeholder = "Nombre del cliente (Opcional)";
+            }
+        }
+
+        private async void OnListModeClicked(object sender, EventArgs e)
+        {
+            await thumbFondo.TranslateToAsync(0, 0, 250, Easing.CubicInOut);
+            gridArticles.IsVisible = false;
+            listArticles.IsVisible = true;
+        }
+
+        private async void OnGridModeClicked(object sender, EventArgs e)
+        {
+            double desplazamiento = thumbFondo.Width;
+            await thumbFondo.TranslateToAsync(desplazamiento, 0, 250, Easing.CubicInOut);
+
+            listArticles.IsVisible = false;
+            gridArticles.IsVisible = true;
+            gridArticles.ItemsSource = FilteredArticles;
+        }
+
+        private async void OnAbrirPanelClicked(object sender, EventArgs e)
+        {
+            btnAbrirPanel.IsVisible = false;
+            panelCobro.IsVisible = true;
+            await panelCobro.TranslateToAsync(0, 0, 350, Easing.CubicOut);
+        }
+
+        private async void OnCerrarPanelClicked(object sender, EventArgs e)
+        {
+            await panelCobro.TranslateToAsync(0, panelCobro.Height + 50, 300, Easing.CubicIn);
+            panelCobro.IsVisible = false;
+            btnAbrirPanel.IsVisible = true;
         }
     }
 }
