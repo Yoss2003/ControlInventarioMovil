@@ -130,25 +130,31 @@ namespace ControlInventarioMovil.Services
             }
             catch (Exception ex) { Console.WriteLine($"Error crítico: {ex.Message}"); return false; }
         }
-        public async Task<string?> UploadPhotoAsync(string croppedFilePath)
+        public async Task<string?> UploadPhotoAsync(int userId, string croppedFilePath)
         {
             try
             {
-                if (!System.IO.File.Exists(croppedFilePath)) return null;
-                using var stream = System.IO.File.OpenRead(croppedFilePath);
-                var content = new MultipartFormDataContent();
-                var fileName = $"{Guid.NewGuid()}.jpg";
-                content.Add(new StreamContent(stream), "file", fileName);
+                if (!File.Exists(croppedFilePath)) return null;
 
-                var response = await _httpClient.PostAsync($"{BaseApiUrl}/Users/UploadPhoto", content);
+                byte[] imageBytes = await File.ReadAllBytesAsync(croppedFilePath);
+                string base64String = Convert.ToBase64String(imageBytes);
+
+                var payload = new { Base64Image = base64String };
+                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Users/{userId}/UpdatePhoto", payload);
+
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
                     var result = JsonConvert.DeserializeObject<dynamic>(json);
-                    return result?.url;
+                    return result?.url ?? result?.Url;
+                }
+                else
+                {
+                    string error = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[API_PHOTO_ERROR]: {error}");
                 }
             }
-            catch (Exception ex) { Console.WriteLine($"Error crítico: {ex.Message}"); }
+            catch (Exception ex) { Console.WriteLine($"Error crítico subiendo foto: {ex.Message}"); }
             return null;
         }
 

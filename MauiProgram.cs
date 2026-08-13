@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using ControlInventarioMovil.Services;
+using ControlInventarioMovil.ViewModels;
+using ControlInventarioMovil.Views;
+using Microsoft.Extensions.Logging;
 using Plugin.Maui.ImageCropper;
 using ZXing.Net.Maui.Controls;
 
@@ -8,16 +11,25 @@ namespace ControlInventarioMovil
     {
         public static MauiApp CreateMauiApp()
         {
+            CrashLogger.Initialize();
+
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
                 .UseImageCropper()
                 .UseBarcodeReader()
-                .ConfigureFonts(fonts =>
+                        .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
+
+            // 1. Registro de Servicios
+            builder.Services.AddSingleton<ApiService>();
+
+            // 2. Registro de Views y ViewModels (Transient porque cambian de estado)
+            builder.Services.AddTransient<InventoryViewModel>();
+            builder.Services.AddTransient<InventoryPage>();
 
 #if DEBUG
             builder.Logging.AddDebug();
