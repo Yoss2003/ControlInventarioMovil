@@ -1,77 +1,78 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:models="clr-namespace:ControlInventario.Shared.Models;assembly=ControlInventario.Shared"
              x:Class="ControlInventarioMovil.Views.ShareInventoryPage"
+             xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
              Shell.NavBarIsVisible="False"
-             Title="Compartir Inventario"
-             BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}">
+             NavigationPage.HasNavigationBar="False"
+             BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}">
 
     <Grid RowDefinitions="Auto, *">
 
-        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="15,20,15,10" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
-            <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" Padding="0" Clicked="OnVolverClicked"/>
-            <Label Grid.Column="1" Text="COMPARTIR INVENTARIO" TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" VerticalOptions="Center" CharacterSpacing="0.5"/>
-            <BoxView Grid.Column="2" WidthRequest="30" BackgroundColor="Transparent"/>
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="15,10" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1A232C}">
+            <ImageButton Grid.Column="0" Source="back_icon.png" WidthRequest="32" HeightRequest="32" BackgroundColor="Transparent" Padding="4" VerticalOptions="Center" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVolverClicked"/>
+            <Label Grid.Column="1" Text="COMPARTIR INVENTARIO" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="16" HorizontalTextAlignment="Center" VerticalOptions="Center"/>
+            <BoxView Grid.Column="2" WidthRequest="32" Color="Transparent"/>
         </Grid>
 
-        <ScrollView Grid.Row="1" Padding="15">
-            <VerticalStackLayout Spacing="20" Padding="0,0,0,30">
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="20" Padding="15">
 
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="CONCEDER ACCESO COLABORATIVO" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                <Label Text="CONCEDER ACCESO COLABORATIVO" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" Margin="0,0,0,-10"/>
 
-                    <Border StrokeShape="RoundRectangle 12" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
-                        <VerticalStackLayout Spacing="15">
+                <Border StrokeShape="RoundRectangle 10" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
+                    <VerticalStackLayout Spacing="15">
 
-                            <VerticalStackLayout Spacing="5">
-                                <Label Text="Seleccionar Miembro del Entorno *" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                    <Picker x:Name="pckEmployee" Title="Seleccione un compañero..." ItemDisplayBinding="{Binding FirstName}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" TitleColor="Gray" BackgroundColor="Transparent" VerticalOptions="Center" x:DataType="models:Employee"/>
+                        <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                            <Switch x:Name="SwModoAvanzado" Toggled="OnModoAvanzadoToggled" OnColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}"/>
+                            <Label Text="Modo Avanzado (Gestionar otros inventarios)" VerticalOptions="Center" TextColor="{AppThemeBinding Light=#54606C, Dark=#A0E2FF}" FontAttributes="Bold" FontSize="13"/>
+                        </HorizontalStackLayout>
+
+                        <Grid x:Name="ContenedorInventarios" IsVisible="False" ColumnDefinitions="*, Auto" ColumnSpacing="10" Margin="0,5,0,0">
+                            <Border Grid.Column="0" StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" HeightRequest="46">
+                                <Picker x:Name="PkrInventarios" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" SelectedIndexChanged="OnInventarioSeleccionadoChanged" Margin="10,0"/>
+                            </Border>
+
+                            <ImageButton Grid.Column="1" Source="add_icon.png" BackgroundColor="Transparent" Padding="8" WidthRequest="46" HeightRequest="46" VerticalOptions="Center" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnCrearNuevoInventarioPopUpClicked"/>
+                        </Grid>
+
+                        <Label Text="Seleccionar Miembro del Entorno *" FontSize="13" TextColor="{AppThemeBinding Light=#54606C, Dark=#A0E2FF}" FontAttributes="Bold" Margin="0,0,0,-10"/>
+                        <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" HeightRequest="46">
+                            <Picker x:Name="pckEmployee" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" ItemDisplayBinding="{Binding FirstName}" Margin="10,0"/>
+                        </Border>
+
+                        <Label Text="Nivel de Permiso (Rol de Contexto) *" FontSize="13" TextColor="{AppThemeBinding Light=#54606C, Dark=#A0E2FF}" FontAttributes="Bold" Margin="0,0,0,-10"/>
+                        <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" HeightRequest="46">
+                            <Picker x:Name="pckAccessLevel" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" ItemDisplayBinding="{Binding Name}" Margin="10,0"/>
+                        </Border>
+
+                        <Button x:Name="btnShare" Text="OTORGAR ACCESO" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="8" HeightRequest="46" Margin="0,10,0,0" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnShareClicked"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label Text="COLABORADORES ACTIVOS EN ESTE INVENTARIO" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" Margin="0,10,0,-10"/>
+
+                <Border StrokeShape="RoundRectangle 10" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
+                    <CollectionView x:Name="cvSharedUsers" EmptyView="No hay colaboradores vinculados a este inventario.">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="15" Margin="0,0,0,10">
+                                    <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="15" VerticalOptions="Center">
+
+                                        <VerticalStackLayout Grid.Column="0" VerticalOptions="Center">
+                                            <Label Text="{Binding User.Username}" FontAttributes="Bold" FontSize="15" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}"/>
+                                            <Label Text="{Binding AccessLevel}" FontSize="13" TextColor="{AppThemeBinding Light=#54606C, Dark=#A0E2FF}"/>
+                                        </VerticalStackLayout>
+
+                                        <ImageButton Grid.Column="1" Source="edit_icon.png" WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditAccessClicked" CommandParameter="{Binding .}" VerticalOptions="Center"/>
+                                        <ImageButton Grid.Column="2" Source="delete_icon.png" WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnRevokeAccessClicked" CommandParameter="{Binding .}" VerticalOptions="Center"/>
+
+                                    </Grid>
                                 </Border>
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout Spacing="5">
-                                <Label Text="Nivel de Permiso (Rol de Contexto) *" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
-                                <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="45">
-                                    <Picker x:Name="pckAccessLevel" Title="Seleccione el permiso..." ItemDisplayBinding="{Binding Name}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" TitleColor="Gray" BackgroundColor="Transparent" VerticalOptions="Center" x:DataType="models:RolePermission"/>
-                                </Border>
-                            </VerticalStackLayout>
-
-                            <Button x:Name="btnShare" Text="OTORGAR ACCESO" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" HeightRequest="45" CornerRadius="8" Margin="0,5,0,0" Clicked="OnShareClicked"/>
-
-                        </VerticalStackLayout>
-                    </Border>
-                </VerticalStackLayout>
-
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="COLABORADORES ACTIVOS EN ESTE INVENTARIO" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
-
-                    <Border StrokeShape="RoundRectangle 12" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
-                        <VerticalStackLayout Spacing="10">
-
-                            <CollectionView x:Name="cvSharedUsers" SelectionMode="None" EmptyView="Nadie más tiene acceso a este inventario todavía.">
-                                <CollectionView.ItemsLayout>
-                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="10"/>
-                                </CollectionView.ItemsLayout>
-                                <CollectionView.ItemTemplate>
-                                    <DataTemplate x:DataType="{x:Null}">
-                                        <Grid ColumnDefinitions="*, Auto" VerticalOptions="Center">
-
-                                            <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                                <Label Text="{Binding User.Username}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="14"/>
-                                                <Label Text="{Binding AccessLevelDescription}" TextColor="Gray" FontSize="11"/>
-                                            </VerticalStackLayout>
-
-                                            <ImageButton Grid.Column="1" Source="edit_icon.png" WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" VerticalOptions="Center" CommandParameter="{Binding .}" Clicked="OnRevokeAccessClicked"/>
-                                        </Grid>
-                                    </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>
-
-                        </VerticalStackLayout>
-                    </Border>
-                </VerticalStackLayout>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Border>
 
             </VerticalStackLayout>
         </ScrollView>

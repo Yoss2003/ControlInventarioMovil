@@ -184,29 +184,24 @@ namespace ControlInventarioMovil.Views
             foreach (var boton in _botonesOrbitales) boton.CancelAnimations();
         }
 
-        // Descarga de almacenes desde Somee al Picker de MAUI
         private async Task CargarAmbientesDeTrabajoAsync()
         {
             try
             {
-                PkrAmbienteTrabajo.Title = "Cargando...";
+                PkrAmbienteTrabajo.SelectedIndexChanged -= OnAmbienteTrabajoChanged;
 
                 var apiService = new ControlInventarioMovil.Services.ApiService();
                 var lista = await apiService.GetInventoriesAsync();
 
                 if (lista != null)
                 {
-                    PkrAmbienteTrabajo.SelectedIndexChanged -= OnAmbienteTrabajoChanged; // Apagar evento temporalmente
                     PkrAmbienteTrabajo.Items.Clear();
 
-                    // 👇 FILTRO SENIOR: Excluimos el inventario global de sistema (Id = 0) de la lista de memoria
                     _almacenesDisponibles = lista.Where(i => i.Id != 0 && i.IsActive).ToList();
 
-                    // Llenamos el Picker mostrando el Alias limpio
                     _almacenesDisponibles.ForEach(inv =>
                         PkrAmbienteTrabajo.Items.Add(string.IsNullOrWhiteSpace(inv.Alias) ? inv.InventoryName : inv.Alias));
 
-                    // Si ya hay un almacén activo en la sesión y es válido, lo pre-seleccionamos
                     if (UserSession.CurrentInventory != null && UserSession.CurrentInventory.Id != 0)
                     {
                         int index = _almacenesDisponibles.FindIndex(i => i.Id == UserSession.CurrentInventory.Id);
@@ -214,21 +209,20 @@ namespace ControlInventarioMovil.Views
                     }
                     else if (_almacenesDisponibles.Any())
                     {
-                        // Si la sesión tenía el ID 0 o estaba en null, forzamos el primer almacén real de la sucursal
                         PkrAmbienteTrabajo.SelectedIndex = 0;
                         UserSession.CurrentInventory = _almacenesDisponibles.First();
                     }
 
-                    PkrAmbienteTrabajo.SelectedIndexChanged += OnAmbienteTrabajoChanged; // Re-encender evento
+                    PkrAmbienteTrabajo.SelectedIndexChanged += OnAmbienteTrabajoChanged;
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[WORKSPACE_ERROR] {ex.Message}");
-            }
-            finally
-            {
-                PkrAmbienteTrabajo.Title = "";
+
+                PkrAmbienteTrabajo.Items.Clear();
+                PkrAmbienteTrabajo.Items.Add("Error de conexión");
+                PkrAmbienteTrabajo.SelectedIndex = 0;
             }
         }
 
@@ -237,17 +231,11 @@ namespace ControlInventarioMovil.Views
         {
             if (PkrAmbienteTrabajo.SelectedIndex == -1) return;
 
-            // Cambiamos el contexto del entorno activo globalmente en la sesión
             UserSession.CurrentInventory = _almacenesDisponibles[PkrAmbienteTrabajo.SelectedIndex];
 
             string nombreVisual = string.IsNullOrWhiteSpace(UserSession.CurrentInventory.Alias)
                 ? UserSession.CurrentInventory.InventoryName
                 : UserSession.CurrentInventory.Alias;
-
-            // 👇 Actualizado a .NET 10.0 utilizando la palabra Async al final
-            //await DisplayAlertAsync("Entorno Activo",
-            //    $"Cambiado a: {nombreVisual}\n\n(Todos los artículos ingresados ahora se guardarán con el ID real de este almacén: {UserSession.CurrentInventory.Id})",
-            //    "OK");
 
             await ActualizarStockCircularAsync();
         }
@@ -658,7 +646,7 @@ namespace ControlInventarioMovil.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error al actualizar stock circular: {ex.Message}");
+                Debug.WriteLine($"Error al actualizar stock circular: {ex.Message}");
                 LblTotalArticulos.Text = "0 artículos";
             }
         }
@@ -685,6 +673,17 @@ namespace ControlInventarioMovil.Views
             {
                 await DisplayAlertAsync("Error", $"No se pudo abrir Personal: {ex.Message}", "OK");
             }
+        }
+
+        private async void OnCompartirInventarioClicked(object sender, EventArgs e)
+        {
+            if (UserSession.CurrentInventory == null || UserSession.CurrentInventory.Id == 0)
+            {
+                await DisplayAlertAsync("Aviso", "Primero debes seleccionar o crear un almacén para poder compartirlo.", "Entendido");
+                return;
+            }
+
+            await Shell.Current.GoToAsync("ShareInventoryPage");
         }
     }
 }

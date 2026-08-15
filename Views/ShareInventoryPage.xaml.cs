@@ -1,29 +1,26 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
-using Newtonsoft.Json;
-using System.Text;
 
 namespace ControlInventarioMovil.Views
 {
     public partial class ShareInventoryPage : ContentPage
     {
         private readonly ApiService _apiService;
-        private readonly int _currentInventoryId;
+        private int _currentInventoryId;
+        private List<Inventory> _misInventarios = new();
 
-        // Clase auxiliar interna para poblar el Picker del Enum de forma elegante
         public class AccessLevelOption
         {
             public string Name { get; set; } = string.Empty;
             public SharedInventory.AccessMode Value { get; set; }
         }
 
-        public ShareInventoryPage(int inventoryId)
+        public ShareInventoryPage()
         {
             InitializeComponent();
             _apiService = new ApiService();
-            _currentInventoryId = inventoryId;
-
+            _currentInventoryId = UserSession.CurrentInventory?.Id ?? 0;
             ConfigurarPickerAccesos();
         }
 
@@ -32,37 +29,37 @@ namespace ControlInventarioMovil.Views
             base.OnAppearing();
             await CargarColaboradoresMismaEmpresaAsync();
             await CargarListaCompartidosAsync();
+            await CargarMisInventariosAsync();
         }
 
-        // Llenamos el Picker de permisos usando tu Enum Anidado de forma nativa
         private void ConfigurarPickerAccesos()
         {
             var opciones = new List<AccessLevelOption>
             {
+                new AccessLevelOption { Name = "-- Seleccione un permiso --", Value = 0 },
                 new AccessLevelOption { Name = "Solo Lector (Ver sin modificar)", Value = SharedInventory.AccessMode.Lector },
                 new AccessLevelOption { Name = "Editor (Agregar y Modificar)", Value = SharedInventory.AccessMode.Editor }
             };
+
             pckAccessLevel.ItemsSource = opciones;
-            pckAccessLevel.SelectedIndex = 0; // Por defecto Lector
+            pckAccessLevel.SelectedIndex = 0;
         }
 
-        // 🏢 REGLA DE NEGOCIO: Cargamos solo al personal del mismo entorno laboral
         private async Task CargarColaboradoresMismaEmpresaAsync()
         {
             try
             {
-                // Jalamo tu método que ya filtra o trae la lista de empleados de la BD
                 var todosLosEmpleados = await _apiService.GetEmployeesAsync();
-
                 if (todosLosEmpleados != null && UserSession.CurrentUser != null)
                 {
-                    // 🚨 FILTRO FILIAL: Mostramos solo a quienes pertenezcan a la misma área/empresa 
-                    // y ocultamos al usuario logueado para que no se auto-invite
                     var compañeros = todosLosEmpleados
-                        .Where(e => e.Id != UserSession.CurrentUser.Employee!.Id && e.IsActive) // 🚨 Agregamos && e.IsActive
+                        .Where(e => e.Id != UserSession.CurrentUser.Employee?.Id && e.IsActive)
                         .ToList();
 
+                    compañeros.Insert(0, new Employee { Id = 0, FirstName = "-- Seleccione un colaborador --" });
+
                     pckEmployee.ItemsSource = compañeros;
+                    pckEmployee.SelectedIndex = 0;
                 }
             }
             catch (Exception ex)
@@ -71,52 +68,149 @@ namespace ControlInventarioMovil.Views
             }
         }
 
+        private async Task CargarMisInventariosAsync()
+        {
+            try
+            {
+                var lista = await _apiService.GetInventoriesAsync();
+                if (lista != null)
+                {
+                    _misInventarios = lista.Where(i => i.Id != 0 && i.IsActive).ToList();
+
+                    PkrInventarios.ItemsSource = _misInventarios
+                        .Select(i => string.IsNullOrWhiteSpace(i.Alias) ? i.InventoryName : i.Alias)
+                        .ToList();
+
+                    int index = _misInventarios.FindIndex(i => i.Id == _currentInventoryId);
+                    if (index >= 0) PkrInventarios.SelectedIndex = index;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERR_LOAD_INVENTORIES]: {ex.Message}");
+            }
+        }
+
         private async Task CargarListaCompartidosAsync()
         {
-            // Aquí en el futuro harás un GET a la API para poblar cvSharedUsers.ItemsSource
-            // Con los usuarios que ya tienen filas en la tabla SharedInventories
+            try
+            {
+                var listaCompartidos = await _apiService.GetSharedInventoriesAsync(_currentInventoryId);
+                cvSharedUsers.ItemsSource = listaCompartidos;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERR_LOAD_SHARED]: {ex.Message}");
+            }
+        }
+
+        private async void OnCrearNuevoInventarioPopUpClicked(object sender, EventArgs e)
+        {
+            string nombre = await DisplayPromptAsync(
+                "Nuevo Ambiente",
+                "Escribe el nombre de la nueva Bodega o Almacén corporativo:",
+                "Guardar",
+                "Cancelar",
+                "Ej. Almacén del Norte");
+
+            if (string.IsNullOrWhiteSpace(nombre)) return;
+
+            try
+            {
+                string fechaActual = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
+                string prefijoFecha = DateTime.Now.ToString("ddMM");
+
+                var nuevoInventario = new Inventory
+                {
+                    InventoryName = $"{UserSession.CurrentUser?.Username}_Invent_{prefijoFecha}",
+                    Alias = nombre.Trim(),
+                    UserId = UserSession.CurrentUser?.Id ?? 0,
+                    Username = UserSession.CurrentUser?.Username ?? "Usuario",
+                    CreationDate = fechaActual,
+                    ModificationDate = fechaActual,
+                    IsActive = true
+                };
+
+                bool exito = await _apiService.CreateInventoryAsync(nuevoInventario);
+
+                if (exito)
+                {
+                    await DisplayAlertAsync("Éxito", "Ambiente creado exitosamente.", "OK");
+                    await CargarMisInventariosAsync();
+
+                    int nuevoIndex = _misInventarios.FindIndex(i => i.Alias == nombre.Trim());
+                    if (nuevoIndex >= 0)
+                    {
+                        PkrInventarios.SelectedIndex = nuevoIndex;
+                    }
+                }
+                else
+                {
+                    await DisplayAlertAsync("Error", "No se pudo registrar el nuevo ambiente en la base de datos.", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlertAsync("Error Crítico", $"Fallo al crear almacén: {ex.Message}", "OK");
+            }
+        }
+
+        private void OnModoAvanzadoToggled(object sender, ToggledEventArgs e)
+        {
+            ContenedorInventarios.IsVisible = e.Value;
+            if (!e.Value)
+            {
+                _currentInventoryId = UserSession.CurrentInventory?.Id ?? 0;
+                int indexOriginal = _misInventarios.FindIndex(i => i.Id == _currentInventoryId);
+                if (indexOriginal >= 0) PkrInventarios.SelectedIndex = indexOriginal;
+                _ = CargarListaCompartidosAsync();
+            }
+        }
+
+        private void OnInventarioSeleccionadoChanged(object sender, EventArgs e)
+        {
+            if (PkrInventarios.SelectedIndex >= 0 && PkrInventarios.SelectedIndex < _misInventarios.Count)
+            {
+                _currentInventoryId = _misInventarios[PkrInventarios.SelectedIndex].Id;
+                _ = CargarListaCompartidosAsync();
+            }
         }
 
         private async void OnShareClicked(object sender, EventArgs e)
         {
-            var empleadoSeleccionado = pckEmployee.SelectedItem as Employee;
-            var permisoSeleccionado = pckAccessLevel.SelectedItem as AccessLevelOption;
-
-            if (empleadoSeleccionado == null || permisoSeleccionado == null)
+            if (pckEmployee.SelectedIndex <= 0 || pckAccessLevel.SelectedIndex <= 0)
             {
                 await DisplayAlertAsync("Validación", "Seleccione un colaborador y su nivel de permiso.", "OK");
                 return;
             }
+
+            var empleadoSeleccionado = pckEmployee.SelectedItem as Employee;
+            var permisoSeleccionado = pckAccessLevel.SelectedItem as AccessLevelOption;
 
             btnShare.IsEnabled = false;
             btnShare.Text = "PROCESANDO INDUCCIÓN...";
 
             try
             {
-                // 📦 Armamos el DTO exacto que tu API espera con el formato numérico del Enum
                 var shareRequest = new
                 {
                     InventoryId = _currentInventoryId,
-                    GuestIdentifier = empleadoSeleccionado.FirstName,
-                    AccessLevel = (int)permisoSeleccionado.Value
+                    GuestIdentifier = empleadoSeleccionado!.DNI ?? empleadoSeleccionado.FirstName,
+                    AccessLevel = (int)permisoSeleccionado!.Value
                 };
 
-                using var client = new HttpClient();
-                var json = JsonConvert.SerializeObject(shareRequest);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                bool exito = await _apiService.ShareInventoryAsync(shareRequest);
 
-                // Le pegamos al Endpoint que acabas de publicar
-                var response = await client.PostAsync("http://db-inventario-api.somee.com/api/Inventories/Share", content);
-
-                if (response.IsSuccessStatusCode)
+                if (exito)
                 {
                     await DisplayAlertAsync("Éxito", "Inventario vinculado correctamente con tu compañero de equipo.", "OK");
-                    await CargarListaCompartidosAsync(); // Recargamos la grilla
+                    pckEmployee.SelectedIndex = 0;
+                    pckAccessLevel.SelectedIndex = 0;
+                    await CargarListaCompartidosAsync();
                 }
                 else
                 {
-                    var errorMsg = await response.Content.ReadAsStringAsync();
-                    await DisplayAlertAsync("Atención", $"El servidor denegó el acceso: {errorMsg}", "OK");
+                    await DisplayAlertAsync("Atención", "El servidor denegó el acceso. Verifica la conexión o el identificador.", "OK");
                 }
             }
             catch (Exception ex)
@@ -130,9 +224,51 @@ namespace ControlInventarioMovil.Views
             }
         }
 
+        private async void OnEditAccessClicked(object sender, EventArgs e)
+        {
+            if (sender is ImageButton btn && btn.CommandParameter is SharedInventory sharedItem)
+            {
+                string accion = await DisplayActionSheetAsync($"Modificar acceso de {sharedItem.User?.Username}", "Cancelar", null,
+                    "Cambiar a Solo Lector",
+                    "Cambiar a Editor");
+
+                if (accion == "Cancelar" || string.IsNullOrEmpty(accion)) return;
+
+                int nuevoNivel = accion == "Cambiar a Solo Lector" ? 1 : 2;
+                bool exito = await _apiService.UpdateSharedAccessAsync(sharedItem.Id, nuevoNivel);
+
+                if (exito)
+                {
+                    await CargarListaCompartidosAsync();
+                }
+                else
+                {
+                    await DisplayAlertAsync("Error", "No se pudo actualizar el permiso en el servidor.", "OK");
+                }
+            }
+        }
+
         private async void OnRevokeAccessClicked(object sender, EventArgs e)
         {
-            // Lógica futura para borrar el registro de SharedInventories (DELETE)
+            if (sender is ImageButton btn && btn.CommandParameter is SharedInventory sharedItem)
+            {
+                bool confirmar = await DisplayAlertAsync("Revocar Permisos",
+                    $"¿Seguro que deseas quitarle el acceso a {sharedItem.User?.Username}?",
+                    "Sí, revocar", "Cancelar");
+
+                if (confirmar)
+                {
+                    bool exito = await _apiService.RevokeAccessAsync(sharedItem.Id);
+                    if (exito)
+                    {
+                        await CargarListaCompartidosAsync();
+                    }
+                    else
+                    {
+                        await DisplayAlertAsync("Error", "No se pudo revocar el acceso en el servidor.", "OK");
+                    }
+                }
+            }
         }
 
         private async void OnVolverClicked(object sender, EventArgs e) => await Shell.Current.GoToAsync("..");
