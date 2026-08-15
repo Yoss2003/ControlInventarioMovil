@@ -85,16 +85,21 @@
                                         <Setter Property="Opacity" Value="0.4" />
                                     </DataTrigger>
                                 </Border.Triggers>
-                                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="10">
-                                    <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
-                                        <Label Text="{Binding Name}" TextColor="{AppThemeBinding Light=Black, Dark=White}" FontSize="16" FontAttributes="Bold" />
+                                <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="12">
+                                    <Border Grid.Column="0" WidthRequest="60" HeightRequest="60" StrokeShape="RoundRectangle 8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#171F24}" VerticalOptions="Center" HorizontalOptions="Start">
+                                        <Image Source="{Binding MainPhotoPath}" Aspect="AspectFill" />
+                                    </Border>
+
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center" HorizontalOptions="Fill">
+                                        <Label Text="{Binding Name}" TextColor="{AppThemeBinding Light=Black, Dark=White}" FontSize="15" FontAttributes="Bold" LineBreakMode="TailTruncation" MaxLines="2" />
                                         <Label Text="{Binding Model, StringFormat='Modelo: {0}'}" TextColor="#A0A0A0" FontSize="13" />
                                         <HorizontalStackLayout Spacing="15" Margin="0,3,0,0">
                                             <Label Text="{Binding SalePrice, StringFormat='S/. {0:F2}'}" TextColor="#00CED1" FontAttributes="Bold" FontSize="15"/>
                                             <Label Text="{Binding Stock, StringFormat='Stock: {0}'}" TextColor="{AppThemeBinding Light=Gray, Dark=#E0E0E0}" FontSize="13" VerticalOptions="Center"/>
                                         </HorizontalStackLayout>
                                     </VerticalStackLayout>
-                                    <HorizontalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="8">
+
+                                    <HorizontalStackLayout Grid.Column="2" VerticalOptions="Center" Spacing="8" HorizontalOptions="End">
                                         <Button Text="-" WidthRequest="38" HeightRequest="38" Padding="0" CornerRadius="19" FontSize="22" FontAttributes="Bold" BackgroundColor="#E0E0E0" TextColor="Black" Clicked="OnDecreaseQuantityClicked">
                                             <Button.Triggers>
                                                 <DataTrigger TargetType="Button" Binding="{Binding Stock}" Value="0">
@@ -102,7 +107,9 @@
                                                 </DataTrigger>
                                             </Button.Triggers>
                                         </Button>
+
                                         <Label Text="{Binding QuantityInCart}" FontAttributes="Bold" FontSize="16" VerticalOptions="Center" HorizontalOptions="Center" HorizontalTextAlignment="Center" WidthRequest="30" TextColor="{AppThemeBinding Light=Black, Dark=White}"/>
+
                                         <Button Text="+" WidthRequest="38"  HeightRequest="38" Padding="0" CornerRadius="19" FontSize="22" FontAttributes="Bold" BackgroundColor="#8A2BE2" TextColor="White" Clicked="OnIncreaseQuantityClicked">
                                             <Button.Triggers>
                                                 <DataTrigger TargetType="Button" Binding="{Binding Stock}" Value="0">
@@ -133,6 +140,10 @@
                                     </DataTrigger>
                                 </Border.Triggers>
                                 <VerticalStackLayout Spacing="5">
+                                    <Border HeightRequest="100" StrokeShape="RoundRectangle 8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#171F24}">
+                                        <Image Source="{Binding MainPhotoPath}" Aspect="AspectFill" />
+                                    </Border>
+
                                     <Label Text="{Binding Name}" TextColor="{AppThemeBinding Light=Black, Dark=White}" FontSize="14" FontAttributes="Bold" LineBreakMode="TailTruncation" MaxLines="2" HeightRequest="40" HorizontalOptions="Center" HorizontalTextAlignment="Center"/>
                                     <Label Text="{Binding SalePrice, StringFormat='S/. {0:F2}'}" TextColor="#00CED1" FontAttributes="Bold" FontSize="16" HorizontalOptions="Center"/>
                                     <Label Text="{Binding Stock, StringFormat='Stock: {0}'}" TextColor="{AppThemeBinding Light=Gray, Dark=#E0E0E0}" FontSize="12" HorizontalOptions="Center"/>

@@ -1,13 +1,15 @@
 namespace ControlInventarioMovil.Views;
+using Microsoft.EntityFrameworkCore;
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Data;
 using ControlInventarioMovil.Services;
 using Newtonsoft.Json;
 
 public partial class LoginPage : ContentPage
 {
     private readonly ApiService _apiService;
-    private CancellationTokenSource _animacionCts;
+    private CancellationTokenSource _animacionCts = new();
     public LoginPage()
 	{
 		InitializeComponent();
@@ -29,115 +31,163 @@ public partial class LoginPage : ContentPage
 
         loading.IsRunning = true;
 
-        var loginData = new { Username = txtUsername.Text.Trim(), Password = txtPassword.Text.Trim(), TwoFactorCode = (string?)null };
-
-        var handler = new HttpClientHandler
+        try
         {
-            ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
-        };
+            var loginData = new { Username = txtUsername.Text.Trim(), Password = txtPassword.Text.Trim(), TwoFactorCode = (string?)null };
 
-        using var client = new HttpClient(handler);
-        string jsonContent = JsonConvert.SerializeObject(loginData);
-        var httpContent = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
-
-        var response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/Login", httpContent);
-        string resString = await response.Content.ReadAsStringAsync();
-
-        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-        {
-            if (resString.Contains("accountPending"))
+            var handler = new HttpClientHandler
             {
-                loading.IsRunning = false;
-                var errorObj = JsonConvert.DeserializeObject<dynamic>(resString);
-                await DisplayAlertAsync("Acceso Denegado", (string)errorObj!.mensaje, "Entendido");
-                return;
-            }
+                ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+            };
 
-            // 2. TU LÓGICA INTACTA DE 2FA
-            if (resString.Contains("requires2FA") || resString.Contains("Código 2FA requerido"))
+            using var client = new HttpClient(handler);
+            string jsonContent = JsonConvert.SerializeObject(loginData);
+            var httpContent = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/Login", httpContent);
+            string resString = await response.Content.ReadAsStringAsync();
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                loading.IsRunning = false;
-
-                string tokenIngresado = await DisplayPromptAsync(
-                    "Seguridad de Dos Pasos (2FA)",
-                    "Tu cuenta está protegida. Ingresa el código de 6 dígitos de tu aplicación Google Authenticator:",
-                    "Verificar e Ingresar",
-                    "Cancelar",
-                    placeholder: "000000",
-                    maxLength: 6,
-                    keyboard: Keyboard.Numeric);
-
-                if (string.IsNullOrWhiteSpace(tokenIngresado) || tokenIngresado.Length != 6)
+                if (resString.Contains("accountPending"))
                 {
-                    await DisplayAlertAsync("Cancelado", "Inicio de sesión cancelado o código incompleto.", "OK");
+                    loading.IsRunning = false;
+                    var errorObj = JsonConvert.DeserializeObject<dynamic>(resString);
+                    await DisplayAlertAsync("Acceso Denegado", (string)errorObj!.mensaje, "Entendido");
                     return;
                 }
 
-                loading.IsRunning = true;
+                if (resString.Contains("requires2FA") || resString.Contains("Código 2FA requerido"))
+                {
+                    loading.IsRunning = false;
 
-                var loginDataWith2FA = new { Username = txtUsername.Text.Trim(), Password = txtPassword.Text.Trim(), TwoFactorCode = tokenIngresado.Trim() };
-                string jsonContent2FA = JsonConvert.SerializeObject(loginDataWith2FA);
-                var httpContent2FA = new StringContent(jsonContent2FA, System.Text.Encoding.UTF8, "application/json");
+                    string tokenIngresado = await DisplayPromptAsync(
+                        "Seguridad de Dos Pasos (2FA)",
+                        "Tu cuenta está protegida. Ingresa el código de 6 dígitos de tu aplicación Google Authenticator:",
+                        "Verificar e Ingresar",
+                        "Cancelar",
+                        placeholder: "000000",
+                        maxLength: 6,
+                        keyboard: Keyboard.Numeric);
 
-                response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/Login", httpContent2FA);
-                resString = await response.Content.ReadAsStringAsync();
+                    if (string.IsNullOrWhiteSpace(tokenIngresado) || tokenIngresado.Length != 6)
+                    {
+                        await DisplayAlertAsync("Cancelado", "Inicio de sesión cancelado o código incompleto.", "OK");
+                        return;
+                    }
+
+                    loading.IsRunning = true;
+
+                    var loginDataWith2FA = new { Username = txtUsername.Text.Trim(), Password = txtPassword.Text.Trim(), TwoFactorCode = tokenIngresado.Trim() };
+                    string jsonContent2FA = JsonConvert.SerializeObject(loginDataWith2FA);
+                    var httpContent2FA = new StringContent(jsonContent2FA, System.Text.Encoding.UTF8, "application/json");
+
+                    response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/Login", httpContent2FA);
+                    resString = await response.Content.ReadAsStringAsync();
+                }
+            }
+
+            loading.IsRunning = false;
+
+            if (response.IsSuccessStatusCode)
+            {
+                if (resString.Contains("requirePasswordChange"))
+                {
+                    var apiResponse = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JObject>(resString);
+                    var userJson = apiResponse?["user"]?.ToString();
+
+                    if (!string.IsNullOrEmpty(userJson))
+                    {
+                        var userPendiente = JsonConvert.DeserializeObject<User>(userJson);
+                        UserSession.CurrentUser = userPendiente;
+                    }
+
+                    await DisplayAlertAsync("Seguridad Obligatoria", "Para proteger tu cuenta, debes establecer una contraseña privada antes de entrar al sistema.", "Aceptar");
+
+                    if (Application.Current?.Windows.Count > 0)
+                    {
+                        Application.Current.Windows[0].Page = new Views.EditProfilePage();
+                    }
+                    return;
+                }
+
+                var user = JsonConvert.DeserializeObject<User>(resString);
+
+                if (user != null)
+                {
+                    UserSession.CurrentUser = user;
+
+                    using (var localContext = new LocalDbContext())
+                    {
+                        var existingUser = await localContext.Users.FirstOrDefaultAsync(u => u.Username == user.Username);
+                        if (existingUser == null) { await localContext.Users.AddAsync(user); }
+                        else { localContext.Entry(existingUser).CurrentValues.SetValues(user); }
+                        await localContext.SaveChangesAsync();
+                    }
+
+                    if (chkRememberMe.IsChecked)
+                    {
+                        await SecureStorage.Default.SetAsync("saved_username", txtUsername.Text);
+                        await SecureStorage.Default.SetAsync("saved_password", txtPassword.Text);
+                    }
+
+                    if (Application.Current?.Windows.Count > 0)
+                    {
+                        Application.Current.Windows[0].Page = new AppShell();
+                    }
+                }
+            }
+            else
+            {
+                try
+                {
+                    var errorObj = JsonConvert.DeserializeObject<dynamic>(resString);
+                    string msg = errorObj?.mensaje ?? "Usuario o contraseña incorrectos.";
+                    await DisplayAlertAsync("Error de Acceso", msg, "Intentar de nuevo");
+                }
+                catch
+                {
+                    await DisplayAlertAsync("Error de Acceso", "Usuario, contraseña o código de seguridad incorrectos.", "Intentar de nuevo");
+                }
             }
         }
-
-        loading.IsRunning = false;
-
-        if (response.IsSuccessStatusCode)
+        catch (HttpRequestException)
         {
-            if (resString.Contains("requirePasswordChange"))
+            loading.IsRunning = false;
+
+            using (var localContext = new LocalDbContext())
             {
-                var apiResponse = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JObject>(resString);
-                var userJson = apiResponse?["user"]?.ToString();
+                string userIngresado = txtUsername.Text.Trim();
+                string passIngresada = txtPassword.Text.Trim();
 
-                if (!string.IsNullOrEmpty(userJson))
+                var localUser = await localContext.Users
+                    .FirstOrDefaultAsync(u => u.Username == userIngresado && u.Password == passIngresada);
+
+                if (localUser != null)
                 {
-                    var userPendiente = JsonConvert.DeserializeObject<User>(userJson);
-                    UserSession.CurrentUser = userPendiente;
-                }
+                    UserSession.CurrentUser = localUser;
 
-                await DisplayAlertAsync("Seguridad Obligatoria", "Para proteger tu cuenta, debes establecer una contraseña privada antes de entrar al sistema.", "Aceptar");
+                    await DisplayAlertAsync("Modo Offline", "Sin conexión al servidor. Ingresando en modo local con datos guardados.", "Continuar");
 
-                if (Application.Current?.Windows.Count > 0)
-                {
-                    Application.Current.Windows[0].Page = new Views.EditProfilePage();
+                    if (Application.Current?.Windows.Count > 0)
+                    {
+                        Application.Current.Windows[0].Page = new AppShell();
+                    }
+                    return;
                 }
-                return;
             }
 
-            var user = JsonConvert.DeserializeObject<User>(resString);
-
-            if (user != null)
-            {
-                UserSession.CurrentUser = user;
-
-                if (chkRememberMe.IsChecked)
-                {
-                    await SecureStorage.Default.SetAsync("saved_username", txtUsername.Text);
-                    await SecureStorage.Default.SetAsync("saved_password", txtPassword.Text);
-                }
-
-                if (Application.Current?.Windows.Count > 0)
-                {
-                    Application.Current.Windows[0].Page = new AppShell();
-                }
-            }
+            await DisplayAlertAsync("Servidor No Disponible", "El servidor está fuera de servicio y no se encontró una sesión local previa para este usuario.", "Entendido");
         }
-        else
+        catch (TaskCanceledException)
         {
-            try
-            {
-                var errorObj = JsonConvert.DeserializeObject<dynamic>(resString);
-                string msg = errorObj?.mensaje ?? "Usuario o contraseña incorrectos.";
-                await DisplayAlertAsync("Error de Acceso", msg, "Intentar de nuevo");
-            }
-            catch
-            {
-                await DisplayAlertAsync("Error de Acceso", "Usuario, contraseña o código de seguridad incorrectos.", "Intentar de nuevo");
-            }
+            loading.IsRunning = false;
+            await DisplayAlertAsync("Tiempo Agotado", "El servidor tardó demasiado en responder. Compruebe su conexión a internet.", "Entendido");
+        }
+        catch (Exception ex)
+        {
+            loading.IsRunning = false;
+            await DisplayAlertAsync("Error", $"Ocurrió un fallo de conexión: {ex.Message}", "OK");
         }
     }
 

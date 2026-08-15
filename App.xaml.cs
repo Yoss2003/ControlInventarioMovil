@@ -1,10 +1,23 @@
-﻿namespace ControlInventarioMovil
+﻿using ControlInventarioMovil.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace ControlInventarioMovil
 {
     public partial class App : Application
     {
         public App()
         {
             InitializeComponent();
+
+            using (var context = new LocalDbContext())
+            {
+                context.Database.EnsureDeleted();
+
+                var rutaDb = context.Database.GetDbConnection().DataSource;
+                System.Diagnostics.Debug.WriteLine($"📂 RUTA DE LA BD LOCAL: {rutaDb}");
+
+                context.Database.EnsureCreated();
+            }
 
             AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
             {

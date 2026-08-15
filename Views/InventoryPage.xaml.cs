@@ -30,7 +30,7 @@ namespace ControlInventarioMovil.Views
             bool puedeCrear = false;
             var userRole = UserSession.CurrentUser?.Role;
 
-            if (userRole?.Name == "Administrador" ||
+            if (userRole?.Name == "SuperAdmin" || userRole?.Name == "Propietario" || userRole?.Name == "Administrador" ||
                (userRole?.RolePermissions != null && userRole.RolePermissions.Any(rp => rp.Permission?.SystemCode == "CREATE_ARTICLES")))
             {
                 puedeCrear = true;
@@ -110,16 +110,16 @@ namespace ControlInventarioMovil.Views
             }
             finally
             {
-                // Apagamos los estados de carga de forma segura
                 ActCargando.IsRunning = false;
                 ActCargando.IsVisible = false;
             }
         }
         private async void OnAgregarArticuloClicked(object sender, EventArgs e)
         {
-            // Navegación limpia usando la ruta registrada en el Shell
+            UserSession.CurrentArticleToEdit = null;
             await Shell.Current.GoToAsync(nameof(ArticleFormPage), false);
         }
+            
         private Article ClonarAArticleBase(Article a)
         {
             return new Article
@@ -155,7 +155,14 @@ namespace ControlInventarioMovil.Views
                 RegistrationDate = a.RegistrationDate,
                 ModificationDate = a.ModificationDate,
                 DecommissionDate = a.DecommissionDate,
-                DepartureDate = a.DepartureDate
+                DepartureDate = a.DepartureDate,
+                Presentation = a.Presentation,
+                AcquisitionUnit = a.AcquisitionUnit,
+                SaleUnit = a.SaleUnit,
+                ConversionFactor = a.ConversionFactor,
+                CurrentEmployeeId = a.CurrentEmployeeId,
+                PreviousEmployeeId = a.PreviousEmployeeId,
+                FixedAsset = a.FixedAsset
             };
         }
 
@@ -253,9 +260,21 @@ namespace ControlInventarioMovil.Views
             }
         }
 
-        private async void OnVolverClicked(object sender, EventArgs e)
+        private async void OnVolverClicked(object sender, EventArgs e) => await Shell.Current.GoToAsync("..");
+
+        protected override bool OnBackButtonPressed()
         {
-            await Shell.Current.GoToAsync("..", false);
+            Dispatcher.Dispatch(async () =>
+            {
+                bool salir = await DisplayAlertAsync("Atención", "Tienes cambios sin guardar. ¿Seguro que deseas salir y perder los datos ingresados?", "Sí, salir", "Continuar editando");
+                if (salir)
+                {
+                    // Limpiamos la memoria antes de salir
+                    UserSession.CurrentArticleToEdit = null;
+                    await Shell.Current.GoToAsync("..");
+                }
+            });
+            return true;
         }
 
         private async void OnConfigCategoriesClicked(object sender, EventArgs e)
@@ -324,18 +343,45 @@ namespace ControlInventarioMovil.Views
         public ArticleUI(Article a)
         {
             if (a == null) return;
-            Id = a.Id; InventoryId = a.InventoryId; Code = a.Code; Barcode = a.Barcode;
-            Name = a.Name; Model = a.Model; CategoryId = a.CategoryId; BrandId = a.BrandId;
-            Tracking = a.Tracking; MeasurementUnit = a.MeasurementUnit; Stock = a.Stock;
-            SerialNumber = a.SerialNumber; AcquisitionPrice = a.AcquisitionPrice;
-            SalePrice = a.SalePrice; AcquisitionCurrency = a.AcquisitionCurrency;
-            SaleCurrency = a.SaleCurrency; AcquisitionDate = a.AcquisitionDate;
-            UsefulLifeMonths = a.UsefulLifeMonths; WarrantyEndDate = a.WarrantyEndDate;
-            Characteristics = a.Characteristics; Observation = a.Observation;
-            StatusId = a.StatusId; LocationId = a.LocationId; ConditionId = a.ConditionId;
-            SupplierId = a.SupplierId; MainPhotoPath = a.MainPhotoPath; MainVoucherPath = a.MainVoucherPath;
-            ActionId = a.ActionId; RegistrationDate = a.RegistrationDate; ModificationDate = a.ModificationDate;
-            DecommissionDate = a.DecommissionDate; DepartureDate = a.DepartureDate;
+            Id = a.Id; 
+            InventoryId = a.InventoryId; 
+            Code = a.Code; 
+            Barcode = a.Barcode;
+            Name = a.Name; 
+            Model = a.Model; 
+            CategoryId = a.CategoryId; 
+            BrandId = a.BrandId;
+            Tracking = a.Tracking; 
+            MeasurementUnit = a.MeasurementUnit; 
+            Stock = a.Stock;
+            SerialNumber = a.SerialNumber; 
+            AcquisitionPrice = a.AcquisitionPrice;
+            SalePrice = a.SalePrice; 
+            AcquisitionCurrency = a.AcquisitionCurrency;
+            SaleCurrency = a.SaleCurrency; 
+            AcquisitionDate = a.AcquisitionDate;
+            UsefulLifeMonths = a.UsefulLifeMonths; 
+            WarrantyEndDate = a.WarrantyEndDate;
+            Characteristics = a.Characteristics; 
+            Observation = a.Observation;
+            StatusId = a.StatusId; 
+            LocationId = a.LocationId; 
+            ConditionId = a.ConditionId;
+            SupplierId = a.SupplierId; 
+            MainPhotoPath = a.MainPhotoPath; 
+            MainVoucherPath = a.MainVoucherPath;
+            ActionId = a.ActionId; 
+            RegistrationDate = a.RegistrationDate;
+            ModificationDate = a.ModificationDate;            
+            DecommissionDate = a.DecommissionDate; 
+            DepartureDate = a.DepartureDate;
+            Presentation = a.Presentation;
+            AcquisitionUnit = a.AcquisitionUnit;
+            SaleUnit = a.SaleUnit;
+            ConversionFactor = a.ConversionFactor;
+            CurrentEmployeeId = a.CurrentEmployeeId;
+            PreviousEmployeeId = a.PreviousEmployeeId;
+            FixedAsset = a.FixedAsset;
         }
     }
 }

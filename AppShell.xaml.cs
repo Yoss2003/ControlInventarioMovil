@@ -1,4 +1,6 @@
 ﻿using ControlInventario.Models;
+using ControlInventarioMovil.Data;
+using ControlInventarioMovil.Services;
 using ControlInventarioMovil.Views;
 using ControlInventarioMovil.Views.Controls;
 
@@ -9,6 +11,12 @@ namespace ControlInventarioMovil
         public AppShell()
         {
             InitializeComponent();
+
+            _ = Task.Run(async () => {
+                var apiService = new ApiService();
+                var syncEngine = new SyncEngine(apiService);
+                await syncEngine.SincronizarBaseDeDatosCompletaAsync();
+            });
 
             var role = UserSession.CurrentUser?.Role;
             bool puedeGestionar = role?.Name == "Admin" ||
@@ -25,6 +33,7 @@ namespace ControlInventarioMovil
             Routing.RegisterRoute("EditProfilePage", typeof(EditProfilePage));
             Routing.RegisterRoute("ScanBarcodePage", typeof(ScanBarcodePage));
             Routing.RegisterRoute("SalesPage", typeof(SalesPage));
+            Routing.RegisterRoute("ShareInventoryPage", typeof(ShareInventoryPage));
             Routing.RegisterRoute(nameof(ArticleFormPage), typeof(ArticleFormPage));
             Routing.RegisterRoute(nameof(ConfiguracionPage), typeof(ConfiguracionPage));
             Routing.RegisterRoute(nameof(CategoriasPage), typeof(CategoriasPage));

@@ -34,8 +34,7 @@ namespace ControlInventarioMovil.Views
 
         private const string TITULO_TECNOLOGIA = "Modelo / Versión";
         private const string PLACEHOLDER_TECNOLOGIA = "Ej. L14 Gen 3, ProBook";
-        private const string TITULO_ABARROTES = "Presentación / Capacidad";
-        private const string PLACEHOLDER_ABARROTES = "Ej. 3 Litros, Six-pack, 500g";
+        private bool _formularioYaCargado = false;
         #endregion
 
         #region 2. CICLO DE VIDA DE LA VISTA
@@ -51,6 +50,8 @@ namespace ControlInventarioMovil.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+
+            if (_formularioYaCargado) return;
 
             OverlayCargando.IsVisible = true;
             LblOverlayTexto.Text = UserSession.CurrentArticleToEdit != null ? "Cargando registro..." : "Preparando formulario...";
@@ -71,6 +72,7 @@ namespace ControlInventarioMovil.Views
             EvaluarYActualizarLayoutLogistico();
 
             OverlayCargando.IsVisible = false;
+            _formularioYaCargado = true;
         }
 
         private void PrepararFormularioParaAltaNueva()
@@ -179,7 +181,7 @@ namespace ControlInventarioMovil.Views
             PkrCategory.SelectedIndexChanged -= OnCategoryChanged;
 
             PkrCategory.SelectedIndex = _categoriasHijas.FindIndex(c => c.Id == art.CategoryId) + 1;
-            PkrCategory.IsEnabled = false;
+            PkrCategory.InputTransparent = true;
 
             OnCategoryChanged(PkrCategory, EventArgs.Empty);
 
@@ -222,7 +224,7 @@ namespace ControlInventarioMovil.Views
             }
             else
             {
-                TxtCantidadInicial.Text = "";
+                TxtCantidadInicial.Text = "1";
             }
 
             _rutaFotoPrincipal = art.MainPhotoPath;
@@ -377,7 +379,7 @@ namespace ControlInventarioMovil.Views
             bool puedeVerCostos = false;
             var userRole = UserSession.CurrentUser?.Role;
 
-            if (userRole?.Name == "Administrador" ||
+            if (userRole?.Name == "SuperAdmin" || userRole?.Name == "Propietario" || userRole?.Name == "Administrador" ||
                (userRole?.RolePermissions != null && userRole.RolePermissions.Any(rp => rp.Permission?.SystemCode == "EDIT_COSTS")))
             {
                 puedeVerCostos = true;
@@ -639,8 +641,6 @@ namespace ControlInventarioMovil.Views
                         PkrSaleUnit.SelectedIndex = 0;
                     }
 
-                    PkrAcquisitionUnit.SelectedIndex = 0;
-                    PkrSaleUnit.SelectedIndex = 0;
                     ControlarColorPlaceholderPicker(PkrAcquisitionUnit);
                     ControlarColorPlaceholderPicker(PkrSaleUnit);
                 }
@@ -791,6 +791,7 @@ namespace ControlInventarioMovil.Views
             ActualizarNombresDePreciosYCalculos();
             OnCalculoGananciaTriggered(null, EventArgs.Empty);
         }
+
         private void OnMonedaChanged(object sender, EventArgs e) { ControlarColorPlaceholderPicker(PkrCurrency); CalcularEquivalenteMoneda(); }
 
         private void CalcularEquivalenteMoneda()
@@ -842,6 +843,7 @@ namespace ControlInventarioMovil.Views
             ActualizarNombresDePreciosYCalculos();
             OnCalculoGananciaTriggered(null, EventArgs.Empty);
         }
+
         private void OnSaleMonedaChanged(object sender, EventArgs e) { ControlarColorPlaceholderPicker(PkrSaleCurrency); CalcularEquivalenteMonedaVenta(); }
 
         private void CalcularEquivalenteMonedaVenta()
@@ -981,7 +983,10 @@ namespace ControlInventarioMovil.Views
             if (formula == "Nombre" || string.IsNullOrWhiteSpace(formula))
             {
                 ContenedorPresentacion.IsVisible = false;
+
                 TxtName.IsReadOnly = false;
+                TxtName.InputTransparent = false;
+                TxtName.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Colors.White : Color.FromArgb("#1C262E");
                 return;
             }
 
@@ -989,7 +994,10 @@ namespace ControlInventarioMovil.Views
             if (formula == "Código + Modelo") formula = "[Código] + [Modelo]";
 
             ContenedorPresentacion.IsVisible = formula.Contains("[Pres.]");
+
             TxtName.IsReadOnly = true;
+            TxtName.InputTransparent = true;
+            TxtName.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
 
             string marcaReal = PkrBrand.SelectedIndex > 0 ? PkrBrand.SelectedItem.ToString() ?? "" : "";
             string codigoReal = string.IsNullOrWhiteSpace(TxtSku.Text) ? TxtBarcode.Text : TxtSku.Text;
@@ -1004,12 +1012,15 @@ namespace ControlInventarioMovil.Views
                 .Replace("[Modelo]", modeloReal)
                 .Replace("[Pres.]", presentacionReal);
 
-            nombreGenerado = nombreGenerado.Replace(" +  + ", " + ").Trim();
-            if (nombreGenerado.EndsWith("+")) nombreGenerado = nombreGenerado.Substring(0, nombreGenerado.Length - 1).Trim();
-            if (nombreGenerado.StartsWith("+")) nombreGenerado = nombreGenerado.Substring(1).Trim();
-            if (nombreGenerado.EndsWith("-")) nombreGenerado = nombreGenerado.Substring(0, nombreGenerado.Length - 1).Trim();
+            nombreGenerado = nombreGenerado.Replace("+", " ");
+            if (nombreGenerado.EndsWith("-")) nombreGenerado = nombreGenerado.Substring(0, nombreGenerado.Length - 1);
 
-            TxtName.Text = nombreGenerado;
+            while (nombreGenerado.Contains("  "))
+            {
+                nombreGenerado = nombreGenerado.Replace("  ", " ");
+            }
+
+            TxtName.Text = nombreGenerado.Trim();
         }
 
         private void GenerarSkuInteligente()
@@ -1749,29 +1760,44 @@ namespace ControlInventarioMovil.Views
             await Shell.Current.GoToAsync("..", false);
         }
 
-        private async void OnVolverClicked(object sender, EventArgs e)
+        private bool HayCambiosSinGuardar()
         {
-            bool salir = await DisplayAlertAsync("Atención", "Tienes cambios sin guardar. ¿Seguro que deseas salir y perder los datos ingresados?", "Sí, salir", "Continuar editando");
-            if (salir)
+            if (UserSession.CurrentArticleToEdit == null)
             {
-                await Shell.Current.GoToAsync("..");
+                return !string.IsNullOrWhiteSpace(TxtName.Text) ||
+                       !string.IsNullOrWhiteSpace(TxtBarcode.Text) ||
+                       !string.IsNullOrWhiteSpace(TxtSku.Text) ||
+                       !string.IsNullOrWhiteSpace(TxtAcquisitionPrice.Text) ||
+                       !string.IsNullOrWhiteSpace(TxtSalePrice.Text) ||
+                       _rutaFotoPrincipal != null ||
+                       _rutaFotoVoucher != null;
+            }
+            else
+            {
+                var original = UserSession.CurrentArticleToEdit;
+                string codigoOriginal = original.Code != null && !original.Code.StartsWith("BAR-") ? original.Code : "";
+
+                return (TxtName.Text?.Trim() ?? "") != (original.Name ?? "") ||
+                       (TxtSku.Text?.Trim() ?? "") != codigoOriginal ||
+                       (TxtAcquisitionPrice.Text?.Trim() ?? "") != (original.AcquisitionPrice?.ToString("F2") ?? "") ||
+                       (TxtSalePrice.Text?.Trim() ?? "") != (original.SalePrice?.ToString("F2") ?? "") ||
+                       (TxtStock.Text?.Trim() ?? "") != original.Stock.ToString("0.##") ||
+                       _rutaFotoPrincipal != original.MainPhotoPath ||
+                       _rutaFotoVoucher != original.MainVoucherPath;
             }
         }
 
-        protected override bool OnBackButtonPressed()
+        private async void OnVolverClicked(object sender, EventArgs e)
         {
-            Dispatcher.Dispatch(async () =>
+            if (HayCambiosSinGuardar())
             {
                 bool salir = await DisplayAlertAsync("Atención", "Tienes cambios sin guardar. ¿Seguro que deseas salir y perder los datos ingresados?", "Sí, salir", "Continuar editando");
-                if (salir)
-                {
-                    await Shell.Current.GoToAsync("..");
-                }
-            });
-            return true;
-        }
+                if (!salir) return;
+            }
 
-        private void OnCancelarClicked(object sender, EventArgs e) => CleanupSessionAndLeave();
+            UserSession.CurrentArticleToEdit = null;
+            await Shell.Current.GoToAsync("..");
+        }
         #endregion
     }
 }

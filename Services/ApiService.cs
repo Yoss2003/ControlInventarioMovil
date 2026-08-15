@@ -3,6 +3,7 @@ using ControlInventarioMovil.Modelo.API;
 using Newtonsoft.Json;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -20,7 +21,12 @@ namespace ControlInventarioMovil.Services
 
         public ApiService()
         {
-            _httpClient = new HttpClient();
+            var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+            };
+
+            _httpClient = new HttpClient(handler);
         }
 
         // =======================================================
@@ -108,6 +114,7 @@ namespace ControlInventarioMovil.Services
                 var loginData = new { Username = username, Password = password };
                 string jsonContent = JsonConvert.SerializeObject(loginData);
                 var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
                 var response = await _httpClient.PostAsync($"{BaseApiUrl}/Users/Login", httpContent);
 
                 if (response.IsSuccessStatusCode)
@@ -115,8 +122,25 @@ namespace ControlInventarioMovil.Services
                     var responseString = await response.Content.ReadAsStringAsync();
                     return JsonConvert.DeserializeObject<User>(responseString);
                 }
+                else if (response.StatusCode == HttpStatusCode.Unauthorized ||
+                         response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    throw new UnauthorizedAccessException("Usuario o contraseña incorrectos.");
+                }
             }
-            catch (Exception ex) { Console.WriteLine($"Excepción en LoginAsync: {ex.Message}"); }
+            catch (HttpRequestException)
+            {
+                throw new Exception("El servidor se encuentra fuera de servicio o en mantenimiento. Por favor, intente más tarde.");
+            }
+            catch (TaskCanceledException)
+            {
+                throw new Exception("Tiempo de espera agotado. El servidor tardó demasiado en responder.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+
             return null;
         }
         public async Task<bool> UpdateUserAsync(User updatedUser)
@@ -394,7 +418,7 @@ namespace ControlInventarioMovil.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     string errorDetallado = await response.Content.ReadAsStringAsync();
-                    System.Diagnostics.Debug.WriteLine($"[API_ERROR_PUT] Detalles del rechazo en el Servidor: {errorDetallado}");
+                    Debug.WriteLine($"[API_ERROR_PUT] Detalles del rechazo en el Servidor: {errorDetallado}");
                 }
 
                 return response.IsSuccessStatusCode;
@@ -980,6 +1004,103 @@ namespace ControlInventarioMovil.Services
             catch (Exception ex) { Console.WriteLine($"[API_ERR] GetHistoryLogs: {ex.Message}"); }
             return new List<HistoryLog>();
         }
+
+        public async Task<List<SharedInventory>> GetSharedInventoriesAsync(int inventoryId)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Inventories/{inventoryId}/Shared");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return JsonConvert.DeserializeObject<List<SharedInventory>>(content) ?? new List<SharedInventory>();
+                }
+                return [];
+            }
+            catch
+            {
+                return [];
+            }
+        }
+
+        public async Task<bool> ShareInventoryAsync(object shareRequest)
+        {
+            try
+            {
+                var json = JsonConvert.SerializeObject(shareRequest);
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync($"{BaseApiUrl}/Inventories/Share", content);
+
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> RevokeAccessAsync(int sharedInventoryId)
+        {
+            try
+            {
+                var response = await _httpClient.DeleteAsync($"{BaseApiUrl}/Inventories/Revoke/{sharedInventoryId}");
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        public async Task<bool> UpdateSharedAccessAsync(int sharedInventoryId, int newAccessLevel)
+        {
+            try
+            {
+                // Enviamos el nuevo nivel como un JSON simple
+                var content = new StringContent(newAccessLevel.ToString(), System.Text.Encoding.UTF8, "application/json");
+                var response = await _httpClient.PutAsync($"{BaseApiUrl}/Inventories/Shared/{sharedInventoryId}", content);
+
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> SyncArticleWithCloudAsync(Article article)
+        {
+            try
+            {
+                var json = JsonConvert.SerializeObject(article);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                // Petición a tu API para guardar/actualizar en SQL Server
+                var response = await _httpClient.PostAsync($"{BaseApiUrl}/Articles", content);
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<List<Article>> GetArticlesFromCloudAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Articles");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    return JsonConvert.DeserializeObject<List<Article>>(json) ?? new List<Article>();
+                }
+                return new List<Article>();
+            }
+            catch
+            {
+                return new List<Article>();
+            }
+        }
     }
 
     public class IntToBoolConverter : System.Text.Json.Serialization.JsonConverter<bool>
@@ -1010,7 +1131,6 @@ namespace ControlInventarioMovil.Services
         {
             if (reader.TokenType == JsonTokenType.Null) return null;
 
-            // 1. Si la API en el servidor responde con un número puro (0, 1, 2)
             if (reader.TokenType == JsonTokenType.Number)
             {
                 int num = reader.GetInt32();

@@ -35,9 +35,7 @@
                             WidthRequest="220" 
                             VerticalOptions="Center">
 
-                        <Picker x:Name="PkrAmbienteTrabajo" 
-                                Title="Seleccionar Almacén" 
-                                TitleColor="{AppThemeBinding Light=#54606C, Dark=#A0E2FF}" 
+                        <Picker x:Name="PkrAmbienteTrabajo"
                                 TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" 
                                 FontAttributes="Bold" 
                                 FontSize="14"
@@ -55,6 +53,12 @@
                                  VerticalOptions="Center"
                                  helpers:EfectosVisualesHelper.Animar="True"
                                  Clicked="OnCrearNuevoAlmacenClicked"/>
+
+                    <ImageButton Source="search_icon.png" 
+                                 BackgroundColor="Transparent" 
+                                 Padding="8" WidthRequest="38" HeightRequest="38" VerticalOptions="Center"
+                                 helpers:EfectosVisualesHelper.Animar="True"
+                                 Clicked="OnCompartirInventarioClicked"/>
                 </HorizontalStackLayout>
             </Grid>
 
