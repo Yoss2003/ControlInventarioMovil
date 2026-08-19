@@ -1,6 +1,7 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
+using System.Diagnostics;
 
 namespace ControlInventarioMovil.Views
 {
@@ -87,7 +88,7 @@ namespace ControlInventarioMovil.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[ERR_LOAD_INVENTORIES]: {ex.Message}");
+                Debug.WriteLine($"[ERR_LOAD_INVENTORIES]: {ex.Message}");
             }
         }
 
@@ -100,7 +101,7 @@ namespace ControlInventarioMovil.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[ERR_LOAD_SHARED]: {ex.Message}");
+                Debug.WriteLine($"[ERR_LOAD_SHARED]: {ex.Message}");
             }
         }
 

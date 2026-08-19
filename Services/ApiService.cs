@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ControlInventarioMovil.Services
 {
@@ -25,8 +26,23 @@ namespace ControlInventarioMovil.Services
             {
                 ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
             };
+            var delegatingHandler = new CompanyHeaderHandler { InnerHandler = handler };
+            _httpClient = new HttpClient(delegatingHandler);
+        }
 
-            _httpClient = new HttpClient(handler);
+        public class CompanyHeaderHandler : DelegatingHandler
+        {
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                int companyId = Preferences.Get("SelectedCompanyId", 1);
+
+                Debug.WriteLine($"[API_INTERCEPTOR] Inyectando Empresa ID: {companyId} a la ruta: {request.RequestUri}");
+
+                request.Headers.Remove("X-Company-Id");
+                request.Headers.TryAddWithoutValidation("X-Company-Id", companyId.ToString());
+
+                return await base.SendAsync(request, cancellationToken);
+            }
         }
 
         // =======================================================
@@ -107,41 +123,73 @@ namespace ControlInventarioMovil.Services
         // =======================================================
         // MÉTODOS PARA USUARIOS (USERS)
         // =======================================================
+        public static HttpClient GetAuthenticatedClient()
+        {
+            var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (s, c, chain, errors) => true
+            };
+
+            var client = new HttpClient(handler);
+
+            int companyId = Preferences.Get("SelectedCompanyId", 1);
+
+            client.DefaultRequestHeaders.Add("X-Company-Id", companyId.ToString());
+
+            // Si usas Tokens JWT para el usuario, también se inyectan aquí:
+            // string token = Preferences.Get("UserToken", "");
+            // client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            return client;
+        }
         public async Task<User?> LoginAsync(string username, string password)
         {
             try
             {
                 var loginData = new { Username = username, Password = password };
-                string jsonContent = JsonConvert.SerializeObject(loginData);
-                var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                var httpContent = new StringContent(JsonConvert.SerializeObject(loginData), Encoding.UTF8, "application/json");
+
+                System.Diagnostics.Debug.WriteLine($"[LOGIN] Intentando conectar a: {BaseApiUrl}/Users/Login");
 
                 var response = await _httpClient.PostAsync($"{BaseApiUrl}/Users/Login", httpContent);
 
+                // 🚀 LEEMOS LA RESPUESTA CRUDA DE SOMEE
+                string rawResponse = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"[LOGIN SOME] Status: {response.StatusCode} | Respuesta: {rawResponse}");
+
                 if (response.IsSuccessStatusCode)
                 {
-                    var responseString = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<User>(responseString);
+                    // Verificamos si requiere cambio de contraseña (como lo tiene tu backend)
+                    if (rawResponse.Contains("requirePasswordChange"))
+                    {
+                        var dynamicResult = JsonConvert.DeserializeObject<dynamic>(rawResponse);
+                        var userString = JsonConvert.SerializeObject(dynamicResult?.user);
+                        return JsonConvert.DeserializeObject<User>(userString);
+                    }
+
+                    return JsonConvert.DeserializeObject<User>(rawResponse);
                 }
-                else if (response.StatusCode == HttpStatusCode.Unauthorized ||
-                         response.StatusCode == HttpStatusCode.BadRequest)
+
+                // 🚨 SI SOMEE RECHAZA EL LOGIN, LANZAMOS EL ERROR EXACTO A LA PANTALLA
+                if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.BadRequest)
                 {
-                    throw new UnauthorizedAccessException("Usuario o contraseña incorrectos.");
+                    // Extraemos el mensaje real que manda tu backend en el JSON
+                    var errorJson = JsonConvert.DeserializeObject<dynamic>(rawResponse);
+                    string mensajeReal = errorJson?.mensaje ?? "Credenciales incorrectas.";
+
+                    throw new UnauthorizedAccessException($"Somee rechazó el acceso: {mensajeReal}");
                 }
+
+                // 🚨 SI EL SERVIDOR EXPLOTÓ (500) O NO EXISTE (404), LO MOSTRAMOS
+                throw new Exception($"Error del Servidor ({response.StatusCode}): {rawResponse}");
             }
-            catch (HttpRequestException)
-            {
-                throw new Exception("El servidor se encuentra fuera de servicio o en mantenimiento. Por favor, intente más tarde.");
-            }
-            catch (TaskCanceledException)
-            {
-                throw new Exception("Tiempo de espera agotado. El servidor tardó demasiado en responder.");
-            }
+            catch (HttpRequestException) { throw new Exception("El servidor de Somee se encuentra fuera de servicio o sin internet."); }
+            catch (TaskCanceledException) { throw new Exception("Tiempo de espera agotado. Somee tardó demasiado."); }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[LOGIN CRASH]: {ex.Message}");
                 throw new Exception(ex.Message);
             }
-
-            return null;
         }
         public async Task<bool> UpdateUserAsync(User updatedUser)
         {
@@ -1005,22 +1053,23 @@ namespace ControlInventarioMovil.Services
             return new List<HistoryLog>();
         }
 
-        public async Task<List<SharedInventory>> GetSharedInventoriesAsync(int inventoryId)
+        public async Task<List<SharedInventoryDTO>> GetSharedInventoriesAsync(int inventoryId)
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Inventories/{inventoryId}/Shared");
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/SharedInventories/inventory/{inventoryId}");
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<List<SharedInventory>>(content) ?? new List<SharedInventory>();
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    return System.Text.Json.JsonSerializer.Deserialize<List<SharedInventoryDTO>>(content, options) ?? new List<SharedInventoryDTO>();
                 }
-                return [];
             }
-            catch
+            catch (Exception ex)
             {
-                return [];
+                Debug.WriteLine($"Error: {ex.Message}");
             }
+            return [];
         }
 
         public async Task<bool> ShareInventoryAsync(object shareRequest)
@@ -1100,6 +1149,49 @@ namespace ControlInventarioMovil.Services
             {
                 return new List<Article>();
             }
+        }
+
+        public async Task<List<T>?> GetCatalogAsync<T>(string endpoint)
+        {
+            try
+            {
+                Debug.WriteLine($"[API_LLAMADA] Solicitando datos a: {endpoint}...");
+
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/{endpoint}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonResponse = await response.Content.ReadAsStringAsync();
+
+                    Debug.WriteLine($"[API_EXITO] {endpoint} respondió con {jsonResponse.Length} caracteres.");
+
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        ReferenceHandler = ReferenceHandler.IgnoreCycles
+                    };
+                    options.Converters.Add(new IntToBoolConverter());
+                    options.Converters.Add(new TrackingModeJsonConverter());
+
+                    var resultado = System.Text.Json.JsonSerializer.Deserialize<List<T>>(jsonResponse, options);
+
+                    Debug.WriteLine($"[API_CONVERSION] {endpoint} deserializó {(resultado != null ? resultado.Count : 0)} registros.");
+
+                    return resultado;
+                }
+                else
+                {
+                    // 🚨 DEBUG CRÍTICO: Aquí atraparemos si la ruta está mal (404) o el servidor explotó (500)
+                    string errorDetalle = await response.Content.ReadAsStringAsync();
+                    Debug.WriteLine($"[API_RECHAZO] {endpoint} falló. Código: {response.StatusCode} | Detalle: {errorDetalle}");
+                }
+            }
+            catch (Exception ex)
+            {
+                // 🚨 DEBUG DE EXCEPCIÓN: Por si se corta el internet o falla el conversor JSON
+                Debug.WriteLine($"[API_EXCEPCION] En endpoint {endpoint}: {ex.Message}");
+            }
+            return null;
         }
     }
 

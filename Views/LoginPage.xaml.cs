@@ -5,10 +5,12 @@ using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Data;
 using ControlInventarioMovil.Services;
 using Newtonsoft.Json;
+using System.Diagnostics;
 
 public partial class LoginPage : ContentPage
 {
     private readonly ApiService _apiService;
+    private CompanyPublicDTO? _selectedCompany;
     private CancellationTokenSource _animacionCts = new();
     public LoginPage()
 	{
@@ -23,6 +25,12 @@ public partial class LoginPage : ContentPage
 
     private async void OnLoginClicked(object sender, EventArgs e)
     {
+        if (_selectedCompany == null)
+        {
+            await DisplayAlertAsync("Validación", "Por favor selecciona tu sucursal tocando uno de los logos en la parte superior.", "OK");
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(txtUsername.Text) || string.IsNullOrWhiteSpace(txtPassword.Text))
         {
             await DisplayAlertAsync("Validación", "Ingresa tu usuario y contraseña.", "OK");
@@ -33,7 +41,13 @@ public partial class LoginPage : ContentPage
 
         try
         {
-            var loginData = new { Username = txtUsername.Text.Trim(), Password = txtPassword.Text.Trim(), TwoFactorCode = (string?)null };
+            var loginData = new
+            {
+                Username = txtUsername.Text.Trim(),
+                Password = txtPassword.Text.Trim(),
+                TwoFactorCode = (string?)null,
+                CompanyId = _selectedCompany.Id
+            };
 
             var handler = new HttpClientHandler
             {
@@ -116,19 +130,47 @@ public partial class LoginPage : ContentPage
                 if (user != null)
                 {
                     UserSession.CurrentUser = user;
+                    Preferences.Set("SelectedCompanyId", _selectedCompany.Id);
 
-                    using (var localContext = new LocalDbContext())
+                    try
                     {
-                        var existingUser = await localContext.Users.FirstOrDefaultAsync(u => u.Username == user.Username);
-                        if (existingUser == null) { await localContext.Users.AddAsync(user); }
-                        else { localContext.Entry(existingUser).CurrentValues.SetValues(user); }
-                        await localContext.SaveChangesAsync();
+                        using (var localContext = new LocalDbContext())
+                        {
+                            var existingUser = await localContext.Users.FirstOrDefaultAsync(u => u.Username == user.Username);
+
+                            if (existingUser == null)
+                            {
+                                var tempCompany = user.Company;
+                                user.Company = null;
+
+                                await localContext.Users.AddAsync(user);
+                                await localContext.SaveChangesAsync();
+
+                                user.Company = tempCompany;
+                            }
+                            else
+                            {
+                                localContext.Entry(existingUser).CurrentValues.SetValues(user);
+                                await localContext.SaveChangesAsync();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[Caché Local Ignorado]: {ex.Message}");
                     }
 
-                    if (chkRememberMe.IsChecked)
+                    try
                     {
-                        await SecureStorage.Default.SetAsync("saved_username", txtUsername.Text);
-                        await SecureStorage.Default.SetAsync("saved_password", txtPassword.Text);
+                        if (chkRememberMe.IsChecked)
+                        {
+                            await SecureStorage.Default.SetAsync("saved_username", txtUsername.Text ?? "");
+                            await SecureStorage.Default.SetAsync("saved_password", txtPassword.Text ?? "");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[Keystore Ignorado]: {ex.Message}");
                     }
 
                     if (Application.Current?.Windows.Count > 0)
@@ -139,6 +181,17 @@ public partial class LoginPage : ContentPage
             }
             else
             {
+                if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                {
+                    await DisplayAlertAsync("Error 500 del Servidor", "El servidor de Somee está explotando por dentro. Revisa los logs de tu API.", "OK");
+                    return;
+                }
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    await DisplayAlertAsync("Error 404", "No se encontró la ruta del Login en el servidor.", "OK");
+                    return;
+                }
+
                 try
                 {
                     var errorObj = JsonConvert.DeserializeObject<dynamic>(resString);
@@ -147,7 +200,7 @@ public partial class LoginPage : ContentPage
                 }
                 catch
                 {
-                    await DisplayAlertAsync("Error de Acceso", "Usuario, contraseña o código de seguridad incorrectos.", "Intentar de nuevo");
+                    await DisplayAlertAsync("Respuesta Extraña del Servidor", $"Código: {response.StatusCode}. Respuesta: {resString}", "OK");
                 }
             }
         }
@@ -213,8 +266,73 @@ public partial class LoginPage : ContentPage
             SecureStorage.Default.RemoveAll();
         }
 
+        await CargarEmpresasAsync();
         _animacionCts = new CancellationTokenSource();
         _ = AnimarFondo(_animacionCts.Token);
+    }
+
+    private async Task CargarEmpresasAsync()
+    {
+        try
+        {
+            var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true };
+            using var client = new HttpClient(handler);
+            var response = await client.GetAsync($"{ApiService.BaseApiUrl}/Companies/Active");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var empresas = JsonConvert.DeserializeObject<List<CompanyPublicDTO>>(content);
+                cvCompanies.ItemsSource = empresas;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error cargando empresas: {ex.Message}");
+        }
+    }
+
+    private void OnCompanySelected(object sender, SelectionChangedEventArgs e)
+    {
+        _selectedCompany = e.CurrentSelection.FirstOrDefault() as CompanyPublicDTO;
+
+        if (_selectedCompany != null && Color.TryParse(_selectedCompany.PrimaryColorHex, out var newColor))
+        {
+            // Cambiamos el estilo del formulario para que coincida con la marca
+            btnLogin.Background = new SolidColorBrush(newColor);
+            borderUser.Stroke = newColor;
+            borderPass.Stroke = newColor;
+        }
+    }
+
+    private void OnPageSizeChanged(object sender, EventArgs e)
+    {
+        if (Width > Height) // MODO PAISAJE (Horizontal)
+        {
+            LayoutGrid.RowDefinitions.Clear();
+            LayoutGrid.ColumnDefinitions.Clear();
+            LayoutGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            LayoutGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            Grid.SetRow(HeaderSection, 0);
+            Grid.SetColumn(HeaderSection, 0);
+
+            Grid.SetRow(FormSection, 0);
+            Grid.SetColumn(FormSection, 1);
+        }
+        else // MODO RETRATO (Vertical)
+        {
+            LayoutGrid.RowDefinitions.Clear();
+            LayoutGrid.ColumnDefinitions.Clear();
+            LayoutGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            LayoutGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+            Grid.SetRow(HeaderSection, 0);
+            Grid.SetColumn(HeaderSection, 0);
+
+            Grid.SetRow(FormSection, 1);
+            Grid.SetColumn(FormSection, 0);
+        }
     }
 
     protected override void OnDisappearing()
