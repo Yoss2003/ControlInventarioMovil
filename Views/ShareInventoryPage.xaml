@@ -59,9 +59,16 @@
                                 <Border StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="15" Margin="0,0,0,10">
                                     <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="15" VerticalOptions="Center">
 
-                                        <VerticalStackLayout Grid.Column="0" VerticalOptions="Center">
-                                            <Label Text="{Binding User.Username}" FontAttributes="Bold" FontSize="15" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}"/>
-                                            <Label Text="{Binding AccessLevel}" FontSize="13" TextColor="{AppThemeBinding Light=#54606C, Dark=#A0E2FF}"/>
+                                        <VerticalStackLayout Grid.Column="0" VerticalOptions="Center" Spacing="2">
+
+                                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                                <Label Text="{Binding Username}" FontAttributes="Bold" FontSize="15" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" VerticalOptions="Center"/>
+                                                <Label Text="|" FontAttributes="Bold" FontSize="15" TextColor="{AppThemeBinding Light=#CDD5DB, Dark=#54606C}" VerticalOptions="Center"/>
+                                                <Label Text="{Binding AccessLevel}" FontSize="13" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" VerticalOptions="Center"/>
+                                            </HorizontalStackLayout>
+
+                                            <Label Text="{Binding SharedDate, StringFormat='Otorgado el {0:dd/MM/yyyy} a las {0:HH:mm}'}" FontSize="12" TextColor="{AppThemeBinding Light=#54606C, Dark=#8A9AAB}" Margin="0,5,0,0"/>
+                                            <Label Text="{Binding GrantedBy, StringFormat='Por: {0}'}" FontSize="12" TextColor="{AppThemeBinding Light=#54606C, Dark=#8A9AAB}" FontAttributes="Italic"/>
                                         </VerticalStackLayout>
 
                                         <ImageButton Grid.Column="1" Source="edit_icon.png" WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditAccessClicked" CommandParameter="{Binding .}" VerticalOptions="Center"/>

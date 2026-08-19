@@ -1,0 +1,94 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ControlInventarioMovil.Views.CompaniesPage"
+             xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
+             Shell.NavBarIsVisible="False"
+             NavigationPage.HasNavigationBar="False"
+             BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <helpers:Base64ToImageConverter x:Key="Base64Converter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid>
+        <Grid RowDefinitions="Auto, *" VerticalOptions="Fill">
+            <!-- Barra Superior -->
+            <Grid Grid.Row="0" ColumnDefinitions="50, *, 50" Padding="15,10" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1A232C}">
+                <ImageButton Grid.Column="0" Source="arrow_back.png" Aspect="AspectFit" BackgroundColor="Transparent" Padding="10" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVolverClicked"/>
+                <Label Grid.Column="1" Text="GESTIÓN DE SUCURSALES" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="16" HorizontalTextAlignment="Center" VerticalOptions="Center"/>
+                <BoxView Grid.Column="2" Color="Transparent" />
+            </Grid>
+
+            <!-- CONTENEDOR PRINCIPAL -->
+            <Grid Grid.Row="1" RowDefinitions="*, Auto, 20" VerticalOptions="Fill" Padding="0,20,0,0">
+                <Grid Grid.Row="0" ColumnDefinitions="Auto, 280, Auto" HorizontalOptions="Center" VerticalOptions="Fill" ColumnSpacing="10">
+                    <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="40" HeightRequest="180" Padding="5" Aspect="AspectFit" BackgroundColor="Transparent" Clicked="OnPrevClicked" VerticalOptions="Center" helpers:EfectosVisualesHelper.Animar="True" />
+
+                    <CarouselView x:Name="carouselCompanies" Grid.Column="1" HorizontalScrollBarVisibility="Never" Loop="False" VerticalOptions="Fill" PositionChanged="OnCarouselPositionChanged">
+                        <CarouselView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid VerticalOptions="Center" RowDefinitions="Auto, Auto" RowSpacing="20">
+                                    <Grid Grid.Row="0" WidthRequest="180" HeightRequest="180" HorizontalOptions="Center">
+                                        <Border WidthRequest="160" HeightRequest="160" StrokeShape="RoundRectangle 80" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="3" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" HorizontalOptions="Center" VerticalOptions="Center">
+                                            <Image Source="{Binding LogoUrl, Converter={StaticResource Base64Converter}}" Aspect="AspectFit" Margin="15">
+                                                <Image.Triggers>
+                                                    <DataTrigger TargetType="Image" Binding="{Binding Id}" Value="0">
+                                                        <Setter Property="Margin" Value="40"/>
+                                                    </DataTrigger>
+                                                </Image.Triggers>
+                                            </Image>
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnLogoTapped" />
+                                            </Border.GestureRecognizers>
+                                        </Border>
+
+                                        <Border x:Name="ActionPanel" Opacity="0" InputTransparent="True" BackgroundColor="#D9000000" StrokeShape="RoundRectangle 80" WidthRequest="160" HeightRequest="160" HorizontalOptions="Center" VerticalOptions="Center">
+                                            <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="15">
+                                                <ImageButton Source="edit_icon.png" Aspect="AspectFit" WidthRequest="45" HeightRequest="45" BackgroundColor="Transparent" CommandParameter="{Binding .}" Clicked="OnEditarEmpresaClicked" />
+                                                <ImageButton Source="delete_icon.png" Aspect="AspectFit" WidthRequest="45" HeightRequest="45" BackgroundColor="Transparent" CommandParameter="{Binding .}" Clicked="OnEliminarEmpresaClicked" />
+                                            </HorizontalStackLayout>
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnLogoTapped" />
+                                            </Border.GestureRecognizers>
+                                            <Border.Triggers>
+                                                <DataTrigger TargetType="Border" Binding="{Binding Id}" Value="0">
+                                                    <Setter Property="IsVisible" Value="False" />
+                                                </DataTrigger>
+                                            </Border.Triggers>
+                                        </Border>
+                                    </Grid>
+
+                                    <VerticalStackLayout Grid.Row="1" Spacing="5" HorizontalOptions="Center">
+                                        <Label Text="{Binding BusinessName}" FontSize="22" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation" MaxLines="2" />
+                                        <Label Text="{Binding Ruc, StringFormat='RUC: {0}'}" FontSize="15" TextColor="{AppThemeBinding Light=#54606C, Dark=#8A9AAB}" HorizontalTextAlignment="Center">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding Id}" Value="0">
+                                                    <Setter Property="IsVisible" Value="False" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </DataTemplate>
+                        </CarouselView.ItemTemplate>
+                    </CarouselView>
+
+                    <ImageButton Grid.Column="2" Source="arrow_back.png" Rotation="180" WidthRequest="40" HeightRequest="180" Padding="5" Aspect="AspectFit" BackgroundColor="Transparent" Clicked="OnNextClicked" VerticalOptions="Center" helpers:EfectosVisualesHelper.Animar="True" />
+                </Grid>
+
+                <HorizontalStackLayout x:Name="customIndicator" Grid.Row="1" HorizontalOptions="Center" Spacing="8" Margin="0,15,0,0" />
+            </Grid>
+        </Grid>
+
+        <!-- Pantalla de Carga -->
+        <Grid x:Name="loadingOverlay" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" IsVisible="False">
+            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="15">
+                <ActivityIndicator IsRunning="True" Color="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" WidthRequest="50" HeightRequest="50" />
+                <Label Text="Actualizando datos..." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>

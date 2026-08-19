@@ -11,11 +11,17 @@
         Title="Home"
         ContentTemplate="{DataTemplate views:MainPage}"
         Route="MainPage" />
-    
+
     <ShellContent 
         x:Name="MenuUsuarios"
         Title="Gestión de Usuarios" 
         Icon="user_group.png" 
         ContentTemplate="{DataTemplate views:UserManagementPage}" />
+
+    <ShellContent 
+        x:Name="MenuEmpresas"
+        Title="Gestión de Sucursales" 
+        Icon="company_icon.png" 
+        ContentTemplate="{DataTemplate views:CompaniesPage}" />
 
 </Shell>

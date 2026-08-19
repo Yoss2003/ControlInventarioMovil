@@ -19,10 +19,14 @@ namespace ControlInventarioMovil
             });
 
             var role = UserSession.CurrentUser?.Role;
+
             bool puedeGestionar = role?.Name == "Admin" ||
                                  role?.RolePermissions?.Any(rp => rp.Permission?.SystemCode == "MANAGE_USERS") == true;
 
             MenuUsuarios.IsVisible = puedeGestionar;
+
+            bool esSuperAdmin = UserSession.CurrentUser?.RoleId == 1 || role?.Name == "Developer";
+            MenuEmpresas.IsVisible = esSuperAdmin;
 
             Routing.RegisterRoute("CustomersPage", typeof(CustomersPage));
             Routing.RegisterRoute("EmployeesPage", typeof(EmployeesPage));
@@ -37,6 +41,9 @@ namespace ControlInventarioMovil
             Routing.RegisterRoute(nameof(ArticleFormPage), typeof(ArticleFormPage));
             Routing.RegisterRoute(nameof(ConfiguracionPage), typeof(ConfiguracionPage));
             Routing.RegisterRoute(nameof(CategoriasPage), typeof(CategoriasPage));
+            Routing.RegisterRoute(nameof(CompanyFormPage), typeof(CompanyFormPage));
+
+            Routing.RegisterRoute(nameof(CompaniesPage), typeof(CompaniesPage));
         }
     }
 }

@@ -97,16 +97,16 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.70" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.8" />
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.90" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.11" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 		<PackageReference Include="Otp.NET" Version="1.4.1" />
 		<PackageReference Include="Plugin.Maui.ImageCropper" Version="3.0.0" />
-		<PackageReference Include="SkiaSharp" Version="4.150.1" />
+		<PackageReference Include="SkiaSharp" Version="4.151.1" />
 		<PackageReference Include="ZXing.Net" Version="0.16.11" />
 		<PackageReference Include="ZXing.Net.Bindings.SkiaSharp" Version="0.16.22" />
-		<PackageReference Include="ZXing.Net.Maui" Version="0.7.4" />
-		<PackageReference Include="ZXing.Net.Maui.Controls" Version="0.7.4" />
+		<PackageReference Include="ZXing.Net.Maui" Version="0.10.4" />
+		<PackageReference Include="ZXing.Net.Maui.Controls" Version="0.10.4" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -123,6 +123,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <MauiXaml Update="Views\CompaniesPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Views\FormPages\ArticleFormPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
@@ -136,6 +139,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\Controls\ScanBarcodePage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\FormPages\CompanyFormPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\FormPages\CustomerFormPage.xaml">
