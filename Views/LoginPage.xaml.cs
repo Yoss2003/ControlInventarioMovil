@@ -134,6 +134,47 @@ public partial class LoginPage : ContentPage
 
                     try
                     {
+                        var perfil = await _apiService.GetUserProfileConfigAsync(user.Username!);
+
+                        if (perfil != null)
+                        {
+                            // A. Aplicar Tema Visual en tiempo real (1 = Claro, 2 = Oscuro)
+                            if (perfil.ThemeId == 2)
+                            {
+                                Application.Current!.UserAppTheme = AppTheme.Dark;
+                            }
+                            else
+                            {
+                                Application.Current!.UserAppTheme = AppTheme.Light;
+                            }
+
+                            // B. Guardar configuraciones operativas en Preferences para usarlas en otras pantallas
+                            Preferences.Set("UseBarcodes", perfil.UseBarcodes);
+                            Preferences.Set("CurrencyId", perfil.CurrencyId ?? 1);
+                            Preferences.Set("DateFormatId", perfil.DateFormatId ?? 1);
+                            Preferences.Set("SalesModeId", perfil.SalesModeId ?? 1);
+                            Preferences.Set("ApplyLateFee", perfil.ApplyLateFee);
+                            Preferences.Set("CalculateDevaluation", perfil.CalculateDevaluation);
+
+                            using (var localContext = new LocalDbContext())
+                            {
+                                var localProfile = await localContext.Profiles.FirstOrDefaultAsync(p => p.Username == perfil.Username && p.CompanyId == perfil.CompanyId);
+                                if (localProfile == null)
+                                    await localContext.Profiles.AddAsync(perfil);
+                                else
+                                    localContext.Entry(localProfile).CurrentValues.SetValues(perfil);
+
+                                await localContext.SaveChangesAsync();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[PERFIL_ERROR]: No se pudo cargar el perfil: {ex.Message}");
+                    }
+
+                    try
+                    {
                         using (var localContext = new LocalDbContext())
                         {
                             var existingUser = await localContext.Users.FirstOrDefaultAsync(u => u.Username == user.Username);
@@ -160,6 +201,7 @@ public partial class LoginPage : ContentPage
                         Debug.WriteLine($"[Caché Local Ignorado]: {ex.Message}");
                     }
 
+                    // 4. Recordar credenciales
                     try
                     {
                         if (chkRememberMe.IsChecked)
@@ -173,6 +215,7 @@ public partial class LoginPage : ContentPage
                         Debug.WriteLine($"[Keystore Ignorado]: {ex.Message}");
                     }
 
+                    // 5. Entrar a la App
                     if (Application.Current?.Windows.Count > 0)
                     {
                         Application.Current.Windows[0].Page = new AppShell();

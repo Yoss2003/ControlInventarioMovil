@@ -20,19 +20,7 @@
 
         <Grid Grid.Row="1" RowDefinitions="Auto, *" Padding="15,12">
 
-            <Button Grid.Row="0"
-                    x:Name="BtnToggleStock"
-                    Text="Ver Agotados (Stock 0)"
-                    Clicked="OnToggleStockCeroClicked"
-                    BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#2E3842}"
-                    TextColor="{AppThemeBinding Light=#1C262E, Dark=White}"
-                    FontAttributes="Bold"
-                    CornerRadius="6"
-                    HeightRequest="36"
-                    FontSize="11"
-                    HorizontalOptions="End"
-                    Margin="0,0,0,10"
-                    helpers:EfectosVisualesHelper.Animar="True"/>
+            <Button Grid.Row="0" x:Name="BtnToggleStock" Text="Ver Agotados (Stock 0)" Clicked="OnToggleStockCeroClicked" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" CornerRadius="6" HeightRequest="36" FontSize="11" HorizontalOptions="End" Margin="0,0,0,10" helpers:EfectosVisualesHelper.Animar="True"/>
 
             <Grid Grid.Row="1">
 
@@ -54,35 +42,33 @@
                                             BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" 
                                             Padding="15,14">
 
-                                        <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto" RowSpacing="0">
+                                        <Grid ColumnDefinitions="Auto, *, Auto" RowDefinitions="Auto, Auto" RowSpacing="0" ColumnSpacing="12">
 
-                                            <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="6" VerticalOptions="Center">
-                                                <Label Text="{Binding Name}" 
-                                                       TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" 
-                                                       FontAttributes="Bold" 
-                                                       FontSize="30" 
-                                                       LineBreakMode="TailTruncation" 
-                                                       VerticalOptions="Center"/>
+                                            <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" WidthRequest="75" HeightRequest="85" StrokeShape="RoundRectangle 8" StrokeThickness="0" IsVisible="{Binding ShowThumbnail}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1A232D}" VerticalOptions="Fill">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Tapped="OnFotoRapidaTapped" CommandParameter="{Binding .}" />
+                                                </Border.GestureRecognizers>
+                                                <Grid>
+                                                    <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="2" Opacity="0.5">
+                                                        <Label Text="📷" FontSize="20" HorizontalOptions="Center"/>
+                                                        <Label Text="Sin foto" FontSize="10" FontAttributes="Bold" HorizontalOptions="Center" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
+                                                    </VerticalStackLayout>
+                                                    <Image Source="{Binding MainPhotoPath}" Aspect="AspectFill" />
+                                                </Grid>
+                                            </Border>
+
+                                            <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                                <Label Text="{Binding Name}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="20" LineBreakMode="TailTruncation" VerticalOptions="Center"/>
 
                                                 <HorizontalStackLayout Spacing="6">
-                                                    <Border BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1A232D}" 
-                                                            Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"
-                                                            StrokeThickness="1"
-                                                            StrokeShape="RoundRectangle 6" 
-                                                            Padding="8,3" 
-                                                            VerticalOptions="Center">
+                                                    <Border BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1A232D}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="8,3" VerticalOptions="Center">
                                                         <HorizontalStackLayout Spacing="4">
                                                             <Label Text="🆔" FontSize="10" VerticalOptions="Center"/>
                                                             <Label Text="{Binding Code}" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="10" FontAttributes="Bold" VerticalOptions="Center"/>
                                                         </HorizontalStackLayout>
                                                     </Border>
 
-                                                    <Border BackgroundColor="{AppThemeBinding Light=#E1F5FE, Dark=#112533}" 
-                                                            Stroke="{AppThemeBinding Light=#B3E5FC, Dark=#1E4663}"
-                                                            StrokeThickness="1"
-                                                            StrokeShape="RoundRectangle 6" 
-                                                            Padding="8,3" 
-                                                            VerticalOptions="Center">
+                                                    <Border BackgroundColor="{AppThemeBinding Light=#E1F5FE, Dark=#112533}" Stroke="{AppThemeBinding Light=#B3E5FC, Dark=#1E4663}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="8,3" VerticalOptions="Center">
                                                         <HorizontalStackLayout Spacing="4">
                                                             <Label Text="📦" FontSize="10" VerticalOptions="Center"/>
                                                             <Label Text="{Binding MeasurementUnit}" TextColor="{AppThemeBinding Light=#0288D1, Dark=#29B6F6}" FontSize="10" FontAttributes="Bold" VerticalOptions="Center"/>
@@ -91,7 +77,7 @@
                                                 </HorizontalStackLayout>
                                             </VerticalStackLayout>
 
-                                            <VerticalStackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="End" VerticalOptions="Center" Spacing="3">
+                                            <VerticalStackLayout Grid.Row="0" Grid.Column="2" HorizontalOptions="End" VerticalOptions="Center" Spacing="3">
                                                 <HorizontalStackLayout Spacing="5" HorizontalOptions="End">
                                                     <Label Text="Costo Adq:" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" VerticalOptions="Center"/>
                                                     <Label Text="{Binding AcquisitionDisplay}" TextColor="{AppThemeBinding Light=#E65100, Dark=#EFA72F}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center"/>
@@ -108,46 +94,19 @@
                                                 </HorizontalStackLayout>
                                             </VerticalStackLayout>
 
-                                            <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="*, Auto" Margin="0,10,0,0">
+                                            <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" ColumnDefinitions="*, Auto" Margin="0,10,0,0">
 
                                                 <HorizontalStackLayout Grid.Column="0" Spacing="8" VerticalOptions="Center">
                                                     <Label Text="Stock disponible:" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" VerticalOptions="Center"/>
-                                                    <Border BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B3B2B}"
-                                                            Stroke="{AppThemeBinding Light=#C8E6C9, Dark=#2E7D32}"
-                                                            StrokeThickness="1"
-                                                            StrokeShape="RoundRectangle 6" 
-                                                            Padding="10,4"
-                                                            VerticalOptions="Center">
+                                                    <Border BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B3B2B}" Stroke="{AppThemeBinding Light=#C8E6C9, Dark=#2E7D32}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="10,4" VerticalOptions="Center">
                                                         <Label Text="{Binding Stock, StringFormat='{0:0.##}'}" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="13" VerticalOptions="Center"/>
                                                     </Border>
                                                 </HorizontalStackLayout>
 
                                                 <HorizontalStackLayout Grid.Column="1" Spacing="10" HorizontalOptions="End" VerticalOptions="Center">
-                                                    <ImageButton Source="edit_icon.png" 
-                                                                 WidthRequest="32" 
-                                                                 HeightRequest="32" 
-                                                                 CornerRadius="6"
-                                                                 BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#2E3842}" 
-                                                                 VerticalOptions="Center" 
-                                                                 HorizontalOptions="End"
-                                                                 Padding="7"
-                                                                 Opacity="0.9"
-                                                                 CommandParameter="{Binding .}"
-                                                                 helpers:EfectosVisualesHelper.Animar="True"
-                                                                 Clicked="OnEditarArticuloClicked"/>
+                                                    <ImageButton Source="edit_icon.png" WidthRequest="32" HeightRequest="32" CornerRadius="6" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#2E3842}" VerticalOptions="Center" HorizontalOptions="End" Padding="7" Opacity="0.9" CommandParameter="{Binding .}" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditarArticuloClicked"/>
 
-                                                    <ImageButton Source="delete_icon.png" 
-                                                                 WidthRequest="32" 
-                                                                 HeightRequest="32" 
-                                                                 CornerRadius="6"
-                                                                 BackgroundColor="{AppThemeBinding Light=#FCE8E6, Dark=#3D2321}" 
-                                                                 VerticalOptions="Center" 
-                                                                 HorizontalOptions="End"
-                                                                 Padding="7"
-                                                                 Opacity="0.9"
-                                                                 CommandParameter="{Binding .}"
-                                                                 helpers:EfectosVisualesHelper.Animar="True"
-                                                                 Clicked="OnEliminarStockClicked"/>
+                                                    <ImageButton Source="delete_icon.png" WidthRequest="32" HeightRequest="32" CornerRadius="6" BackgroundColor="{AppThemeBinding Light=#FCE8E6, Dark=#3D2321}" VerticalOptions="Center" HorizontalOptions="End" Padding="7" Opacity="0.9" CommandParameter="{Binding .}" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEliminarStockClicked"/>
                                                 </HorizontalStackLayout>
                                             </Grid>
 
@@ -164,6 +123,43 @@
         <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="12" Padding="15,12,15,15" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
             <Button Grid.Column="0" Text="PANEL PRINCIPAL" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=#939CA5}" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" FontSize="12" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVolverClicked"/>
             <Button x:Name="BtnNuevoArticulo" Grid.Column="1" Text="+ NUEVO ARTÍCULO" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" FontSize="12" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAgregarArticuloClicked"/>
+        </Grid>
+
+        <Grid x:Name="OverlayVisorFoto" Grid.RowSpan="3" IsVisible="False" BackgroundColor="#CC000000" Opacity="0" Padding="20">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnCerrarVisorClicked" />
+            </Grid.GestureRecognizers>
+
+            <Border StrokeShape="RoundRectangle 12" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C262E}" 
+                VerticalOptions="Center" HorizontalOptions="Fill" Padding="0" StrokeThickness="0">
+
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer />
+                </Border.GestureRecognizers>
+
+                <Grid RowDefinitions="Auto, *, Auto">
+                    <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Padding="15,15,15,10">
+                        <Label x:Name="LblVisorTitulo" Text="Vista Previa" FontAttributes="Bold" FontSize="16" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" VerticalOptions="Center"/>
+                        <ImageButton Grid.Column="1" Source="cancel_icon.png" WidthRequest="30" HeightRequest="30" Padding="4" CornerRadius="6" VerticalOptions="Center" HorizontalOptions="End" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnCerrarVisorClicked"/>
+                    </Grid>
+
+                    <Border Grid.Row="1" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" StrokeThickness="0" HeightRequest="350">
+                        <Grid>
+                            <Image x:Name="ImgVisorAmpliado" Aspect="AspectFit" HorizontalOptions="Center" VerticalOptions="Center">
+                                <Image.GestureRecognizers>
+                                    <PinchGestureRecognizer PinchUpdated="OnPinchUpdated" />
+                                    <PanGestureRecognizer PanUpdated="OnPanUpdated" />
+                                </Image.GestureRecognizers>
+                            </Image>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="10" Padding="15">
+                        <Button Grid.Column="0" Text="ELIMINAR" BackgroundColor="#FCE8E6" TextColor="#D32F2F" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" Clicked="OnEliminarFotoVisorClicked"/>
+                        <Button Grid.Column="1" Text="CAMBIAR FOTO" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" Clicked="OnCambiarFotoVisorClicked"/>
+                    </Grid>
+                </Grid>
+            </Border>
         </Grid>
 
     </Grid>

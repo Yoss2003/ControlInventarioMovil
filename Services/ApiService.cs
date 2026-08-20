@@ -34,7 +34,9 @@ namespace ControlInventarioMovil.Services
         {
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
-                int companyId = Preferences.Get("SelectedCompanyId", 1);
+                int companyId = Preferences.Get("SelectedCompanyId", 0);
+                if (companyId == 0) companyId = Preferences.Get("CurrentCompanyId", 0);
+                if (companyId == 0) companyId = Preferences.Get("CompanyId", 1);
 
                 Debug.WriteLine($"[API_INTERCEPTOR] Inyectando Empresa ID: {companyId} a la ruta: {request.RequestUri}");
 
@@ -777,22 +779,19 @@ namespace ControlInventarioMovil.Services
         // MÉTODOS DE CONSUMO PARA PERFIL Y CONFIGURACIONES (PROFILE)
         // ====================================================================
 
-        public async Task<ControlInventario.Shared.Models.Profile?> GetUserProfileConfigAsync(string username)
+        public async Task<Profile?> GetUserProfileConfigAsync(string username)
         {
+            int empresaActual = Preferences.Get("SelectedCompanyId", -99);
+            Debug.WriteLine($"[DEBUG_MOVIL] La app cree que la empresa activa es: {empresaActual}");
+
             try
             {
-                // Golpeamos el endpoint GET general de tu ProfilesController
-                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Profiles");
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Profiles/user/{username}");
 
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
-
-                    // Deserializamos la lista completa de configuraciones
-                    var listaPerfiles = JsonConvert.DeserializeObject<List<ControlInventario.Shared.Models.Profile>>(json);
-
-                    // Buscamos el registro específico que le pertenece al usuario logueado
-                    return listaPerfiles?.FirstOrDefault(p => p.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+                    return JsonConvert.DeserializeObject<Profile>(json);
                 }
             }
             catch (Exception ex)
@@ -801,32 +800,44 @@ namespace ControlInventarioMovil.Services
             }
             return null;
         }
-        public async Task<bool> SaveUserProfileConfigAsync(ControlInventario.Shared.Models.Profile profileConfig)
+        public async Task<bool> SaveUserProfileConfigAsync(Profile profileConfig)
         {
             try
             {
-                // Convertimos el objeto C# a texto JSON limpio
                 string json = JsonConvert.SerializeObject(profileConfig);
-                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 HttpResponseMessage response;
 
                 if (profileConfig.Id > 0)
                 {
-                    // Si el perfil ya existe en la BD (Id mayor a 0), ejecutamos una actualización (PUT)
                     response = await _httpClient.PutAsync($"{BaseApiUrl}/Profiles/{profileConfig.Id}", content);
                 }
                 else
                 {
-                    // Si es la primera vez que el usuario guarda configuraciones, creamos el registro (POST)
                     response = await _httpClient.PostAsync($"{BaseApiUrl}/Profiles", content);
                 }
 
-                return response.IsSuccessStatusCode;
+                if (response.IsSuccessStatusCode)
+                {
+                    return true;
+                }
+                else
+                {
+                    string errorDetallado = await response.Content.ReadAsStringAsync();
+
+                    Debug.WriteLine($"[DEBUG_PERFIL_RECHAZO]: {response.StatusCode} - {errorDetallado}");
+
+                    MainThread.BeginInvokeOnMainThread(async () => {
+                        await Shell.Current.DisplayAlertAsync("Error de Servidor", $"Código: {response.StatusCode}\nDetalle: {errorDetallado}", "OK");
+                    });
+
+                    return false;
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[API_ERROR] SaveUserProfileConfigAsync: {ex.Message}");
+                Debug.WriteLine($"[API_ERROR] SaveUserProfileConfigAsync: {ex.Message}");
                 return false;
             }
         }

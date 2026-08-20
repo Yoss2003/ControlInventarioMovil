@@ -193,8 +193,10 @@
 
                 <Button Grid.Row="0" Grid.ColumnSpan="2" Text="⏬ Ocultar Panel" HeightRequest="30" Padding="0" FontSize="13" FontAttributes="Bold" BackgroundColor="Transparent" TextColor="Gray" Clicked="OnCerrarPanelClicked" Margin="0,-5,0,0"/>
 
-                <Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto, Auto" ColumnSpacing="10" VerticalOptions="Center">
-                    <Picker Grid.Column="0" x:Name="pickerPaymentType" Title="Método" TitleColor="Gray" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="58" WidthRequest="180" VerticalOptions="Center" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}">
+                <Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto, Auto, Auto, Auto, Auto" ColumnSpacing="6" VerticalOptions="Center" HorizontalOptions="Start">
+
+                    <!-- 1. Método de Pago (Ancho ampliado a 170 para que quepa todo el texto sin cortarse) -->
+                    <Picker Grid.Column="0" x:Name="pickerPaymentType" Title="Método" TitleColor="Gray" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="58" WidthRequest="170" VerticalOptions="Center" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}">
                         <Picker.Items>
                             <x:String>Efectivo</x:String>
                             <x:String>Tarjeta</x:String>
@@ -203,21 +205,42 @@
                             <x:String>Venta a Cuotas</x:String>
                         </Picker.Items>
                     </Picker>
-                    <Picker Grid.Column="1" x:Name="pickerSubWallet" Title="¿Cuál?" TitleColor="Gray" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="58" WidthRequest="140" IsVisible="False" VerticalOptions="Center" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}">
+
+                    <!-- 2. Sub-Wallet o Frecuencia (Ancho ampliado a 125) -->
+                    <Picker Grid.Column="1" x:Name="pickerSubWallet" Title="¿Cuál?" TitleColor="Gray" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="58" WidthRequest="150" IsVisible="False" VerticalOptions="Center" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}">
                         <Picker.Items>
                             <x:String>Yape</x:String>
                             <x:String>Plin</x:String>
                             <x:String>Bim</x:String>
                         </Picker.Items>
                     </Picker>
-                    <Picker Grid.Column="1" x:Name="pickerSalesMode" Title="Plazo" TitleColor="Gray" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="58" WidthRequest="140" IsVisible="False" VerticalOptions="Center" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}">
+
+                    <Picker Grid.Column="1" x:Name="pickerSalesMode" Title="Frecuencia" TitleColor="Gray" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="58" WidthRequest="140" IsVisible="False" VerticalOptions="Center" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}">
                         <Picker.Items>
                             <x:String>Diario</x:String>
                             <x:String>Semanal</x:String>
                             <x:String>Mensual</x:String>
-                            <x:String>Total</x:String>
                         </Picker.Items>
                     </Picker>
+
+                    <!-- 3. N° Cuotas (Con su título visual integrado y altura uniforme de 58) -->
+                    <Border Grid.Column="2" x:Name="gridNumCuotas" HeightRequest="58" WidthRequest="95" StrokeShape="RoundRectangle 8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" Padding="8,4" IsVisible="False" VerticalOptions="Center">
+                        <VerticalStackLayout Spacing="0" VerticalOptions="Center">
+                            <Label Text="N° Cuotas" FontSize="10" TextColor="Gray" HorizontalOptions="Start"/>
+                            <Entry x:Name="txtNumCuotas" Keyboard="Numeric" Placeholder="0" FontSize="13" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="32" VerticalOptions="Center" Margin="0,-4,0,0"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- 4. Adelanto / Cuota Inicial (Con su título visual integrado y altura uniforme de 58) -->
+                    <Border Grid.Column="3" x:Name="gridCuotaInicial" HeightRequest="58" WidthRequest="115" StrokeShape="RoundRectangle 8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" Padding="8,4" IsVisible="False" VerticalOptions="Center">
+                        <VerticalStackLayout Spacing="0" VerticalOptions="Center">
+                            <Label Text="Adelanto" FontSize="10" TextColor="Gray" HorizontalOptions="Start"/>
+                            <Entry x:Name="txtCuotaInicial" Keyboard="Numeric" Placeholder="0.00" FontSize="13" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="32" VerticalOptions="Center" Margin="0,-4,0,0"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- 5. Botón de Información "ⓘ" (Altura cuadrada y perfecta de 58) -->
+                    <Button Grid.Column="4" x:Name="btnSimularCuotas" Text="ⓘ" FontSize="18" FontAttributes="Bold" WidthRequest="48" HeightRequest="58" MinimumWidthRequest="48" MinimumHeightRequest="58" Padding="0" BackgroundColor="#8A2BE2" TextColor="White" CornerRadius="8" IsVisible="False" VerticalOptions="Center" HorizontalOptions="Center" Clicked="OnSimularCuotasClicked"/>
                 </Grid>
 
                 <Grid Grid.Row="2" Grid.Column="0" WidthRequest="500" HorizontalOptions="Start" VerticalOptions="Center" ColumnDefinitions="110, 45, *" ColumnSpacing="6">
