@@ -35,6 +35,11 @@ namespace ControlInventarioMovil.Views
         private const string TITULO_TECNOLOGIA = "Modelo / Versión";
         private const string PLACEHOLDER_TECNOLOGIA = "Ej. L14 Gen 3, ProBook";
         private bool _formularioYaCargado = false;
+        private double _currentScale = 1;
+        private double _startScale = 1;
+        private double _xOffset = 0;
+        private double _yOffset = 0;
+        private int _tipoFotoEnVisor = 0;
         #endregion
 
         #region 2. CICLO DE VIDA DE LA VISTA
@@ -82,6 +87,37 @@ namespace ControlInventarioMovil.Views
             BtnGuardar.BackgroundColor = Color.FromArgb("#A2D149");
             PkrCategory.IsEnabled = true;
 
+            // 1. Limpieza de campos de texto
+            TxtName.Text = string.Empty;
+            TxtModel.Text = string.Empty;
+            TxtBarcode.Text = string.Empty;
+            TxtSku.Text = string.Empty;
+            TxtSerialNumber.Text = string.Empty;
+            TxtObservation.Text = string.Empty;
+            TxtCharacteristics.Text = string.Empty;
+            TxtStock.Text = string.Empty;
+            TxtPresentacion.Text = string.Empty;
+            TxtAcquisitionPrice.Text = string.Empty;
+            TxtSalePrice.Text = string.Empty;
+            TxtConversionFactor.Text = "1";
+            TxtCantidadInicial.Text = "1";
+            TxtUsefulLife.Text = string.Empty;
+
+            // 2. Reseteo de imágenes y placeholders
+            _rutaFotoPrincipal = null;
+            _rutaFotoVoucher = null;
+
+            ImgArticuloPreview.Source = null;
+            ImgArticuloPreview.IsVisible = false;
+            PlaceholderArticulo.IsVisible = true;
+            BtnBorrarFotoPrincipal.IsVisible = false;
+
+            ImgVoucherPreview.Source = null;
+            ImgVoucherPreview.IsVisible = false;
+            PlaceholderVoucher.IsVisible = true;
+            BtnBorrarFotoVoucher.IsVisible = false;
+
+            // 3. Reseteo de Pickers base
             PkrCategory.SelectedIndex = 0;
             PkrAcquisitionUnit.SelectedIndex = 0;
             PkrSaleUnit.SelectedIndex = 0;
@@ -90,6 +126,7 @@ namespace ControlInventarioMovil.Views
             PkrConditionParam.SelectedIndex = 0;
             PkrSupplier.SelectedIndex = 0;
 
+            // 4. Preselección de Moneda
             int indexMonedaPredeterminada = 0;
 
             if (UserSession.CurrentProfile?.CurrencyId.HasValue == true)
@@ -117,6 +154,7 @@ namespace ControlInventarioMovil.Views
                 PkrLocationParam.SelectedIndex = 0;
             }
 
+            // 5. Actualización de colores para placeholders de Pickers
             ControlarColorPlaceholderPicker(PkrCategory);
             ControlarColorPlaceholderPicker(PkrAcquisitionUnit);
             ControlarColorPlaceholderPicker(PkrSaleUnit);
@@ -127,6 +165,7 @@ namespace ControlInventarioMovil.Views
             ControlarColorPlaceholderPicker(PkrSupplier);
             ControlarColorPlaceholderPicker(PkrCurrency);
             ControlarColorPlaceholderPicker(PkrSaleCurrency);
+            OnCalculoGananciaTriggered(null, EventArgs.Empty);
         }
 
         private void HydrateFormularioParaEdicion(Article art)
@@ -232,18 +271,32 @@ namespace ControlInventarioMovil.Views
 
             if (!string.IsNullOrWhiteSpace(_rutaFotoPrincipal))
             {
-                ImgArticuloPreview.Source = ImageSource.FromUri(new Uri(_rutaFotoPrincipal));
+                ImgArticuloPreview.Source = CargarImageSource(_rutaFotoPrincipal);
                 ImgArticuloPreview.IsVisible = true;
                 PlaceholderArticulo.IsVisible = false;
                 BtnBorrarFotoPrincipal.IsVisible = true;
             }
+            else
+            {
+                ImgArticuloPreview.Source = null;
+                ImgArticuloPreview.IsVisible = false;
+                PlaceholderArticulo.IsVisible = true;
+                BtnBorrarFotoPrincipal.IsVisible = false;
+            }
 
             if (!string.IsNullOrWhiteSpace(_rutaFotoVoucher))
             {
-                ImgVoucherPreview.Source = ImageSource.FromUri(new Uri(_rutaFotoVoucher));
+                ImgVoucherPreview.Source = CargarImageSource(_rutaFotoVoucher);
                 ImgVoucherPreview.IsVisible = true;
                 PlaceholderVoucher.IsVisible = false;
                 BtnBorrarFotoVoucher.IsVisible = true;
+            }
+            else
+            {
+                ImgVoucherPreview.Source = null;
+                ImgVoucherPreview.IsVisible = false;
+                PlaceholderVoucher.IsVisible = true;
+                BtnBorrarFotoVoucher.IsVisible = false;
             }
 
             if (art.SupplierId.HasValue && art.SupplierId.Value > 0)
@@ -605,11 +658,11 @@ namespace ControlInventarioMovil.Views
                         string[] abreviaturasPermitidas;
 
                         if (isSerialized)
-                            abreviaturasPermitidas = new string[] { "UND", "PAR", "JGO" };
+                            abreviaturasPermitidas = ["UND", "PAR", "JGO"];
                         else if (isStandard)
-                            abreviaturasPermitidas = new string[] { "UND", "BOX", "MCTN", "PKT", "DOC", "BLST", "TRM", "CONT", "PAR", "JGO" };
+                            abreviaturasPermitidas = ["UND", "BOX", "MCTN", "PKT", "DOC", "BLST", "TRM", "CONT", "PAR", "JGO"];
                         else
-                            abreviaturasPermitidas = new string[] { "KGS", "TON", "LTS", "GAL", "ML", "GRS", "MTS", "CM", "MLN", "M2", "M3", "LBS", "OZ" };
+                            abreviaturasPermitidas = ["KGS", "TON", "LTS", "GAL", "ML", "GRS", "MTS", "CM", "MLN", "M2", "M3", "LBS", "OZ"];
 
                         _unidadesFiltradas = _todasLasUnidades
                             .Where(u => !string.IsNullOrWhiteSpace(u.Abbreviation) &&
@@ -637,8 +690,19 @@ namespace ControlInventarioMovil.Views
 
                     if (!_isHydrating)
                     {
-                        PkrAcquisitionUnit.SelectedIndex = 0;
-                        PkrSaleUnit.SelectedIndex = 0;
+                        int indicePorDefecto = 0;
+
+                        if (UserSession.CurrentProfile?.MeasurementUnitId.HasValue == true && _unidadesFiltradas != null)
+                        {
+                            var unidadDefecto = _unidadesFiltradas.FirstOrDefault(u => u.Id == UserSession.CurrentProfile.MeasurementUnitId.Value);
+                            if (unidadDefecto != null)
+                            {
+                                indicePorDefecto = _unidadesFiltradas.IndexOf(unidadDefecto) + 1;
+                            }
+                        }
+
+                        PkrAcquisitionUnit.SelectedIndex = indicePorDefecto;
+                        PkrSaleUnit.SelectedIndex = indicePorDefecto;
                     }
 
                     ControlarColorPlaceholderPicker(PkrAcquisitionUnit);
@@ -1025,6 +1089,8 @@ namespace ControlInventarioMovil.Views
 
         private void GenerarSkuInteligente()
         {
+            if (UserSession.CurrentProfile != null && !UserSession.CurrentProfile.GenerateCodes) return;
+
             if (PkrCategory.SelectedIndex <= 0 || UserSession.CurrentArticleToEdit != null) return;
 
             var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
@@ -1348,24 +1414,6 @@ namespace ControlInventarioMovil.Views
             ImgVoucherPreview.IsVisible = false;
             BtnBorrarFotoVoucher.IsVisible = false;
             PlaceholderVoucher.IsVisible = true;
-        }
-
-        private async void OnVerFotoPrincipalClicked(object sender, EventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(_rutaFotoPrincipal)) return;
-
-            try
-            {
-                if (_rutaFotoPrincipal.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-                    await Launcher.Default.OpenAsync(new Uri(_rutaFotoPrincipal));
-                else
-                    await Launcher.Default.OpenAsync(new OpenFileRequest("Visualizar Foto de Producto", new ReadOnlyFile(_rutaFotoPrincipal)));
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[PREVIEW_FAIL] {ex.Message}");
-                await DisplayAlertAsync("Vista Previa", "No se dispone de una aplicación nativa para abrir esta imagen.", "OK");
-            }
         }
 
         private async void OnVerFotoVoucherClicked(object sender, EventArgs e)
@@ -1797,6 +1845,127 @@ namespace ControlInventarioMovil.Views
 
             UserSession.CurrentArticleToEdit = null;
             await Shell.Current.GoToAsync("..");
+        }
+
+        private ImageSource? CargarImageSource(string ruta)
+        {
+            if (string.IsNullOrWhiteSpace(ruta)) return null;
+
+            if (ruta.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                ruta.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                return ImageSource.FromUri(new Uri(ruta));
+            }
+
+            if (ruta.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
+            {
+                string base64Data = ruta.Substring(ruta.IndexOf(",") + 1);
+                byte[] imageBytes = Convert.FromBase64String(base64Data);
+                return ImageSource.FromStream(() => new MemoryStream(imageBytes));
+            }
+
+            return ImageSource.FromFile(ruta);
+        }
+
+        private async void OnVerFotoPrincipalClicked(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_rutaFotoPrincipal)) return;
+
+            _tipoFotoEnVisor = 1;
+            LblVisorTitulo.Text = "Foto del Artículo";
+            ResetearZoomYPosicion();
+            ImgVisorAmpliado.Source = CargarImageSource(_rutaFotoPrincipal);
+
+            OverlayVisorFoto.IsVisible = true;
+            await OverlayVisorFoto.FadeToAsync(1, 200);
+        }
+
+        private async void OnCerrarVisorClicked(object sender, EventArgs e)
+        {
+            await OverlayVisorFoto.FadeToAsync(0, 150);
+            OverlayVisorFoto.IsVisible = false;
+            ResetearZoomYPosicion();
+            _tipoFotoEnVisor = 0;
+        }
+
+        private void OnEliminarFotoVisorClicked(object sender, EventArgs e)
+        {
+            if (_tipoFotoEnVisor == 1)
+            {
+                OnBorrarFotoPrincipalClicked(sender, e);
+            }
+            else if (_tipoFotoEnVisor == 2)
+            {
+                OnBorrarFotoVoucherClicked(sender, e);
+            }
+
+            OnCerrarVisorClicked(sender, e);
+        }
+
+        private void OnCambiarFotoVisorClicked(object sender, EventArgs e)
+        {
+            int tipoActual = _tipoFotoEnVisor;
+            OnCerrarVisorClicked(sender, e);
+
+            if (tipoActual == 1)
+            {
+                OnTomarFotoPrincipalClicked(sender, e);
+            }
+            else if (tipoActual == 2)
+            {
+                OnTomarFotoComprobanteClicked(sender, e);
+            }
+        }
+
+        private void OnPinchUpdated(object? sender, PinchGestureUpdatedEventArgs e)
+        {
+            if (e.Status == GestureStatus.Started)
+            {
+                _startScale = ImgVisorAmpliado.Scale;
+                ImgVisorAmpliado.AnchorX = 0.5;
+                ImgVisorAmpliado.AnchorY = 0.5;
+            }
+            if (e.Status == GestureStatus.Running)
+            {
+                _currentScale += (e.Scale - 1) * _startScale;
+                _currentScale = Math.Clamp(_currentScale, 1.0, 5.0);
+                ImgVisorAmpliado.Scale = _currentScale;
+            }
+            if (e.Status == GestureStatus.Completed && _currentScale <= 1.0)
+            {
+                ResetearZoomYPosicion();
+            }
+        }
+
+        private void OnPanUpdated(object? sender, PanUpdatedEventArgs e)
+        {
+            if (_currentScale <= 1.0) return;
+
+            switch (e.StatusType)
+            {
+                case GestureStatus.Running:
+                    ImgVisorAmpliado.TranslationX = _xOffset + e.TotalX;
+                    ImgVisorAmpliado.TranslationY = _yOffset + e.TotalY;
+                    break;
+
+                case GestureStatus.Completed:
+                    _xOffset = ImgVisorAmpliado.TranslationX;
+                    _yOffset = ImgVisorAmpliado.TranslationY;
+                    break;
+            }
+        }
+
+        private void ResetearZoomYPosicion()
+        {
+            _currentScale = 1;
+            _startScale = 1;
+            _xOffset = 0;
+            _yOffset = 0;
+            ImgVisorAmpliado.Scale = 1;
+            ImgVisorAmpliado.TranslationX = 0;
+            ImgVisorAmpliado.TranslationY = 0;
+            ImgVisorAmpliado.WidthRequest = -1;
+            ImgVisorAmpliado.HeightRequest = -1;
         }
         #endregion
     }

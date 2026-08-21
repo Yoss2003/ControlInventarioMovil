@@ -1,13 +1,19 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
+using System.ComponentModel;
 
 namespace ControlInventarioMovil.Views
 {
     public partial class InventoryPage : ContentPage
     {
         private readonly ApiService _apiService;
+        private ArticleUI? _articuloEnVisor;
         private bool _mostrarStockCero = false;
+        private double _currentScale = 1;
+        private double _startScale = 1;
+        private double _xOffset = 0;
+        private double _yOffset = 0;
 
         public InventoryPage()
         {
@@ -269,7 +275,6 @@ namespace ControlInventarioMovil.Views
                 bool salir = await DisplayAlertAsync("Atención", "Tienes cambios sin guardar. ¿Seguro que deseas salir y perder los datos ingresados?", "Sí, salir", "Continuar editando");
                 if (salir)
                 {
-                    // Limpiamos la memoria antes de salir
                     UserSession.CurrentArticleToEdit = null;
                     await Shell.Current.GoToAsync("..");
                 }
@@ -279,39 +284,218 @@ namespace ControlInventarioMovil.Views
 
         private async void OnConfigCategoriesClicked(object sender, EventArgs e)
         {
-            // Te manda directo a la vista de categorías dedicada
             await Shell.Current.GoToAsync("CategoriasPage");
         }
 
         private async void OnToggleStockCeroClicked(object sender, EventArgs e)
         {
-            // 1. Invertimos el estado del filtro
             _mostrarStockCero = !_mostrarStockCero;
 
-            // 2. Modificamos el aspecto visual del botón que disparó el evento
             if (sender is Button botonTexto)
             {
                 if (_mostrarStockCero)
                 {
                     botonTexto.Text = "Ver Disponibles";
-                    botonTexto.BackgroundColor = Color.FromArgb("#EFA72F"); // Naranja de advertencia/auditoría
+                    botonTexto.BackgroundColor = Color.FromArgb("#EFA72F");
                 }
                 else
                 {
                     botonTexto.Text = "Ver Agotados (Stock 0)";
-                    botonTexto.BackgroundColor = Color.FromArgb("#2E3842"); // Gris oscuro de tu paleta
+                    botonTexto.BackgroundColor = Color.FromArgb("#2E3842");
                 }
             }
 
-            // 3. Volvemos a sincronizar la lista con el nuevo filtro aplicado
             await SincronizarListadoArticulosAsync();
+        }
+
+        private async void OnFotoRapidaTapped(object sender, TappedEventArgs e)
+        {
+            var articleUI = e.Parameter as ArticleUI ?? (sender as BindableObject)?.BindingContext as ArticleUI;
+            if (articleUI == null) return;
+
+            bool tieneFoto = !string.IsNullOrWhiteSpace(articleUI.MainPhotoPath);
+
+            if (tieneFoto)
+            {
+                _articuloEnVisor = articleUI;
+                LblVisorTitulo.Text = articleUI.Name;
+                ImgVisorAmpliado.Source = articleUI.MainPhotoPath;
+
+                OverlayVisorFoto.IsVisible = true;
+                await OverlayVisorFoto.FadeToAsync(1, 200);
+                ResetearZoomYPosicion();
+            }
+            else
+            {
+                await MostrarMenuCargaFoto(articleUI);
+            }
+        }
+
+        private async void OnCerrarVisorClicked(object sender, EventArgs e)
+        {
+            await OverlayVisorFoto.FadeToAsync(0, 150);
+            OverlayVisorFoto.IsVisible = false;
+            _articuloEnVisor = null;
+            ResetearZoomYPosicion();
+        }
+
+        private async void OnEliminarFotoVisorClicked(object sender, EventArgs e)
+        {
+            if (_articuloEnVisor == null) return;
+
+            bool confirmar = await DisplayAlertAsync("Eliminar", $"¿Quitar la foto de '{_articuloEnVisor.Name}'?", "Sí", "No");
+            if (!confirmar) return;
+            OnCerrarVisorClicked(sender, e);
+            await EjecutarActualizacionDeFoto(_articuloEnVisor, null);
+        }
+
+        private async void OnCambiarFotoVisorClicked(object sender, EventArgs e)
+        {
+            if (_articuloEnVisor == null) return;
+
+            OnCerrarVisorClicked(sender, e);
+            await MostrarMenuCargaFoto(_articuloEnVisor);
+        }
+
+        private async Task MostrarMenuCargaFoto(ArticleUI articleUI)
+        {
+            string accion = await DisplayActionSheetAsync($"Foto: {articleUI.Name}", "Cancelar", null, "Tomar con Cámara", "Elegir de Galería");
+            FileResult? foto = null;
+
+            try
+            {
+                if (accion == "Tomar con Cámara" && MediaPicker.Default.IsCaptureSupported)
+                {
+                    foto = await MediaPicker.Default.CapturePhotoAsync();
+                }
+                else if (accion == "Elegir de Galería")
+                {
+                    var photos = await MediaPicker.Default.PickPhotosAsync();
+                    foto = photos?.FirstOrDefault();
+                }
+
+                if (foto != null)
+                {
+                    await EjecutarActualizacionDeFoto(articleUI, foto.FullPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlertAsync("Error", $"No se pudo procesar la imagen: {ex.Message}", "OK");
+            }
+        }
+
+        private async Task EjecutarActualizacionDeFoto(ArticleUI articleUI, string? nuevaRuta)
+        {
+            try
+            {
+                if (OverlayVisorFoto.IsVisible)
+                {
+                    await ImgVisorAmpliado.FadeToAsync(0, 180, Easing.CubicOut);
+                }
+                
+                articleUI.MainPhotoPath = nuevaRuta;
+                var articuloUpdate = ClonarAArticleBase(articleUI);
+                bool exito = await _apiService.UpdateArticleAsync(articuloUpdate.Id, articuloUpdate);
+
+                if (exito)
+                {
+                    ImgVisorAmpliado.Source = !string.IsNullOrWhiteSpace(nuevaRuta) ? nuevaRuta : null;
+                    ResetearZoomYPosicion();
+
+                    if (string.IsNullOrWhiteSpace(nuevaRuta))
+                    {
+                        await OverlayVisorFoto.FadeToAsync(0, 150);
+                        OverlayVisorFoto.IsVisible = false;
+                        _articuloEnVisor = null;
+                    }
+                    else
+                    {
+                        await ImgVisorAmpliado.FadeToAsync(1, 250, Easing.CubicIn);
+                    }
+                }
+                else
+                {
+                    await ImgVisorAmpliado.FadeToAsync(1, 150);
+                    await DisplayAlertAsync("Error", "No se pudo sincronizar la foto con el servidor.", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                await ImgVisorAmpliado.FadeToAsync(1, 150);
+                await DisplayAlertAsync("Error", $"Error al actualizar imagen: {ex.Message}", "OK");
+            }
+        }
+
+        private void OnPinchUpdated(object? sender, PinchGestureUpdatedEventArgs e)
+        {
+            if (e.Status == GestureStatus.Started)
+            {
+                _startScale = ImgVisorAmpliado.Scale;
+                ImgVisorAmpliado.AnchorX = 0.5;
+                ImgVisorAmpliado.AnchorY = 0.5;
+            }
+            if (e.Status == GestureStatus.Running)
+            {
+                _currentScale += (e.Scale - 1) * _startScale;
+                _currentScale = Math.Clamp(_currentScale, 1.0, 5.0);
+
+                ImgVisorAmpliado.Scale = _currentScale;
+            }
+            if (e.Status == GestureStatus.Completed && _currentScale <= 1.0)
+            {
+                ResetearZoomYPosicion();
+            }
+        }
+
+        private void OnPanUpdated(object? sender, PanUpdatedEventArgs e)
+        {
+            if (_currentScale <= 1.0) return;
+
+            switch (e.StatusType)
+            {
+                case GestureStatus.Running:
+                    ImgVisorAmpliado.TranslationX = _xOffset + e.TotalX;
+                    ImgVisorAmpliado.TranslationY = _yOffset + e.TotalY;
+                    break;
+
+                case GestureStatus.Completed:
+                    _xOffset = ImgVisorAmpliado.TranslationX;
+                    _yOffset = ImgVisorAmpliado.TranslationY;
+                    break;
+            }
+        }
+
+        private void ResetearZoomYPosicion()
+        {
+            _currentScale = 1;
+            _startScale = 1;
+            _xOffset = 0;
+            _yOffset = 0;
+            ImgVisorAmpliado.Scale = 1;
+            ImgVisorAmpliado.TranslationX = 0;
+            ImgVisorAmpliado.TranslationY = 0;
         }
     }
 
-    public class ArticleUI : Article
+    public class ArticleUI : Article, INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
         public string AcquisitionDisplay => $"{((string.IsNullOrWhiteSpace(AcquisitionCurrency)) ? "S/." : AcquisitionCurrency.Trim())} {(AcquisitionPrice ?? 0):F2}";
         public string OriginalSaleDisplay => $"{((string.IsNullOrWhiteSpace(SaleCurrency)) ? "S/." : SaleCurrency.Trim())} {(SalePrice ?? 0):F2}";
+
+        public new string? MainPhotoPath
+        {
+            get => base.MainPhotoPath;
+            set
+            {
+                if (base.MainPhotoPath != value)
+                {
+                    base.MainPhotoPath = value;
+                    PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(MainPhotoPath)));
+                }
+            }
+        }
 
         public string ConvertedSaleDisplay
         {
@@ -339,6 +523,7 @@ namespace ControlInventarioMovil.Views
         }
 
         public bool IsConversionVisible => (!string.IsNullOrWhiteSpace(SaleCurrency) && SaleCurrency.Trim() != "S/.");
+        public bool ShowThumbnail => Preferences.Default.Get("UI_ShowThumbnails", true);
 
         public ArticleUI(Article a)
         {

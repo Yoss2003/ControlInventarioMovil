@@ -32,7 +32,7 @@
                             <Grid ColumnDefinitions="*, *" ColumnSpacing="15">
                                 <Border Grid.Column="0" HeightRequest="140" StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="0" HorizontalOptions="Fill">
                                     <Grid>
-                                        <Image x:Name="ImgArticuloPreview" Aspect="AspectFill" HorizontalOptions="Fill" VerticalOptions="Fill" IsVisible="False">
+                                        <Image x:Name="ImgArticuloPreview" Aspect="AspectFit" HorizontalOptions="Fill" VerticalOptions="Fill" IsVisible="False">
                                             <Image.GestureRecognizers>
                                                 <TapGestureRecognizer Tapped="OnVerFotoPrincipalClicked"/>
                                             </Image.GestureRecognizers>
@@ -45,13 +45,13 @@
                                             </VerticalStackLayout>
                                             <ImageButton BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Fill" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnTomarFotoPrincipalClicked"/>
                                         </Grid>
-                                        <ImageButton x:Name="BtnBorrarFotoPrincipal" Source="delete_icon.png" WidthRequest="26" HeightRequest="26" BackgroundColor="Transparent" Padding="0" HorizontalOptions="End" VerticalOptions="Start" Margin="8" IsVisible="False" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnBorrarFotoPrincipalClicked"/>
+                                        <ImageButton x:Name="BtnBorrarFotoPrincipal" Source="delete_icon.png" WidthRequest="26" HeightRequest="26" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" Padding="4" CornerRadius="4" HorizontalOptions="End" VerticalOptions="Start" Margin="6" IsVisible="False" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnBorrarFotoPrincipalClicked"/>
                                     </Grid>
                                 </Border>
 
                                 <Border Grid.Column="1" HeightRequest="140" StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="0" HorizontalOptions="Fill">
                                     <Grid>
-                                        <Image x:Name="ImgVoucherPreview" Aspect="AspectFill" HorizontalOptions="Fill" VerticalOptions="Fill" IsVisible="False">
+                                        <Image x:Name="ImgVoucherPreview" Aspect="AspectFit" HorizontalOptions="Fill" VerticalOptions="Fill" IsVisible="False">
                                             <Image.GestureRecognizers>
                                                 <TapGestureRecognizer Tapped="OnVerFotoVoucherClicked"/>
                                             </Image.GestureRecognizers>
@@ -64,7 +64,7 @@
                                             </VerticalStackLayout>
                                             <ImageButton BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Fill" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnTomarFotoComprobanteClicked"/>
                                         </Grid>
-                                        <ImageButton x:Name="BtnBorrarFotoVoucher" Source="delete_icon.png" WidthRequest="26" HeightRequest="26" BackgroundColor="Transparent" Padding="0" HorizontalOptions="End" VerticalOptions="Start" Margin="8" IsVisible="False" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnBorrarFotoVoucherClicked"/>
+                                        <ImageButton x:Name="BtnBorrarFotoVoucher" Source="delete_icon.png" WidthRequest="26" HeightRequest="26" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" Padding="4" CornerRadius="4" HorizontalOptions="End" VerticalOptions="Start" Margin="6" IsVisible="False" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnBorrarFotoVoucherClicked"/>
                                     </Grid>
                                 </Border>
                             </Grid>
@@ -539,6 +539,71 @@
                 <ActivityIndicator IsRunning="True" Color="#A2D149" WidthRequest="60" HeightRequest="60" />
                 <Label x:Name="LblOverlayTexto" Text="Procesando..." TextColor="White" FontAttributes="Bold" FontSize="16" HorizontalOptions="Center" />
             </VerticalStackLayout>
+        </Grid>
+        <Grid x:Name="OverlayVisorFoto" Grid.RowSpan="3" IsVisible="False" BackgroundColor="#CC000000" Opacity="0" Padding="20" ZIndex="90">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnCerrarVisorClicked" />
+            </Grid.GestureRecognizers>
+
+            <Border StrokeShape="RoundRectangle 12" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C262E}" 
+                    VerticalOptions="Center" HorizontalOptions="Fill" Padding="0" StrokeThickness="0">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer />
+                </Border.GestureRecognizers>
+
+                <Grid RowDefinitions="Auto, *, Auto">
+                    <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Padding="15,12,15,10">
+                        <Label Grid.Column="0" 
+                               x:Name="LblVisorTitulo" 
+                               Text="Vista Previa" 
+                               FontAttributes="Bold" 
+                               FontSize="16" 
+                               LineBreakMode="TailTruncation" 
+                               TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" 
+                               VerticalOptions="Center"/>
+
+                        <ImageButton Grid.Column="1"
+                                     Source="cancel_icon.png"
+                                     WidthRequest="30"
+                                     HeightRequest="30"
+                                     Padding="4"
+                                     CornerRadius="6"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="End"
+                                     helpers:EfectosVisualesHelper.Animar="True"
+                                     Clicked="OnCerrarVisorClicked"/>
+                    </Grid>
+
+                    <Border Grid.Row="1" 
+        BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" 
+        StrokeThickness="0" 
+        HeightRequest="320"
+        HorizontalOptions="Center"
+        VerticalOptions="Center"
+        WidthRequest="320"
+        Padding="5"
+        StrokeShape="RoundRectangle 8">
+                        <Grid HorizontalOptions="Center" VerticalOptions="Center" WidthRequest="310" HeightRequest="310">
+                            <Image x:Name="ImgVisorAmpliado" 
+               Aspect="AspectFit" 
+               HorizontalOptions="Center" 
+               VerticalOptions="Center"
+               MaximumWidthRequest="310"
+               MaximumHeightRequest="310">
+                                <Image.GestureRecognizers>
+                                    <PinchGestureRecognizer PinchUpdated="OnPinchUpdated" />
+                                    <PanGestureRecognizer PanUpdated="OnPanUpdated" />
+                                </Image.GestureRecognizers>
+                            </Image>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="10" Padding="15">
+                        <Button Grid.Column="0" Text="ELIMINAR" BackgroundColor="#FCE8E6" TextColor="#D32F2F" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" Clicked="OnEliminarFotoVisorClicked"/>
+                        <Button Grid.Column="1" Text="CAMBIAR FOTO" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" Clicked="OnCambiarFotoVisorClicked"/>
+                    </Grid>
+                </Grid>
+            </Border>
         </Grid>
     </Grid>
 </ContentPage>

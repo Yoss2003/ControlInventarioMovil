@@ -117,7 +117,7 @@ namespace ControlInventarioMovil.Views
                 PkrCurrency.SelectedIndex = (_currentProfile.CurrencyId != null) ? _currentProfile.CurrencyId.Value - 1 : 0;
                 PkrMeasurementUnit.SelectedIndex = (_currentProfile.MeasurementUnitId != null) ? _currentProfile.MeasurementUnitId.Value - 1 : 0;
 
-                SwDarkMode.IsToggled = (_currentProfile.ThemeId == null || _currentProfile.ThemeId == 1);
+                SwDarkMode.IsToggled = (_currentProfile.ThemeId == 2);
 
                 SwShowThumbnails.IsToggled = Preferences.Default.Get("UI_ShowThumbnails", true);
                 SwCompactView.IsToggled = Preferences.Default.Get("UI_CompactView", false);
@@ -264,7 +264,7 @@ namespace ControlInventarioMovil.Views
                 _currentProfile.NotificationId = PkrNotification.SelectedIndex + 1;
                 _currentProfile.CurrencyId = PkrCurrency.SelectedIndex + 1;
                 _currentProfile.MeasurementUnitId = PkrMeasurementUnit.SelectedIndex + 1;
-                _currentProfile.ThemeId = SwDarkMode.IsToggled ? 1 : 2;
+                _currentProfile.ThemeId = SwDarkMode.IsToggled ? 2 : 1;
 
                 if (PkrRolesPermisos.SelectedItem is Role rolGuardar)
                 {

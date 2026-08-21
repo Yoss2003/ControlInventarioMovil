@@ -84,7 +84,9 @@ public partial class CompanyFormPage : ContentPage
     {
         try
         {
-            var result = await MediaPicker.PickPhotoAsync(new MediaPickerOptions { Title = "Selecciona el Logo" });
+            var results = await MediaPicker.PickPhotosAsync(new MediaPickerOptions { Title = "Selecciona el Logo" });
+            var result = results?.FirstOrDefault();
+
             if (result != null)
             {
                 using var stream = await result.OpenReadAsync();

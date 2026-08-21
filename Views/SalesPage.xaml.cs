@@ -44,10 +44,17 @@ namespace ControlInventarioMovil.Views
             _currentSalesModeId = 5;
             _selectedSubWallet = "";
 
+            
+
             if (opcionMadre == "Billetera digital") pickerSubWallet.IsVisible = true;
             else if (opcionMadre == "Venta a Cuotas") pickerSalesMode.IsVisible = true;
 
-            // 🌟 LÓGICA DE UX: Mostramos u ocultamos la calculadora
+            bool esCuotas = (opcionMadre == "Venta a Cuotas");
+            pickerSalesMode?.IsVisible = esCuotas;
+            btnSimularCuotas?.IsVisible = esCuotas;
+            gridNumCuotas?.IsVisible = esCuotas;
+            gridCuotaInicial?.IsVisible = esCuotas;
+
             if (opcionMadre == "Efectivo")
             {
                 if (gridEfectivoInfo != null) gridEfectivoInfo.IsVisible = true;
@@ -414,6 +421,60 @@ namespace ControlInventarioMovil.Views
             await panelCobro.TranslateToAsync(0, panelCobro.Height + 50, 300, Easing.CubicIn);
             panelCobro.IsVisible = false;
             btnAbrirPanel.IsVisible = true;
+        }
+
+        private async void OnSimularCuotasClicked(object sender, EventArgs e)
+        {
+            if (_totalVentaActual <= 0)
+            {
+                await DisplayAlertAsync("Atención", "Selecciona artículos para generar la simulación del crédito.", "OK");
+                return;
+            }
+
+            int numeroCuotas = 3;
+            if (txtNumCuotas != null && int.TryParse(txtNumCuotas.Text, out int cuotasUser) && cuotasUser > 0)
+            {
+                numeroCuotas = cuotasUser;
+            }
+            else
+            {
+                await DisplayAlertAsync("Atención", "Ingresa un número válido de cuotas.", "OK");
+                return;
+            }
+
+            decimal cuotaInicial = 0m;
+            if (txtCuotaInicial != null && !string.IsNullOrWhiteSpace(txtCuotaInicial.Text))
+            {
+                decimal.TryParse(txtCuotaInicial.Text.Replace(",", "."), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out cuotaInicial);
+            }
+
+            decimal montoFinanciar = _totalVentaActual - cuotaInicial;
+            if (montoFinanciar <= 0)
+            {
+                await DisplayAlertAsync("Atención", "La cuota inicial cubre o supera el monto total de la venta.", "OK");
+                return;
+            }
+
+            string frecuenciaSeleccionada = pickerSalesMode.SelectedItem?.ToString() ?? "Mensual";
+            decimal montoPorCuota = montoFinanciar / numeroCuotas;
+
+            string detalleSimulacion = $"Monto Total: S/. {_totalVentaActual:F2}\n" +
+                                       $"Cuota Inicial: S/. {cuotaInicial:F2}\n" +
+                                       $"Por Financiar: S/. {montoFinanciar:F2}\n" +
+                                       $"Frecuencia: {frecuenciaSeleccionada} ({numeroCuotas} cuotas)\n\n" +
+                                       $"Cronograma Proyectado:\n";
+
+            DateTime fechaCuota = DateTime.Today;
+            for (int i = 1; i <= numeroCuotas; i++)
+            {
+                if (frecuenciaSeleccionada == "Diario") fechaCuota = fechaCuota.AddDays(1);
+                else if (frecuenciaSeleccionada == "Semanal") fechaCuota = fechaCuota.AddDays(7);
+                else fechaCuota = fechaCuota.AddMonths(1);
+
+                detalleSimulacion += $"• Cuota {i}: S/. {montoPorCuota:F2} (Vence: {fechaCuota:dd/MM/yyyy})\n";
+            }
+
+            await DisplayAlertAsync("Simulación de Crédito", detalleSimulacion, "Entendido");
         }
     }
 }
