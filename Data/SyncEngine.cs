@@ -8,6 +8,7 @@ namespace ControlInventarioMovil.Data
     public class SyncEngine
     {
         private readonly ApiService _apiService;
+        private static readonly SemaphoreSlim _syncLock = new SemaphoreSlim(1, 1);
 
         public SyncEngine(ApiService apiService)
         {
@@ -25,124 +26,191 @@ namespace ControlInventarioMovil.Data
 
         public async Task SincronizarBaseDeDatosCompletaAsync()
         {
-            using var context = new LocalDbContext();
-
-            Debug.WriteLine("=== INICIANDO SINCRONIZACIÓN ===");
-
-            // ==========================================
-            // 1. PUSH (Offline a Nube)
-            // ==========================================
-            await EjecutarSeguro(context, "Push Local", async () =>
+            if (!_syncLock.Wait(0))
             {
-                var pendientes = await context.Articles.Where(a => a.IsSynced != true).ToListAsync();
-                foreach (var articulo in pendientes)
+                Debug.WriteLine("=== SINCRONIZACIÓN EN CURSO: IGNORADA ===");
+                return;
+            }
+
+            try
+            {
+                Debug.WriteLine("=== INICIANDO SINCRONIZACIÓN (CONTEXTOS AISLADOS) ===");
+
+                // ==========================================
+                // 1. PUSH (Offline a Nube)
+                // ==========================================
+                await EjecutarSeguro("Push Artículos", async (ctx) =>
                 {
-                    if (await _apiService.SyncArticleWithCloudAsync(articulo))
+                    var pendientes = await ctx.Articles.Where(a => a.IsSynced != true).ToListAsync();
+                    foreach (var articulo in pendientes)
                     {
-                        articulo.IsSynced = true;
-                        context.Articles.Update(articulo);
+                        if (await _apiService.SyncArticleWithCloudAsync(articulo))
+                        {
+                            articulo.IsSynced = true;
+                            ctx.Articles.Update(articulo);
+                        }
                     }
-                }
-            });
+                });
 
-            // ==========================================
-            // 2. PULL: TABLAS UNIVERSALES
-            // ==========================================
-            await EjecutarSeguro(context, "Currencies", async () => await SincronizarTablaAsync(context, await _apiService.GetCurrenciesAsync()));
-            await EjecutarSeguro(context, "DateFormats", async () => await SincronizarTablaAsync(context, await _apiService.GetCatalogAsync<DateFormat>("DateFormats")));
-            await EjecutarSeguro(context, "Themes", async () => await SincronizarTablaAsync(context, await _apiService.GetCatalogAsync<Theme>("Themes")));
-            await EjecutarSeguro(context, "TimeZoneItems", async () => await SincronizarTablaAsync(context, await _apiService.GetCatalogAsync<TimeZoneItem>("TimeZoneItems")));
-            await EjecutarSeguro(context, "Languages", async () => await SincronizarTablaAsync(context, await _apiService.GetCatalogAsync<Language>("Languages")));
-            await EjecutarSeguro(context, "Parameters", async () => await SincronizarTablaAsync(context, await _apiService.GetParametersAsync()));
-            await EjecutarSeguro(context, "Permissions", async () => await SincronizarTablaAsync(context, await _apiService.GetPermissionsAsync()));
-            await EjecutarSeguro(context, "Roles", async () => await SincronizarTablaAsync(context, await _apiService.GetRolesAsync()));
-            await EjecutarSeguro(context, "RolePermissions", async () => await SincronizarTablaAsync(context, await _apiService.GetCatalogAsync<RolePermission>("RolePermissions")));
-            await EjecutarSeguro(context, "ActionItems", async () => await SincronizarTablaAsync(context, await _apiService.GetActionsAsync()));
-            await EjecutarSeguro(context, "SalesModes", async () => await SincronizarTablaAsync(context, await _apiService.GetCatalogAsync<SalesMode>("SalesModes")));
-            await EjecutarSeguro(context, "MeasurementUnits", async () => await SincronizarTablaAsync(context, await _apiService.GetMeasurementUnitsAsync()));
-            await EjecutarSeguro(context, "CategoryMeasurementUnits", async () => await SincronizarTablaAsync(context, await _apiService.GetCatalogAsync<CategoryMeasurementUnit>("CategoryMeasurementUnits")));
-            await EjecutarSeguro(context, "ExchangeRates", async () => await SincronizarTablaAsync(context, await _apiService.GetCatalogAsync<ExchangeRate>("ExchangeRates")));
+                await EjecutarSeguro("Push Ventas", async (ctx) =>
+                {
+                    var ventasPendientes = await ctx.Sales
+                        .Include(s => s.SaleDetails)
+                        .Where(s => s.IsSynced != true).ToListAsync();
 
-            // ==========================================
-            // 3. PULL: TABLAS AISLADAS (Transaccionales)
-            // ==========================================
-            await EjecutarSeguro(context, "Users", async () => await SincronizarTablaAsync(context, await _apiService.GetUsersAsync()));
-            await EjecutarSeguro(context, "Profiles", async () => await SincronizarTablaAsync(context, await _apiService.GetCatalogAsync<Profile>("Profiles")));
-            await EjecutarSeguro(context, "Employees", async () => await SincronizarTablaAsync(context, await _apiService.GetEmployeesAsync()));
-            await EjecutarSeguro(context, "Inventories", async () => await SincronizarTablaAsync(context, await _apiService.GetInventoriesAsync()));
-            await EjecutarSeguro(context, "SharedInventories", async () => await SincronizarTablaAsync(context, await _apiService.GetCatalogAsync<SharedInventory>("SharedInventories")));
-            await EjecutarSeguro(context, "Customers", async () => await SincronizarTablaAsync(context, await _apiService.GetCustomersAsync()));
-            await EjecutarSeguro(context, "Suppliers", async () => await SincronizarTablaAsync(context, await _apiService.GetSuppliersAsync()));
-            await EjecutarSeguro(context, "Brands", async () => await SincronizarTablaAsync(context, await _apiService.GetBrandsAsync()));
-            await EjecutarSeguro(context, "Categories", async () => await SincronizarTablaAsync(context, await _apiService.GetCategoriesAsync()));
-            await EjecutarSeguro(context, "Articles", async () => await SincronizarTablaAsync(context, await _apiService.GetArticlesAsync()));
-            await EjecutarSeguro(context, "Movements", async () => await SincronizarTablaAsync(context, await _apiService.GetMovementsAsync()));
-            await EjecutarSeguro(context, "HistoryLogs", async () => await SincronizarTablaAsync(context, await _apiService.GetHistoryLogsAsync()));
-            await EjecutarSeguro(context, "Sales", async () => await SincronizarTablaAsync(context, await _apiService.GetCatalogAsync<Sale>("Sales")));
-            await EjecutarSeguro(context, "SaleDetails", async () => await SincronizarTablaAsync(context, await _apiService.GetCatalogAsync<SaleDetail>("SaleDetails")));
-            await EjecutarSeguro(context, "Notifications", async () => await SincronizarTablaAsync(context, await _apiService.GetCatalogAsync<Notification>("Notifications")));
+                    foreach (var venta in ventasPendientes)
+                    {
+                        if (await _apiService.SaveSaleAsync(venta))
+                        {
+                            venta.IsSynced = true;
+                            ctx.Sales.Update(venta);
+                        }
+                    }
+                });
 
-            Debug.WriteLine("=== SINCRONIZACIÓN FINALIZADA ===");
+                // ==========================================
+                // 2. PULL: CATÁLOGOS BASE
+                // ==========================================
+                await EjecutarSeguro("Currencies", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCurrenciesAsync()));
+                await EjecutarSeguro("DateFormats", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<DateFormat>("DateFormats")));
+                await EjecutarSeguro("Themes", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Theme>("Themes")));
+                await EjecutarSeguro("TimeZoneItems", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<TimeZoneItem>("TimeZoneItems")));
+                await EjecutarSeguro("Languages", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Language>("Languages")));
+                await EjecutarSeguro("Parameters", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetParametersAsync()));
+                await EjecutarSeguro("Permissions", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetPermissionsAsync()));
+                await EjecutarSeguro("Roles", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetRolesAsync()));
+                await EjecutarSeguro("RolePermissions", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<RolePermission>("RolePermissions")));
+                await EjecutarSeguro("ActionItems", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetActionsAsync()));
+                await EjecutarSeguro("SalesModes", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<SalesMode>("SalesModes")));
+                await EjecutarSeguro("MeasurementUnits", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetMeasurementUnitsAsync()));
+                await EjecutarSeguro("ExchangeRates", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<ExchangeRate>("ExchangeRates")));
+
+                // ==========================================
+                // 3. PULL: NÚCLEO EMPRESARIAL
+                // ==========================================
+                await EjecutarSeguro("Companies", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Company>("Companies")));
+                await EjecutarSeguro("Users", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetUsersAsync()));
+                await EjecutarSeguro("Employees", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetEmployeesAsync()));
+                await EjecutarSeguro("Profiles", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Profile>("Profiles")));
+                await EjecutarSeguro("Inventories", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetInventoriesAsync()));
+                await EjecutarSeguro("SharedInventories", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<SharedInventory>("SharedInventories")));
+
+                // ==========================================
+                // 4. PULL: PRODUCTOS Y CLASIFICACIÓN
+                // ==========================================
+                await EjecutarSeguro("Categories", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCategoriesAsync()));
+                await EjecutarSeguro("CategoryMeasurementUnits", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<CategoryMeasurementUnit>("CategoryMeasurementUnits")));
+                await EjecutarSeguro("Brands", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetBrandsAsync()));
+                await EjecutarSeguro("Suppliers", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetSuppliersAsync()));
+                await EjecutarSeguro("Customers", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCustomersAsync()));
+                await EjecutarSeguro("Articles", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetArticlesAsync()));
+
+                // ==========================================
+                // 5. PULL: TRANSACCIONALIDAD
+                // ==========================================
+                await EjecutarSeguro("Movements", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetMovementsAsync()));
+                await EjecutarSeguro("Sales", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Sale>("Sales")));
+                await EjecutarSeguro("SaleDetails", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<SaleDetail>("SaleDetails")));
+                await EjecutarSeguro("HistoryLogs", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetHistoryLogsAsync()));
+                await EjecutarSeguro("Notifications", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Notification>("Notifications")));
+
+                Debug.WriteLine("=== SINCRONIZACIÓN FINALIZADA SIN ERRORES ===");
+            }
+            finally
+            {
+                _syncLock.Release();
+            }
         }
 
         // ==========================================
-        // 🛡️ EL CORTAFUEGOS (Aísla errores por tabla)
+        // 🛡️ EL CORTAFUEGOS (NUEVO CONTEXTO POR TABLA)
         // ==========================================
-        private async Task EjecutarSeguro(LocalDbContext context, string nombreTabla, Func<Task> accion)
+        private async Task EjecutarSeguro(string nombreTabla, Func<LocalDbContext, Task> accion)
         {
+            // 🚀 AL CREAR EL CONTEXTO AQUÍ, LA MEMORIA NACE 100% LIMPIA PARA CADA TABLA
+            using var context = new LocalDbContext();
+
+            // Apagamos las reglas relacionales en esta conexión específica
+            await context.Database.OpenConnectionAsync();
+            using var command = context.Database.GetDbConnection().CreateCommand();
+            command.CommandText = "PRAGMA foreign_keys = OFF;";
+            await command.ExecuteNonQueryAsync();
+
             try
             {
-                await accion();
+                await accion(context);
                 await context.SaveChangesAsync();
-                context.ChangeTracker.Clear();
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[ERROR EN TABLA {nombreTabla}]: {ex.Message}");
-                if (ex.InnerException != null) Debug.WriteLine($"[DETALLE]: {ex.InnerException.Message}");
-
-                // Limpiamos la memoria para que el error no ensucie la siguiente tabla
-                context.ChangeTracker.Clear();
+                Exception? inner = ex.InnerException;
+                while (inner != null)
+                {
+                    Debug.WriteLine($"[DETALLE PROFUNDO]: {inner.Message}");
+                    inner = inner.InnerException;
+                }
+            }
+            finally
+            {
+                // Restauramos la conexión
+                command.CommandText = "PRAGMA foreign_keys = ON;";
+                await command.ExecuteNonQueryAsync();
+                await context.Database.CloseConnectionAsync();
             }
         }
 
         // ==========================================
-        // 🚀 EL MOTOR UPSERT
+        // 🚀 EL MOTOR UPSERT (Limpio y Seguro)
         // ==========================================
         private async Task SincronizarTablaAsync<T>(LocalDbContext context, IEnumerable<T>? datosRemotos) where T : class
         {
             if (datosRemotos == null || !datosRemotos.Any()) return;
             var dbSet = context.Set<T>();
 
-            var keyProperties = context.Model.FindEntityType(typeof(T))?.FindPrimaryKey()?.Properties;
-            if (keyProperties == null || !keyProperties.Any()) return;
+            var keyProperty = context.Model.FindEntityType(typeof(T))?.FindPrimaryKey()?.Properties.FirstOrDefault();
+            if (keyProperty == null) return;
 
             var datosLimpios = datosRemotos
-                .GroupBy(item => string.Join("_", keyProperties.Select(p => p.PropertyInfo?.GetValue(item)?.ToString())))
+                .GroupBy(item => keyProperty.PropertyInfo?.GetValue(item)?.ToString())
                 .Select(grupo => grupo.Last())
                 .ToList();
 
+            using var transaction = await context.Database.BeginTransactionAsync();
+
             foreach (var item in datosLimpios)
             {
-                var keyValues = keyProperties.Select(p => p.PropertyInfo?.GetValue(item)).ToArray();
-                if (keyValues.Any(v => v == null)) continue;
+                var keyValue = keyProperty.PropertyInfo?.GetValue(item);
+                if (keyValue == null) continue;
 
-                var localItem = await dbSet.FindAsync(keyValues);
+                bool existe = false;
+                if (keyValue is int intId)
+                    existe = await dbSet.AsNoTracking().AnyAsync(e => EF.Property<int>(e, keyProperty.Name) == intId);
+                else
+                    existe = await dbSet.AsNoTracking().AnyAsync(e => EF.Property<string>(e, keyProperty.Name) == keyValue.ToString()!);
 
-                if (localItem == null)
+                var cleanEntity = Activator.CreateInstance<T>();
+                if (cleanEntity == null) continue;
+
+                foreach (var prop in typeof(T).GetProperties())
                 {
-                    var newEntity = Activator.CreateInstance<T>();
-                    if (newEntity != null)
+                    bool isScalar = prop.PropertyType.IsValueType || prop.PropertyType == typeof(string) || prop.PropertyType == typeof(byte[]);
+                    if (isScalar && prop.CanWrite)
                     {
-                        context.Entry(newEntity).CurrentValues.SetValues(item);
-                        await dbSet.AddAsync(newEntity);
+                        prop.SetValue(cleanEntity, prop.GetValue(item));
                     }
                 }
+
+                if (existe)
+                    context.Entry(cleanEntity).State = EntityState.Modified;
                 else
-                {
-                    context.Entry(localItem).CurrentValues.SetValues(item);
-                }
+                    context.Entry(cleanEntity).State = EntityState.Added;
+
+                await context.SaveChangesAsync();
+                context.ChangeTracker.Clear();
             }
+
+            await transaction.CommitAsync();
         }
     }
 }

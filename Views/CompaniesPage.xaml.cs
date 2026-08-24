@@ -5,6 +5,7 @@ using ControlInventarioMovil.Services;
 using Newtonsoft.Json;
 using System.Text;
 using System.Collections.ObjectModel;
+using ControlInventarioMovil.Helpers;
 
 [QueryProperty(nameof(TargetCompanyId), "TargetCompanyId")]
 public partial class CompaniesPage : ContentPage
@@ -174,9 +175,15 @@ public partial class CompaniesPage : ContentPage
 
     private async void OnEliminarEmpresaClicked(object sender, EventArgs e)
     {
+        if (!SecurityHelper.HasPermission("DELETE_RECORDS"))
+        {
+            await DisplayAlertAsync("Operación Bloqueada", "No tienes autorización para desactivar sucursales.", "Entendido");
+            return;
+        }
+
         if (sender is ImageButton btn && btn.CommandParameter is Company company)
         {
-            bool confirmar = await DisplayAlertAsync("Confirmar Acción", $"¿Estás seguro de desactivar la empresa {company.BusinessName}?", "Desactivar", "Cancelar");
+            bool confirmar = await DisplayAlertAsync("Confirmar Acción", $"¿Es seguro de desactivar la empresa {company.BusinessName}?", "Desactivar", "Cancelar");
 
             if (confirmar)
             {

@@ -198,7 +198,7 @@
                                     <Label Text="Habilitar Envío de Correos (SMTP)" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
                                     <Label Text="Permite al sistema enviar correos automáticos (ej. aprobaciones)." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
                                 </VerticalStackLayout>
-                                <Switch x:Name="SwSmtpEnabled" Grid.Column="1"/>
+                                <Switch x:Name="SwSmtpEnabled" Grid.Column="1" Toggled="OnSmtpToggled"/>
                             </Grid>
 
                             <VerticalStackLayout x:Name="SmtpFieldsContainer" IsVisible="False" Spacing="10" Margin="0,10,0,0">

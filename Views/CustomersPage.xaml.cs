@@ -1,6 +1,7 @@
-using System.Collections.ObjectModel;
 using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Helpers;
 using ControlInventarioMovil.Services;
+using System.Collections.ObjectModel;
 
 namespace ControlInventarioMovil.Views
 {
@@ -77,10 +78,16 @@ namespace ControlInventarioMovil.Views
 
         private async void OnDeleteCustomerClicked(object sender, EventArgs e)
         {
+            if (!SecurityHelper.HasPermission("DELETE_RECORDS"))
+            {
+                await DisplayAlertAsync("Acceso Denegado", "Tu rol no te permite dar de baja a los clientes.", "Entendido");
+                return;
+            }
+
             if (sender is ImageButton btn && btn.CommandParameter is Customer clienteSeleccionado)
             {
                 bool confirmar = await DisplayAlertAsync("Inactivar Cliente",
-                    $"¿Estás seguro de que deseas dar de baja al cliente '{clienteSeleccionado.Name}'?",
+                    $"¿Es seguro de que deseas dar de baja al cliente '{clienteSeleccionado.Name}'?",
                     "Sí, dar de baja", "Cancelar");
 
                 if (confirmar)

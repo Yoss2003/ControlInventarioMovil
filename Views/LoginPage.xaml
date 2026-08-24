@@ -6,9 +6,9 @@
              x:Class="ControlInventarioMovil.Views.LoginPage"
              NavigationPage.HasNavigationBar="False" 
              Shell.NavBarIsVisible="False"
-             SizeChanged="OnPageSizeChanged">
+             SizeChanged="OnPageSizeChanged"
+             BackgroundColor="{AppThemeBinding Light=#F4F6FA, Dark=#1E003B}">
 
-    <!-- 🚀 AQUÍ ES EL LUGAR CORRECTO PARA LOS RECURSOS (Adentro del ContentPage) -->
     <ContentPage.Resources>
         <ResourceDictionary>
             <helpers:Base64ToImageConverter x:Key="Base64Converter" />
@@ -16,9 +16,9 @@
     </ContentPage.Resources>
 
     <Grid>
-        <!-- Fondo Animado -->
-        <Grid BackgroundColor="#1E003B" InputTransparent="True">
-            <Ellipse x:Name="orbMorado" WidthRequest="300" HeightRequest="300" HorizontalOptions="Start" VerticalOptions="Start" Margin="-50,-50,0,0" Opacity="0.7">
+        <!-- Fondo Animado: Se baja la opacidad en modo claro para que sea un aura sutil y elegante -->
+        <Grid InputTransparent="True">
+            <Ellipse x:Name="orbMorado" WidthRequest="300" HeightRequest="300" HorizontalOptions="Start" VerticalOptions="Start" Margin="-50,-50,0,0" Opacity="{AppThemeBinding Light=0.15, Dark=0.7}">
                 <Ellipse.Fill>
                     <RadialGradientBrush>
                         <GradientStop Color="#8A2BE2" Offset="0.0" />
@@ -26,7 +26,7 @@
                     </RadialGradientBrush>
                 </Ellipse.Fill>
             </Ellipse>
-            <Ellipse x:Name="orbAzul" WidthRequest="350" HeightRequest="350" HorizontalOptions="End" VerticalOptions="End" Margin="0,0,-50,-50" Opacity="0.7">
+            <Ellipse x:Name="orbAzul" WidthRequest="350" HeightRequest="350" HorizontalOptions="End" VerticalOptions="End" Margin="0,0,-50,-50" Opacity="{AppThemeBinding Light=0.15, Dark=0.7}">
                 <Ellipse.Fill>
                     <RadialGradientBrush>
                         <GradientStop Color="#0000FF" Offset="0.0" />
@@ -34,7 +34,7 @@
                     </RadialGradientBrush>
                 </Ellipse.Fill>
             </Ellipse>
-            <Ellipse x:Name="orbCeleste" WidthRequest="250" HeightRequest="250" HorizontalOptions="Center" VerticalOptions="Center" Opacity="0.7">
+            <Ellipse x:Name="orbCeleste" WidthRequest="250" HeightRequest="250" HorizontalOptions="Center" VerticalOptions="Center" Opacity="{AppThemeBinding Light=0.15, Dark=0.7}">
                 <Ellipse.Fill>
                     <RadialGradientBrush>
                         <GradientStop Color="#00CED1" Offset="0.0" />
@@ -47,72 +47,65 @@
         <!-- Contenedor Maestro Responsivo -->
         <Grid x:Name="LayoutGrid" RowDefinitions="Auto, *" ColumnDefinitions="*">
 
-            <!-- BLOQUE 1: Bienvenida y Logos -->
-            <VerticalStackLayout x:Name="HeaderSection" Grid.Row="0" Grid.Column="0" VerticalOptions="Center" Spacing="10" Padding="30,30,30,10">
-                <Image Source="dotnet_bot.png" HeightRequest="70" HorizontalOptions="Center" Margin="0,0,0,10" />
-                <Label Text="¡Bienvenido!" FontSize="32" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
-                <Label Text="Selecciona tu sucursal:" FontSize="16" TextColor="#E0E0E0" HorizontalOptions="Center" />
+            <!-- BLOQUE 1: Bienvenida y Selector Dinámico de Empresa -->
+            <VerticalStackLayout x:Name="HeaderSection" Grid.Row="0" Grid.Column="0" VerticalOptions="Center" Spacing="15" Padding="30,30,30,10">
+                <Label Text="¡Bienvenido de vuelta!" FontSize="26" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalOptions="Center" />
 
-                <CollectionView x:Name="cvCompanies" SelectionMode="Single" SelectionChanged="OnCompanySelected" HeightRequest="90" HorizontalOptions="Center" Margin="0,10">
-                    <CollectionView.ItemsLayout>
-                        <LinearItemsLayout Orientation="Horizontal" ItemSpacing="15" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                            <Border Stroke="Transparent" StrokeThickness="3" BackgroundColor="#40000000" WidthRequest="70" HeightRequest="70" StrokeShape="RoundRectangle 35" Padding="5">
-                                <!-- 🚀 EL CONVERTER APLICADO A LA IMAGEN -->
-                                <Image Source="{Binding LogoUrl, Converter={StaticResource Base64Converter}}" Aspect="AspectFit" />
-                                <VisualStateManager.VisualStateGroups>
-                                    <VisualStateGroup x:Name="CommonStates">
-                                        <VisualState x:Name="Normal" />
-                                        <VisualState x:Name="Selected">
-                                            <VisualState.Setters>
-                                                <Setter Property="Stroke" Value="{Binding PrimaryColorHex}" />
-                                                <Setter Property="BackgroundColor" Value="#80FFFFFF" />
-                                            </VisualState.Setters>
-                                        </VisualState>
-                                    </VisualStateGroup>
-                                </VisualStateManager.VisualStateGroups>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                <Grid ColumnDefinitions="Auto, *, Auto" HorizontalOptions="Center" VerticalOptions="Center" ColumnSpacing="20" Margin="0,10">
+                    <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="40" HeightRequest="40" BackgroundColor="Transparent" VerticalOptions="Center" Clicked="OnPrevCompanyClicked" helpers:EfectosVisualesHelper.Animar="True"/>
+
+                    <Border x:Name="borderLogo" Grid.Column="1" WidthRequest="110" HeightRequest="110" StrokeShape="RoundRectangle 55" Stroke="#A0E2FF" StrokeThickness="3" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#80FFFFFF}" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Border.Shadow>
+                            <Shadow Brush="Black" Offset="0,4" Radius="10" Opacity="{AppThemeBinding Light=0.15, Dark=0}" />
+                        </Border.Shadow>
+                        <Image x:Name="ImgCompanyLogo" Source="{Binding LogoUrl, Converter={StaticResource Base64Converter}}" Aspect="AspectFit" Margin="15" />
+                    </Border>
+
+                    <ImageButton Grid.Column="2" Source="arrow_back.png" Rotation="180" WidthRequest="40" HeightRequest="40" BackgroundColor="Transparent" VerticalOptions="Center" Clicked="OnNextCompanyClicked" helpers:EfectosVisualesHelper.Animar="True"/>
+                </Grid>
+
+                <Label x:Name="LblCompanyName" Text="Cargando sucursales..." FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#A0E2FF}" HorizontalOptions="Center" HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
 
             <!-- BLOQUE 2: Formulario de Login -->
             <ScrollView x:Name="FormSection" Grid.Row="1" Grid.Column="0" VerticalOptions="Center">
                 <VerticalStackLayout Padding="30,10,30,30" Spacing="10">
-                    <Border Stroke="#60FFFFFF" StrokeThickness="1" BackgroundColor="#40000000" Padding="15">
+
+                    <!-- Tarjeta del Formulario (Blanca en Light, Transparente en Dark) -->
+                    <Border Stroke="{AppThemeBinding Light=#E0E4E8, Dark=#60FFFFFF}" StrokeThickness="1" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#40000000}" Padding="15">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="20" />
                         </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="Black" Offset="0,5" Radius="15" Opacity="{AppThemeBinding Light=0.08, Dark=0}" />
+                        </Border.Shadow>
 
                         <VerticalStackLayout Spacing="5">
-                            <Label Text="Usuario:" TextColor="#A0E2FF" FontSize="14" />
-                            <Border x:Name="borderUser" Stroke="#A0E2FF" StrokeThickness="1" BackgroundColor="#30000000" Padding="10,0" HeightRequest="45">
+                            <Label Text="Usuario:" TextColor="{AppThemeBinding Light=#54606C, Dark=#A0E2FF}" FontSize="14" FontAttributes="Bold"/>
+                            <Border x:Name="borderUser" Stroke="#A0E2FF" StrokeThickness="1" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#30000000}" Padding="10,0" HeightRequest="45">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="8" />
                                 </Border.StrokeShape>
-                                <Entry x:Name="txtUsername" TextColor="White" Placeholder="Tu usuario" PlaceholderColor="#80FFFFFF" BackgroundColor="Transparent" VerticalOptions="Center"/>
+                                <Entry x:Name="txtUsername" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Tu usuario" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#80FFFFFF}" BackgroundColor="Transparent" VerticalOptions="Center"/>
                             </Border>
 
-                            <Label Text="Contraseña:" TextColor="#A0E2FF" FontSize="14" Margin="0,5,0,0" />
-                            <Border x:Name="borderPass" Stroke="#A0E2FF" StrokeThickness="1" BackgroundColor="#30000000" Padding="10,0" HeightRequest="45">
+                            <Label Text="Contraseña:" TextColor="{AppThemeBinding Light=#54606C, Dark=#A0E2FF}" FontSize="14" FontAttributes="Bold" Margin="0,5,0,0" />
+                            <Border x:Name="borderPass" Stroke="#A0E2FF" StrokeThickness="1" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#30000000}" Padding="10,0" HeightRequest="45">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="8" />
                                 </Border.StrokeShape>
                                 <Grid ColumnDefinitions="*, Auto">
-                                    <Entry x:Name="txtPassword" Grid.Column="0" IsPassword="True" TextColor="White" Placeholder="••••••••" PlaceholderColor="#80FFFFFF" BackgroundColor="Transparent" VerticalOptions="Center"/>
+                                    <Entry x:Name="txtPassword" Grid.Column="0" IsPassword="True" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder=" " PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#80FFFFFF}" BackgroundColor="Transparent" VerticalOptions="Center"/>
                                     <ImageButton x:Name="imgShowPassword" Source="eye_closed.png" Grid.Column="1" HeightRequest="25" WidthRequest="25" BackgroundColor="Transparent" VerticalOptions="Center" Clicked="OnShowPasswordTapped" helpers:EfectosVisualesHelper.Animar="True"/>
                                 </Grid>
                             </Border>
 
                             <HorizontalStackLayout VerticalOptions="Center" Margin="0,15,0,0">
-                                <CheckBox x:Name="chkRememberMe" Color="#00CED1"/>
-                                <Label Text="Recordarme" TextColor="White" VerticalOptions="Center" FontSize="14" />
+                                <CheckBox x:Name="chkRememberMe" Color="{AppThemeBinding Light=#8A2BE2, Dark=#00CED1}"/>
+                                <Label Text="Recordarme" TextColor="{AppThemeBinding Light=#54606C, Dark=White}" VerticalOptions="Center" FontSize="14" />
                             </HorizontalStackLayout>
 
-                            <Label Text="¿Olvidaste tu contraseña?" TextColor="#E0E0E0" TextDecorations="Underline" HorizontalOptions="Center" Margin="0,0,0,10" FontSize="14">
+                            <Label Text="¿Olvidaste tu contraseña?" TextColor="{AppThemeBinding Light=#1976D2, Dark=#E0E0E0}" TextDecorations="Underline" HorizontalOptions="Center" Margin="0,0,0,10" FontSize="14">
                                 <Label.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnForgot_Tapped" />
                                 </Label.GestureRecognizers>
@@ -129,11 +122,18 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <Label x:Name="lblStatus" Text="" TextColor="LightGreen" HorizontalOptions="Center"/>
-                    <Label Text="© 2026. Todos los derechos reservados." TextColor="#A0A0A0" FontSize="12" HorizontalOptions="Center" />
-                    <ActivityIndicator x:Name="loading" IsRunning="False" IsVisible="{Binding Source={x:Reference loading}, Path=IsRunning}" Color="#512BD4" />
+                    <Label x:Name="lblStatus" Text="" TextColor="{AppThemeBinding Light=#2E7D32, Dark=LightGreen}" HorizontalOptions="Center"/>
+                    <Label Text="© 2026. Todos los derechos reservados." TextColor="{AppThemeBinding Light=#8895A5, Dark=#A0A0A0}" FontSize="12" HorizontalOptions="Center" />
                 </VerticalStackLayout>
             </ScrollView>
+        </Grid>
+
+        <!-- PANTALLA DE CARGA SUPERPUESTA (Se adapta al tema también) -->
+        <Grid x:Name="LoadingOverlay" BackgroundColor="{AppThemeBinding Light=#E6FFFFFF, Dark=#CC000000}" IsVisible="False" InputTransparent="False" ZIndex="10">
+            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="15">
+                <ActivityIndicator IsRunning="True" Color="{AppThemeBinding Light=#8A2BE2, Dark=#A0E2FF}" WidthRequest="60" HeightRequest="60" />
+                <Label x:Name="lblLoadingText" Text="Iniciando Sesión..." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" />
+            </VerticalStackLayout>
         </Grid>
     </Grid>
 </ContentPage>

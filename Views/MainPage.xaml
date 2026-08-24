@@ -54,7 +54,8 @@
                                  helpers:EfectosVisualesHelper.Animar="True"
                                  Clicked="OnCrearNuevoAlmacenClicked"/>
 
-                    <ImageButton Source="search_icon.png" 
+                    <ImageButton x:Name="BtnCompartirInventario" 
+                                 Source="search_icon.png" 
                                  BackgroundColor="Transparent" 
                                  Padding="8" WidthRequest="38" HeightRequest="38" VerticalOptions="Center"
                                  helpers:EfectosVisualesHelper.Animar="True"
@@ -89,7 +90,7 @@
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Grid.Column="2" Spacing="5" HorizontalOptions="Center" VerticalOptions="Start">
-                    <Border HeightRequest="52" WidthRequest="52" BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}" StrokeThickness="1" Stroke="{AppThemeBinding Light=#D3D3D3, Dark=#2E3842}">
+                    <Border x:Name="BtnEmpleados" HeightRequest="52" WidthRequest="52" BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}" StrokeThickness="1" Stroke="{AppThemeBinding Light=#D3D3D3, Dark=#2E3842}">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="26"/>
                         </Border.StrokeShape>

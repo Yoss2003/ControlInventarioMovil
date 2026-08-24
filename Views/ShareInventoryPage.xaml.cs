@@ -1,5 +1,6 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Helpers;
 using ControlInventarioMovil.Services;
 using System.Diagnostics;
 
@@ -251,6 +252,12 @@ namespace ControlInventarioMovil.Views
 
         private async void OnRevokeAccessClicked(object sender, EventArgs e)
         {
+            if (!SecurityHelper.HasPermission("DELETE_RECORDS"))
+            {
+                await DisplayAlertAsync("Acceso Denegado", "No tienes permisos para revocar accesos a otros colaboradores.", "Entendido");
+                return;
+            }
+
             if (sender is ImageButton btn && btn.CommandParameter is SharedInventory sharedItem)
             {
                 bool confirmar = await DisplayAlertAsync("Revocar Permisos",

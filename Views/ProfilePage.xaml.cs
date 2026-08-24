@@ -109,11 +109,33 @@ public partial class ProfilePage : ContentPage
 
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
-        bool confirmacion = await DisplayAlertAsync("Cerrar Sesión", "¿Estás seguro de que deseas salir de tu cuenta?", "Sí, salir", "Cancelar");
-        if (confirmacion)
+        var boton = sender as Button;
+        boton?.IsEnabled = false;
+
+        try
         {
-            UserSession.CurrentUser = null;
-            await Shell.Current.GoToAsync("LoginPage");
+            bool confirmacion = await DisplayAlertAsync("Cerrar Sesión", "¿Estás seguro de que deseas salir?", "Sí, salir", "Cancelar");
+
+            if (confirmacion)
+            {
+                UserSession.CurrentUser = null;
+                UserSession.CurrentProfile = null;
+
+                await Task.Delay(500);
+
+                
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    if (Application.Current?.Windows.Count > 0)
+                    {
+                        Application.Current.Windows[0].Page = new LoginPage();
+                    }
+                });
+            }
+        }
+        finally
+        {
+            boton?.IsEnabled = true;
         }
     }
 }
