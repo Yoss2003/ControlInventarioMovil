@@ -1,6 +1,7 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace ControlInventarioMovil.Views
@@ -282,8 +283,28 @@ namespace ControlInventarioMovil.Views
 
                 if (exito)
                 {
-                    // 🎯 CLAVE DE LA ARQUITECTURA: Actualizamos el Cerebro Global al instante
                     UserSession.CurrentProfile = _currentProfile;
+
+                    try
+                    {
+                        using (var localContext = new Data.LocalDbContext())
+                        {
+                            var perfilLocal = localContext.Profiles.FirstOrDefault(p => p.Id == _currentProfile.Id);
+                            if (perfilLocal != null)
+                            {
+                                localContext.Entry(perfilLocal).CurrentValues.SetValues(_currentProfile);
+                            }
+                            else
+                            {
+                                localContext.Profiles.Add(_currentProfile);
+                            }
+                            localContext.SaveChanges();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Error al guardar perfil en SQLite: {ex.Message}");
+                    }
 
                     await DisplayAlertAsync("Éxito", "Tus preferencias fueron salvadas en la Base de Datos y aplicadas al sistema.", "OK");
                     await Shell.Current.GoToAsync("..");

@@ -4,7 +4,7 @@ namespace ControlInventarioMovil.Helpers
 {
     public class Base64ToImageConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is string imageString && !string.IsNullOrWhiteSpace(imageString))
             {
@@ -35,7 +35,7 @@ namespace ControlInventarioMovil.Helpers
             return "dotnet_bot.png";
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
 }

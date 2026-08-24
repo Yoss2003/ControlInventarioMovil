@@ -12,6 +12,8 @@ public partial class LoginPage : ContentPage
     private readonly ApiService _apiService;
     private CompanyPublicDTO? _selectedCompany;
     private CancellationTokenSource _animacionCts = new();
+    private List<CompanyPublicDTO> _empresasDisponibles = new();
+    private int _currentCompanyIndex = 0;
     public LoginPage()
 	{
 		InitializeComponent();
@@ -25,265 +27,281 @@ public partial class LoginPage : ContentPage
 
     private async void OnLoginClicked(object sender, EventArgs e)
     {
-        if (_selectedCompany == null)
-        {
-            await DisplayAlertAsync("Validación", "Por favor selecciona tu sucursal tocando uno de los logos en la parte superior.", "OK");
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(txtUsername.Text) || string.IsNullOrWhiteSpace(txtPassword.Text))
-        {
-            await DisplayAlertAsync("Validación", "Ingresa tu usuario y contraseña.", "OK");
-            return;
-        }
-
-        loading.IsRunning = true;
+        if (!btnLogin.IsEnabled) return;
+        btnLogin.IsEnabled = false;
 
         try
         {
-            var loginData = new
+            if (_selectedCompany == null)
             {
-                Username = txtUsername.Text.Trim(),
-                Password = txtPassword.Text.Trim(),
-                TwoFactorCode = (string?)null,
-                CompanyId = _selectedCompany.Id
-            };
+                await DisplayAlertAsync("Validación", "Por favor selecciona tu sucursal tocando uno de los logos en la parte superior.", "OK");
+                return;
+            }
 
-            var handler = new HttpClientHandler
+            if (string.IsNullOrWhiteSpace(txtUsername.Text) || string.IsNullOrWhiteSpace(txtPassword.Text))
             {
-                ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
-            };
+                await DisplayAlertAsync("Validación", "Ingresa tu usuario y contraseña.", "OK");
+                return;
+            }
 
-            using var client = new HttpClient(handler);
-            string jsonContent = JsonConvert.SerializeObject(loginData);
-            var httpContent = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+            LoadingOverlay.IsVisible = true;
+            lblLoadingText.Text = "Iniciando Sesión...";
 
-            var response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/Login", httpContent);
-            string resString = await response.Content.ReadAsStringAsync();
-
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            try
             {
-                if (resString.Contains("accountPending"))
+                var loginData = new
                 {
-                    loading.IsRunning = false;
-                    var errorObj = JsonConvert.DeserializeObject<dynamic>(resString);
-                    await DisplayAlertAsync("Acceso Denegado", (string)errorObj!.mensaje, "Entendido");
-                    return;
-                }
+                    Username = txtUsername.Text.Trim(),
+                    Password = txtPassword.Text.Trim(),
+                    TwoFactorCode = (string?)null,
+                    CompanyId = _selectedCompany.Id
+                };
 
-                if (resString.Contains("requires2FA") || resString.Contains("Código 2FA requerido"))
+                var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true };
+                using var client = new HttpClient(handler);
+                string jsonContent = JsonConvert.SerializeObject(loginData);
+                var httpContent = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+                var response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/Login", httpContent);
+                string resString = await response.Content.ReadAsStringAsync();
+
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    loading.IsRunning = false;
-
-                    string tokenIngresado = await DisplayPromptAsync(
-                        "Seguridad de Dos Pasos (2FA)",
-                        "Tu cuenta está protegida. Ingresa el código de 6 dígitos de tu aplicación Google Authenticator:",
-                        "Verificar e Ingresar",
-                        "Cancelar",
-                        placeholder: "000000",
-                        maxLength: 6,
-                        keyboard: Keyboard.Numeric);
-
-                    if (string.IsNullOrWhiteSpace(tokenIngresado) || tokenIngresado.Length != 6)
+                    if (resString.Contains("accountPending"))
                     {
-                        await DisplayAlertAsync("Cancelado", "Inicio de sesión cancelado o código incompleto.", "OK");
+                        MainThread.BeginInvokeOnMainThread(() => LoadingOverlay.IsVisible = false);
+
+                        var errorObj = JsonConvert.DeserializeObject<dynamic>(resString);
+                        await DisplayAlertAsync("Acceso Denegado", (string)errorObj!.mensaje, "Entendido");
                         return;
                     }
 
-                    loading.IsRunning = true;
-
-                    var loginDataWith2FA = new { Username = txtUsername.Text.Trim(), Password = txtPassword.Text.Trim(), TwoFactorCode = tokenIngresado.Trim() };
-                    string jsonContent2FA = JsonConvert.SerializeObject(loginDataWith2FA);
-                    var httpContent2FA = new StringContent(jsonContent2FA, System.Text.Encoding.UTF8, "application/json");
-
-                    response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/Login", httpContent2FA);
-                    resString = await response.Content.ReadAsStringAsync();
-                }
-            }
-
-            loading.IsRunning = false;
-
-            if (response.IsSuccessStatusCode)
-            {
-                if (resString.Contains("requirePasswordChange"))
-                {
-                    var apiResponse = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JObject>(resString);
-                    var userJson = apiResponse?["user"]?.ToString();
-
-                    if (!string.IsNullOrEmpty(userJson))
+                    if (resString.Contains("requires2FA") || resString.Contains("Código 2FA requerido"))
                     {
-                        var userPendiente = JsonConvert.DeserializeObject<User>(userJson);
-                        UserSession.CurrentUser = userPendiente;
-                    }
+                        LoadingOverlay.IsVisible = false;
 
-                    await DisplayAlertAsync("Seguridad Obligatoria", "Para proteger tu cuenta, debes establecer una contraseña privada antes de entrar al sistema.", "Aceptar");
+                        string tokenIngresado = await DisplayPromptAsync(
+                            "Seguridad de Dos Pasos (2FA)",
+                            "Tu cuenta está protegida. Ingresa el código de 6 dígitos de tu aplicación Google Authenticator:",
+                            "Verificar e Ingresar",
+                            "Cancelar",
+                            placeholder: "000000",
+                            maxLength: 6,
+                            keyboard: Keyboard.Numeric);
 
-                    if (Application.Current?.Windows.Count > 0)
-                    {
-                        Application.Current.Windows[0].Page = new Views.EditProfilePage();
-                    }
-                    return;
-                }
-
-                var user = JsonConvert.DeserializeObject<User>(resString);
-
-                if (user != null)
-                {
-                    UserSession.CurrentUser = user;
-                    Preferences.Set("SelectedCompanyId", _selectedCompany.Id);
-
-                    try
-                    {
-                        var perfil = await _apiService.GetUserProfileConfigAsync(user.Username!);
-
-                        if (perfil != null)
+                        if (string.IsNullOrWhiteSpace(tokenIngresado) || tokenIngresado.Length != 6)
                         {
-                            // A. Aplicar Tema Visual en tiempo real (1 = Claro, 2 = Oscuro)
-                            if (perfil.ThemeId == 2)
-                            {
-                                Application.Current!.UserAppTheme = AppTheme.Dark;
-                            }
-                            else
-                            {
-                                Application.Current!.UserAppTheme = AppTheme.Light;
-                            }
-
-                            // B. Guardar configuraciones operativas en Preferences para usarlas en otras pantallas
-                            Preferences.Set("UseBarcodes", perfil.UseBarcodes);
-                            Preferences.Set("CurrencyId", perfil.CurrencyId ?? 1);
-                            Preferences.Set("DateFormatId", perfil.DateFormatId ?? 1);
-                            Preferences.Set("SalesModeId", perfil.SalesModeId ?? 1);
-                            Preferences.Set("ApplyLateFee", perfil.ApplyLateFee);
-                            Preferences.Set("CalculateDevaluation", perfil.CalculateDevaluation);
-
-                            using (var localContext = new LocalDbContext())
-                            {
-                                var localProfile = await localContext.Profiles.FirstOrDefaultAsync(p => p.Username == perfil.Username && p.CompanyId == perfil.CompanyId);
-                                if (localProfile == null)
-                                    await localContext.Profiles.AddAsync(perfil);
-                                else
-                                    localContext.Entry(localProfile).CurrentValues.SetValues(perfil);
-
-                                await localContext.SaveChangesAsync();
-                            }
+                            await DisplayAlertAsync("Cancelado", "Inicio de sesión cancelado o código incompleto.", "OK");
+                            return;
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"[PERFIL_ERROR]: No se pudo cargar el perfil: {ex.Message}");
-                    }
 
-                    try
+                        LoadingOverlay.IsVisible = true;
+                        lblLoadingText.Text = "Verificando código...";
+
+                        var loginDataWith2FA = new { Username = txtUsername.Text.Trim(), Password = txtPassword.Text.Trim(), TwoFactorCode = tokenIngresado.Trim() };
+                        string jsonContent2FA = JsonConvert.SerializeObject(loginDataWith2FA);
+                        var httpContent2FA = new StringContent(jsonContent2FA, System.Text.Encoding.UTF8, "application/json");
+
+                        response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/Login", httpContent2FA);
+                        resString = await response.Content.ReadAsStringAsync();
+                    }
+                }
+
+                if (response.IsSuccessStatusCode)
+                {
+                    if (resString.Contains("requirePasswordChange"))
                     {
-                        using (var localContext = new LocalDbContext())
+                        var apiResponse = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JObject>(resString);
+                        var userJson = apiResponse?["user"]?.ToString();
+                        if (!string.IsNullOrEmpty(userJson))
                         {
-                            var existingUser = await localContext.Users.FirstOrDefaultAsync(u => u.Username == user.Username);
+                            UserSession.CurrentUser = JsonConvert.DeserializeObject<User>(userJson);
+                        }
 
-                            if (existingUser == null)
+                        MainThread.BeginInvokeOnMainThread(() => LoadingOverlay.IsVisible = false);
+
+                        await DisplayAlertAsync("Seguridad Obligatoria", "Debes establecer una contraseña privada antes de entrar.", "Aceptar");
+
+                        // Pausa para que cierre la alerta
+                        await Task.Delay(400);
+
+                        MainThread.BeginInvokeOnMainThread(() => Application.Current!.Windows[0].Page = new Views.EditProfilePage());
+                        return;
+                    }
+
+                    lblLoadingText.Text = ObtenerTextoExitoRandom();
+                    await Task.Delay(600);
+
+                    var user = JsonConvert.DeserializeObject<User>(resString);
+
+                    if (user != null)
+                    {
+                        UserSession.CurrentUser = user;
+                        Preferences.Set("SelectedCompanyId", _selectedCompany.Id);
+
+                        try
+                        {
+                            using var localContext = new LocalDbContext();
+                            await localContext.Database.OpenConnectionAsync();
+                            using var command = localContext.Database.GetDbConnection().CreateCommand();
+                            command.CommandText = "PRAGMA foreign_keys = OFF;";
+                            await command.ExecuteNonQueryAsync();
+
+                            try
                             {
-                                var tempCompany = user.Company;
-                                user.Company = null;
+                                var perfil = await _apiService.GetUserProfileConfigAsync(user.Username!);
+                                if (perfil != null)
+                                {
+                                    UserSession.CurrentProfile = perfil;
 
-                                await localContext.Users.AddAsync(user);
+                                    // Aquí BeginInvoke está bien porque NO es asíncrono (no hay await adentro)
+                                    MainThread.BeginInvokeOnMainThread(() =>
+                                    {
+                                        if (perfil.ThemeId == 2)
+                                            Application.Current!.UserAppTheme = AppTheme.Dark;
+                                        else
+                                            Application.Current!.UserAppTheme = AppTheme.Light;
+                                    });
+
+                                    Preferences.Set("UseBarcodes", perfil.UseBarcodes);
+                                    Preferences.Set("CurrencyId", perfil.CurrencyId ?? 1);
+                                    Preferences.Set("DateFormatId", perfil.DateFormatId ?? 1);
+                                    Preferences.Set("SalesModeId", perfil.SalesModeId ?? 1);
+                                    Preferences.Set("ApplyLateFee", perfil.ApplyLateFee);
+                                    Preferences.Set("CalculateDevaluation", perfil.CalculateDevaluation);
+
+                                    var localProfile = await localContext.Profiles.FirstOrDefaultAsync(p => p.Username == perfil.Username && p.CompanyId == perfil.CompanyId);
+                                    if (localProfile == null)
+                                        await localContext.Profiles.AddAsync(perfil);
+                                    else
+                                        localContext.Entry(localProfile).CurrentValues.SetValues(perfil);
+                                }
+
+                                var existingUser = await localContext.Users.FirstOrDefaultAsync(u => u.Username == user.Username);
+
+                                var tempCompany = user.Company;
+                                var tempRole = user.Role;
+                                var tempEmployee = user.Employee;
+
+                                user.Company = null;
+                                user.Role = null;
+                                user.Employee = null;
+
+                                if (existingUser == null)
+                                    await localContext.Users.AddAsync(user);
+                                else
+                                    localContext.Entry(existingUser).CurrentValues.SetValues(user);
+
                                 await localContext.SaveChangesAsync();
 
                                 user.Company = tempCompany;
+                                user.Role = tempRole;
+                                user.Employee = tempEmployee;
                             }
-                            else
+                            finally
                             {
-                                localContext.Entry(existingUser).CurrentValues.SetValues(user);
-                                await localContext.SaveChangesAsync();
+                                command.CommandText = "PRAGMA foreign_keys = ON;";
+                                await command.ExecuteNonQueryAsync();
+                                await localContext.Database.CloseConnectionAsync();
                             }
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"[Caché Local Ignorado]: {ex.Message}");
-                    }
-
-                    // 4. Recordar credenciales
-                    try
-                    {
-                        if (chkRememberMe.IsChecked)
+                        catch (Exception ex)
                         {
-                            await SecureStorage.Default.SetAsync("saved_username", txtUsername.Text ?? "");
-                            await SecureStorage.Default.SetAsync("saved_password", txtPassword.Text ?? "");
+                            Debug.WriteLine($"[CACHÉ_LOCAL_IGNORADO]: No se pudo guardar el inicio de sesión offline: {ex.Message}");
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"[Keystore Ignorado]: {ex.Message}");
-                    }
 
-                    // 5. Entrar a la App
-                    if (Application.Current?.Windows.Count > 0)
-                    {
-                        Application.Current.Windows[0].Page = new AppShell();
+                        try
+                        {
+                            if (chkRememberMe.IsChecked)
+                            {
+                                await SecureStorage.Default.SetAsync("saved_username", txtUsername.Text ?? "");
+                                await SecureStorage.Default.SetAsync("saved_password", txtPassword.Text ?? "");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"[Keystore Ignorado]: {ex.Message}");
+                        }
+
+                        // Aquí BeginInvoke está bien porque NO hay await
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            Application.Current!.Windows[0].Page = new AppShell();
+                        });
                     }
+                }
+                else
+                {
+                    // 🚀 CORRECCIÓN
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                    {
+                        LoadingOverlay.IsVisible = false;
+                        if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                        {
+                            await DisplayAlertAsync("Error 500 del Servidor", "El servidor de Somee está explotando por dentro. Revisa los logs de tu API.", "OK");
+                            return;
+                        }
+                        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            await DisplayAlertAsync("Error 404", "No se encontró la ruta del Login en el servidor.", "OK");
+                            return;
+                        }
+
+                        try
+                        {
+                            var errorObj = JsonConvert.DeserializeObject<dynamic>(resString);
+                            string msg = errorObj?.mensaje ?? "Usuario o contraseña incorrectos.";
+                            await DisplayAlertAsync("Error de Acceso", msg, "Intentar de nuevo");
+                        }
+                        catch
+                        {
+                            await DisplayAlertAsync("Respuesta Extraña del Servidor", $"Código: {response.StatusCode}. Respuesta: {resString}", "OK");
+                        }
+                    });
                 }
             }
-            else
+            catch (HttpRequestException)
             {
-                if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
-                {
-                    await DisplayAlertAsync("Error 500 del Servidor", "El servidor de Somee está explotando por dentro. Revisa los logs de tu API.", "OK");
-                    return;
-                }
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    await DisplayAlertAsync("Error 404", "No se encontró la ruta del Login en el servidor.", "OK");
-                    return;
-                }
-
-                try
-                {
-                    var errorObj = JsonConvert.DeserializeObject<dynamic>(resString);
-                    string msg = errorObj?.mensaje ?? "Usuario o contraseña incorrectos.";
-                    await DisplayAlertAsync("Error de Acceso", msg, "Intentar de nuevo");
-                }
-                catch
-                {
-                    await DisplayAlertAsync("Respuesta Extraña del Servidor", $"Código: {response.StatusCode}. Respuesta: {resString}", "OK");
-                }
-            }
-        }
-        catch (HttpRequestException)
-        {
-            loading.IsRunning = false;
-
-            using (var localContext = new LocalDbContext())
-            {
+                using var localContext = new LocalDbContext();
                 string userIngresado = txtUsername.Text.Trim();
                 string passIngresada = txtPassword.Text.Trim();
 
                 var localUser = await localContext.Users
+                    .Include(u => u.Role!)
+                        .ThenInclude(r => r.RolePermissions!)
+                            .ThenInclude(rp => rp.Permission)
                     .FirstOrDefaultAsync(u => u.Username == userIngresado && u.Password == passIngresada);
 
                 if (localUser != null)
                 {
                     UserSession.CurrentUser = localUser;
+                    UserSession.CurrentProfile = await localContext.Profiles.FirstOrDefaultAsync(p => p.Username == localUser.Username!);
 
-                    await DisplayAlertAsync("Modo Offline", "Sin conexión al servidor. Ingresando en modo local con datos guardados.", "Continuar");
+                    MainThread.BeginInvokeOnMainThread(() => lblLoadingText.Text = "¡Modo Offline Activado!");
+                    await Task.Delay(800);
 
-                    if (Application.Current?.Windows.Count > 0)
-                    {
-                        Application.Current.Windows[0].Page = new AppShell();
-                    }
+                    MainThread.BeginInvokeOnMainThread(() => Application.Current!.Windows[0].Page = new AppShell());
                     return;
                 }
-            }
 
-            await DisplayAlertAsync("Servidor No Disponible", "El servidor está fuera de servicio y no se encontró una sesión local previa para este usuario.", "Entendido");
+                // Si falla todo:
+                MainThread.BeginInvokeOnMainThread(() => LoadingOverlay.IsVisible = false);
+                await DisplayAlertAsync("Servidor No Disponible", "El servidor está fuera de servicio...", "Entendido");
+            }
+            catch (TaskCanceledException)
+            {
+                MainThread.BeginInvokeOnMainThread(() => LoadingOverlay.IsVisible = false);
+                await DisplayAlertAsync("Tiempo Agotado", "El servidor tardó demasiado en responder...", "Entendido");
+            }
+            catch (Exception ex)
+            {
+                MainThread.BeginInvokeOnMainThread(() => LoadingOverlay.IsVisible = false);
+                await DisplayAlertAsync("Error", $"Ocurrió un fallo: {ex.Message}", "OK");
+            }
         }
-        catch (TaskCanceledException)
+        finally
         {
-            loading.IsRunning = false;
-            await DisplayAlertAsync("Tiempo Agotado", "El servidor tardó demasiado en responder. Compruebe su conexión a internet.", "Entendido");
-        }
-        catch (Exception ex)
-        {
-            loading.IsRunning = false;
-            await DisplayAlertAsync("Error", $"Ocurrió un fallo de conexión: {ex.Message}", "OK");
+            btnLogin.IsEnabled = true;
         }
     }
 
@@ -325,32 +343,99 @@ public partial class LoginPage : ContentPage
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var empresas = JsonConvert.DeserializeObject<List<CompanyPublicDTO>>(content);
-                cvCompanies.ItemsSource = empresas;
+                _empresasDisponibles = JsonConvert.DeserializeObject<List<CompanyPublicDTO>>(content) ?? new List<CompanyPublicDTO>();
+
+                if (_empresasDisponibles.Any())
+                {
+                    // 🚀 SELECCIONA AUTOMÁTICAMENTE LA PRIMERA EMPRESA DE LA LISTA
+                    _currentCompanyIndex = 0;
+                    ActualizarVistaEmpresa();
+                }
+                else
+                {
+                    LblCompanyName.Text = "Sin sucursales";
+                }
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error cargando empresas: {ex.Message}");
+            LblCompanyName.Text = "Error de conexión";
         }
     }
 
-    private void OnCompanySelected(object sender, SelectionChangedEventArgs e)
+    private void ActualizarVistaEmpresa()
     {
-        _selectedCompany = e.CurrentSelection.FirstOrDefault() as CompanyPublicDTO;
+        if (!_empresasDisponibles.Any()) return;
 
-        if (_selectedCompany != null && Color.TryParse(_selectedCompany.PrimaryColorHex, out var newColor))
+        _selectedCompany = _empresasDisponibles[_currentCompanyIndex];
+
+        // Asignamos el objeto a la imagen para que el Converter dibuje el Base64
+        ImgCompanyLogo.BindingContext = _selectedCompany;
+        LblCompanyName.Text = _selectedCompany.BusinessName;
+
+        // Cambiamos el color de todos los bordes y botones dinámicamente
+        if (Color.TryParse(_selectedCompany.PrimaryColorHex, out var newColor))
         {
-            // Cambiamos el estilo del formulario para que coincida con la marca
             btnLogin.Background = new SolidColorBrush(newColor);
             borderUser.Stroke = newColor;
             borderPass.Stroke = newColor;
+            borderLogo.Stroke = newColor;
+            LblCompanyName.TextColor = newColor;
         }
+    }
+
+    private async void OnPrevCompanyClicked(object sender, EventArgs e)
+    {
+        if (!_empresasDisponibles.Any()) return;
+
+        var btn = (ImageButton)sender;
+        _ = btn.TranslateToAsync(-15, 0, 100, Easing.CubicOut).ContinueWith(t => btn.TranslateToAsync(0, 0, 100, Easing.CubicIn));
+
+        await Task.WhenAll(
+            borderLogo.TranslateToAsync(50, 0, 150, Easing.CubicIn),
+            borderLogo.FadeToAsync(0, 150, Easing.CubicIn)
+        );
+
+        _currentCompanyIndex--;
+        if (_currentCompanyIndex < 0) _currentCompanyIndex = _empresasDisponibles.Count - 1;
+        ActualizarVistaEmpresa();
+
+        borderLogo.TranslationX = -50;
+
+        await Task.WhenAll(
+            borderLogo.TranslateToAsync(0, 0, 150, Easing.CubicOut),
+            borderLogo.FadeToAsync(1, 150, Easing.CubicOut)
+        );
+    }
+
+    private async void OnNextCompanyClicked(object sender, EventArgs e)
+    {
+        if (!_empresasDisponibles.Any()) return;
+
+        var btn = (ImageButton)sender;
+        _ = btn.TranslateToAsync(15, 0, 100, Easing.CubicOut).ContinueWith(t => btn.TranslateToAsync(0, 0, 100, Easing.CubicIn));
+
+        await Task.WhenAll(
+            borderLogo.TranslateToAsync(-50, 0, 150, Easing.CubicIn),
+            borderLogo.FadeToAsync(0, 150, Easing.CubicIn)
+        );
+
+        _currentCompanyIndex++;
+        if (_currentCompanyIndex >= _empresasDisponibles.Count) _currentCompanyIndex = 0;
+        ActualizarVistaEmpresa();
+
+        borderLogo.TranslationX = 50;
+
+        await Task.WhenAll(
+            borderLogo.TranslateToAsync(0, 0, 150, Easing.CubicOut),
+            borderLogo.FadeToAsync(1, 150, Easing.CubicOut)
+        );
     }
 
     private void OnPageSizeChanged(object sender, EventArgs e)
     {
-        if (Width > Height) // MODO PAISAJE (Horizontal)
+        if (Width > Height)
         {
             LayoutGrid.RowDefinitions.Clear();
             LayoutGrid.ColumnDefinitions.Clear();
@@ -363,7 +448,7 @@ public partial class LoginPage : ContentPage
             Grid.SetRow(FormSection, 0);
             Grid.SetColumn(FormSection, 1);
         }
-        else // MODO RETRATO (Vertical)
+        else
         {
             LayoutGrid.RowDefinitions.Clear();
             LayoutGrid.ColumnDefinitions.Clear();
@@ -413,5 +498,17 @@ public partial class LoginPage : ContentPage
         catch (Exception)
         {
         }
+    }
+
+    private string ObtenerTextoExitoRandom()
+    {
+        var textos = new[] {
+        "¡Credenciales válidas!",
+        "Preparando tu entorno...",
+        "¡Ingresando al sistema!",
+        "Abriendo el almacén...",
+        "Cargando preferencias..."
+    };
+        return textos[new Random().Next(textos.Length)];
     }
 }

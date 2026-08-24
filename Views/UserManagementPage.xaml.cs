@@ -1,5 +1,6 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Helpers;
 using ControlInventarioMovil.Services;
 
 namespace ControlInventarioMovil.Views
@@ -48,6 +49,12 @@ namespace ControlInventarioMovil.Views
 
         private async void OnDeleteUserClicked(object? sender, EventArgs e)
         {
+            if (!SecurityHelper.HasPermission("MANAGE_USERS"))
+            {
+                await DisplayAlertAsync("Acceso Denegado", "No cuentas con privilegios para desactivar usuarios del sistema.", "Entendido");
+                return;
+            }
+
             var boton = sender as ImageButton;
             if (boton?.CommandParameter is User usuarioSeleccionado)
             {
@@ -87,22 +94,26 @@ namespace ControlInventarioMovil.Views
 
         private async void OnRefreshing(object sender, EventArgs e)
         {
-            // Actualiza la información en segundo plano respetando el gesto nativo
             await EjecutarCargaUsuariosAsync();
             RefreshUsers.IsRefreshing = false;
         }
 
         private async void OnAddUserClicked(object? sender, EventArgs e)
         {
+            if (!SecurityHelper.HasPermission("MANAGE_USERS"))
+            {
+                await DisplayAlertAsync("Acceso Denegado", "No cuentas con privilegios para registrar nuevos usuarios.", "Entendido");
+                return;
+            }
+
             await Navigation.PushAsync(new UserFormPage());
         }
 
         private async void OnEditUserClicked(object? sender, EventArgs e)
         {
             var boton = sender as ImageButton;
-            var usuarioSeleccionado = boton?.CommandParameter as User;
 
-            if (usuarioSeleccionado != null)
+            if (boton?.CommandParameter is User usuarioSeleccionado)
             {
                 await Navigation.PushAsync(new UserFormPage(usuarioSeleccionado));
             }

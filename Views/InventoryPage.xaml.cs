@@ -1,6 +1,7 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
+using ControlInventarioMovil.Helpers;
 using System.ComponentModel;
 
 namespace ControlInventarioMovil.Views
@@ -33,16 +34,7 @@ namespace ControlInventarioMovil.Views
                 ContenedorLista.Padding = modoCompacto ? new Thickness(5, 4) : new Thickness(15, 12);
             }
 
-            bool puedeCrear = false;
-            var userRole = UserSession.CurrentUser?.Role;
-
-            if (userRole?.Name == "SuperAdmin" || userRole?.Name == "Propietario" || userRole?.Name == "Administrador" ||
-               (userRole?.RolePermissions != null && userRole.RolePermissions.Any(rp => rp.Permission?.SystemCode == "CREATE_ARTICLES")))
-            {
-                puedeCrear = true;
-            }
-
-            BtnNuevoArticulo.IsVisible = puedeCrear;
+            BtnNuevoArticulo.IsVisible = SecurityHelper.HasPermission("CREATE_ARTICLES");
         }
 
         private async Task SincronizarListadoArticulosAsync()
@@ -187,10 +179,15 @@ namespace ControlInventarioMovil.Views
         }
         private async void OnEliminarStockClicked(object sender, EventArgs e)
         {
-            var button = sender as ImageButton;
-            var article = button?.CommandParameter as Article;
+            if (!SecurityHelper.HasPermission("DELETE_RECORDS"))
+            {
+                await DisplayAlertAsync("Acceso Denegado", "Tu rol no tiene permisos para eliminar registros o vaciar stock.", "Entendido");
+                return;
+            }
 
-            if (article == null) return;
+            var button = sender as ImageButton;
+
+            if (button?.CommandParameter is not Article article) return;
 
             // 1. Desplegamos el menú dinámico con las opciones solicitadas
             string opcion = await DisplayActionSheetAsync(

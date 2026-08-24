@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Helpers;
 using ControlInventarioMovil.Services;
 
 namespace ControlInventarioMovil.Views
@@ -60,6 +61,12 @@ namespace ControlInventarioMovil.Views
 
         private async void OnAddEmployeeClicked(object sender, EventArgs e)
         {
+            if (!SecurityHelper.HasPermission("CREATE_EMPLOYEES"))
+            {
+                await DisplayAlertAsync("Denegado", "No tienes autorización para registrar nuevos empleados.", "OK");
+                return;
+            }
+
             await Navigation.PushAsync(new EmployeeFormPage(new Employee()));
         }
 
@@ -74,6 +81,12 @@ namespace ControlInventarioMovil.Views
 
         private async void OnDeleteEmployeeClicked(object sender, EventArgs e)
         {
+            if (!SecurityHelper.HasPermission("DELETE_RECORDS"))
+            {
+                await DisplayAlertAsync("Denegado", "No tienes permisos para desactivar personal.", "OK");
+                return;
+            }
+
             var button = sender as ImageButton;
             if (button?.CommandParameter is Employee empleadoSeleccionado)
             {

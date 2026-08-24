@@ -145,7 +145,21 @@ namespace ControlInventarioMovil.Views
                 }
             });
 
-            // Reanuda el contador para que la animación empiece de nuevo
+            OrbitaReportes.IsVisible = SecurityHelper.HasPermission("VIEW_REPORTS");
+            OrbitaConfig.IsVisible = SecurityHelper.HasPermission("MANAGE_SETTINGS");
+            
+            BtnCompartirInventario.IsVisible = UserSession.CurrentProfile?.SharedActivity == true;
+
+            bool tieneSmtp = !string.IsNullOrEmpty(UserSession.CurrentProfile?.SmtpEmail);
+            if (!tieneSmtp)
+            {
+                BtnEmpleados.Opacity = 0.4;
+            }
+            else
+            {
+                BtnEmpleados.Opacity = 1.0;
+            }
+
             ResetInactivityTimer();
         }
 
@@ -665,6 +679,13 @@ namespace ControlInventarioMovil.Views
 
         private async void OnNavigateToEmployeesClicked(object sender, EventArgs e)
         {
+            bool tieneSmtp = !string.IsNullOrEmpty(UserSession.CurrentProfile?.SmtpEmail);
+            if (!tieneSmtp)
+            {
+                await DisplayAlertAsync("Configuración Requerida", "Para gestionar el personal, primero debes configurar y probar el envío de correos (SMTP) en la pantalla de Configuración.", "Entendido");
+                return;
+            }
+
             try
             {
                 await Shell.Current.GoToAsync("EmployeesPage");

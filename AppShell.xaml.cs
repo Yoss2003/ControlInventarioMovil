@@ -3,6 +3,7 @@ using ControlInventarioMovil.Data;
 using ControlInventarioMovil.Services;
 using ControlInventarioMovil.Views;
 using ControlInventarioMovil.Views.Controls;
+using ControlInventarioMovil.Helpers;
 
 namespace ControlInventarioMovil
 {
@@ -17,6 +18,9 @@ namespace ControlInventarioMovil
                 var syncEngine = new SyncEngine(apiService);
                 await syncEngine.SincronizarBaseDeDatosCompletaAsync();
             });
+
+            MenuUsuarios.IsVisible = SecurityHelper.HasPermission("MANAGE_USERS");
+            MenuEmpresas.IsVisible = SecurityHelper.HasPermission("MANAGE_COMPANIES");
 
             var role = UserSession.CurrentUser?.Role;
 

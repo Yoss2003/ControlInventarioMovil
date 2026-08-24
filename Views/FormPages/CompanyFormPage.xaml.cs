@@ -3,6 +3,7 @@
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
 using Newtonsoft.Json;
+using System.Globalization;
 using System.Text;
 
 public partial class CompanyFormPage : ContentPage
@@ -13,7 +14,7 @@ public partial class CompanyFormPage : ContentPage
 
     private readonly string[] _coloresMarca = { "#2E7D32", "#1976D2", "#C62828", "#E65100", "#6A1B9A", "#00838F", "#455A64", "#000000" };
 
-    public CompanyFormPage(Company company = null)
+    public CompanyFormPage(Company? company = null)
     {
         InitializeComponent();
         _companyActual = company ?? new Company { Id = 0, IsActive = true };
@@ -39,7 +40,7 @@ public partial class CompanyFormPage : ContentPage
             {
                 _logoBase64 = _companyActual.LogoUrl;
                 var converter = new Helpers.Base64ToImageConverter();
-                var resultadoConvertido = converter.Convert(_logoBase64, typeof(ImageSource), null, null);
+                var resultadoConvertido = converter.Convert(_logoBase64, typeof(ImageSource), null, CultureInfo.CurrentCulture);
 
                 if (resultadoConvertido is ImageSource imageSource)
                 {

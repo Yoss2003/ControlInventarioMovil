@@ -1,10 +1,11 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Helpers;
 using ControlInventarioMovil.Services;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using System.Collections.ObjectModel;
 
 namespace ControlInventarioMovil.Views
 {
@@ -132,6 +133,12 @@ namespace ControlInventarioMovil.Views
         // 🚨 NUEVO: Eliminar Padre con Validación
         private async void OnEliminarPadreClicked(object sender, EventArgs e)
         {
+            if (!SecurityHelper.HasPermission("DELETE_RECORDS"))
+            {
+                await DisplayAlertAsync("Acceso Denegado", "No tienes permisos para eliminar registros del sistema.", "Entendido");
+                return;
+            }
+
             var boton = (View)sender;
             var categoriaPadre = (CategoriaPadreUI)boton.BindingContext;
 
@@ -179,6 +186,12 @@ namespace ControlInventarioMovil.Views
 
         private async void OnEliminarSubcategoriaClicked(object sender, EventArgs e)
         {
+            if (!SecurityHelper.HasPermission("DELETE_RECORDS"))
+            {
+                await DisplayAlertAsync("Acceso Denegado", "No tienes permisos para eliminar registros del sistema.", "Entendido");
+                return;
+            }
+
             var boton = (View)sender;
             var subcategoria = (Category)boton.BindingContext;
 
