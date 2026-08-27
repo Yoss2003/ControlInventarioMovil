@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace ControlInventarioMovil.Services
+namespace ControlInventarioMovil.Utilities
 {
     public static class CrashLogger
     {

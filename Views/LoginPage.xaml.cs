@@ -118,14 +118,14 @@ public partial class LoginPage : ContentPage
                             UserSession.CurrentUser = JsonConvert.DeserializeObject<User>(userJson);
                         }
 
-                        MainThread.BeginInvokeOnMainThread(() => LoadingOverlay.IsVisible = false);
+                        MainThread.BeginInvokeOnMainThread(async () =>
+                        {
+                            LoadingOverlay.IsVisible = false;
+                            await DisplayAlertAsync("Seguridad Obligatoria", "Debes establecer una contraseña privada antes de entrar.", "Aceptar");
 
-                        await DisplayAlertAsync("Seguridad Obligatoria", "Debes establecer una contraseña privada antes de entrar.", "Aceptar");
+                            await Shell.Current.Navigation.PushAsync(new Views.EditProfilePage());
+                        });
 
-                        // Pausa para que cierre la alerta
-                        await Task.Delay(400);
-
-                        MainThread.BeginInvokeOnMainThread(() => Application.Current!.Windows[0].Page = new Views.EditProfilePage());
                         return;
                     }
 
@@ -223,16 +223,14 @@ public partial class LoginPage : ContentPage
                             Debug.WriteLine($"[Keystore Ignorado]: {ex.Message}");
                         }
 
-                        // Aquí BeginInvoke está bien porque NO hay await
-                        MainThread.BeginInvokeOnMainThread(() =>
+                        MainThread.BeginInvokeOnMainThread(async () =>
                         {
-                            Application.Current!.Windows[0].Page = new AppShell();
+                            await Shell.Current.GoToAsync("//MainPage");
                         });
                     }
                 }
                 else
                 {
-                    // 🚀 CORRECCIÓN
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
                         LoadingOverlay.IsVisible = false;
@@ -280,7 +278,10 @@ public partial class LoginPage : ContentPage
                     MainThread.BeginInvokeOnMainThread(() => lblLoadingText.Text = "¡Modo Offline Activado!");
                     await Task.Delay(800);
 
-                    MainThread.BeginInvokeOnMainThread(() => Application.Current!.Windows[0].Page = new AppShell());
+                    MainThread.BeginInvokeOnMainThread(async () =>
+                    {
+                        await Shell.Current.GoToAsync("//MainPage");
+                    }); 
                     return;
                 }
 
@@ -309,6 +310,11 @@ public partial class LoginPage : ContentPage
     {
         base.OnAppearing();
 
+        Application.Current!.UserAppTheme = AppTheme.Unspecified;
+
+        LoadingOverlay.IsVisible = false;
+        txtPassword.Text = string.Empty;
+
         try
         {
             var savedUser = await SecureStorage.Default.GetAsync("saved_username");
@@ -323,7 +329,7 @@ public partial class LoginPage : ContentPage
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[KEYSTORE RESET]: {ex.Message}");
+            Debug.WriteLine($"[KEYSTORE RESET]: {ex.Message}");
             SecureStorage.Default.RemoveAll();
         }
 
@@ -359,7 +365,7 @@ public partial class LoginPage : ContentPage
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error cargando empresas: {ex.Message}");
+            Debug.WriteLine($"Error cargando empresas: {ex.Message}");
             LblCompanyName.Text = "Error de conexión";
         }
     }

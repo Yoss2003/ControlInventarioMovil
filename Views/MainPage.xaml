@@ -66,15 +66,15 @@
             <Grid Grid.Row="1" ColumnDefinitions="*, Auto, *" Padding="20,20,20,0">
 
                 <VerticalStackLayout Grid.Column="0" Spacing="5" HorizontalOptions="Center" VerticalOptions="Start">
-                    <Border HeightRequest="52" WidthRequest="52" BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}" StrokeThickness="1" Stroke="{AppThemeBinding Light=#D3D3D3, Dark=#2E3842}">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="26"/>
-                        </Border.StrokeShape>
-                        <Image Source="user_icon.png" Margin="12"/>
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnNavigateToCustomersClicked"/>
-                        </Border.GestureRecognizers>
-                    </Border>
+                    <ImageButton Source="user_icon.png"
+                     HeightRequest="52" WidthRequest="52"
+                     CornerRadius="26"
+                     BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}"
+                     BorderWidth="1"
+                     BorderColor="{AppThemeBinding Light=#D3D3D3, Dark=#2E3842}"
+                     Padding="12"
+                     Clicked="OnNavigateToCustomersClicked"
+                     helpers:EfectosVisualesHelper.Animar="True"/>
                     <Label Text="Clientes" FontSize="11" HorizontalOptions="Center" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold"/>
                 </VerticalStackLayout>
 
@@ -90,15 +90,16 @@
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Grid.Column="2" Spacing="5" HorizontalOptions="Center" VerticalOptions="Start">
-                    <Border x:Name="BtnEmpleados" HeightRequest="52" WidthRequest="52" BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}" StrokeThickness="1" Stroke="{AppThemeBinding Light=#D3D3D3, Dark=#2E3842}">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="26"/>
-                        </Border.StrokeShape>
-                        <Image Source="user_icon.png" Margin="12"/>
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnNavigateToEmployeesClicked"/>
-                        </Border.GestureRecognizers>
-                    </Border>
+                    <ImageButton x:Name="BtnEmpleados"
+                     Source="user_icon.png"
+                     HeightRequest="52" WidthRequest="52"
+                     CornerRadius="26"
+                     BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}"
+                     BorderWidth="1"
+                     BorderColor="{AppThemeBinding Light=#D3D3D3, Dark=#2E3842}"
+                     Padding="12"
+                     Clicked="OnNavigateToEmployeesClicked"
+                     helpers:EfectosVisualesHelper.Animar="True"/>
                     <Label Text="Empleados" FontSize="11" HorizontalOptions="Center" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold"/>
                 </VerticalStackLayout>
             </Grid>
@@ -172,6 +173,11 @@
                         BackgroundColor="#A8D08D" 
                         StrokeThickness="0" 
                         TranslationY="-5">
+
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnTestKardexTapped" />
+                    </Border.GestureRecognizers>
+                    
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="60"/>
                     </Border.StrokeShape>

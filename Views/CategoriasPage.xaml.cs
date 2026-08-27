@@ -6,18 +6,19 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using Button = Microsoft.Maui.Controls.Button;
 
 namespace ControlInventarioMovil.Views
 {
     public partial class CategoriasPage : ContentPage
     {
         private bool _isCargandoUnidades = false;
-        private List<string> _etiquetasNombramiento = new List<string> { "Nombre" };
         private readonly ApiService _apiService;
         private ObservableCollection<CategoriaPadreUI> _categoriasPadre = new ObservableCollection<CategoriaPadreUI>();
         private Category? _categoriaEnEdicion = null;
         private List<int> _unidadesSeleccionadasTemporales = new List<int>();
         private Category? _categoriaUnidadesActual = null;
+        private bool _isSystemEdit = false; // 🚀 BANDERA PARA BLOQUEAR VALIDACIÓN
 
         public class SelectableUnit : INotifyPropertyChanged
         {
@@ -71,7 +72,7 @@ namespace ControlInventarioMovil.Views
                 var padres = padresClasificados.Select(padre => new CategoriaPadreUI(padre)
                 {
                     Subcategorias = new ObservableCollection<Category>(
-                        todasLasCategorias.Where(hija => hija.ParentCategoryId == padre.Id && hija.IsActive) // 🚨 Filtro IsActive
+                        todasLasCategorias.Where(hija => hija.ParentCategoryId == padre.Id && hija.IsActive)
                     )
                 }).ToList();
 
@@ -130,7 +131,6 @@ namespace ControlInventarioMovil.Views
             }
         }
 
-        // 🚨 NUEVO: Eliminar Padre con Validación
         private async void OnEliminarPadreClicked(object sender, EventArgs e)
         {
             if (!SecurityHelper.HasPermission("DELETE_RECORDS"))
@@ -159,7 +159,7 @@ namespace ControlInventarioMovil.Views
                 OverlayCarga.IsVisible = true;
 
                 categoriaPadre.IsActive = false;
-                bool exito = await _apiService.UpdateCategoryAsync(categoriaPadre);
+                bool exito = await _apiService.DeleteCategoryAsync(categoriaPadre.Id);
 
                 OverlayCarga.IsVisible = false;
 
@@ -234,8 +234,7 @@ namespace ControlInventarioMovil.Views
                 OverlayCarga.IsVisible = true;
 
                 subcategoria.IsActive = false;
-                bool exito = await _apiService.UpdateCategoryAsync(subcategoria);
-
+                bool exito = await _apiService.DeleteCategoryAsync(subcategoria.Id);
                 OverlayCarga.IsVisible = false;
 
                 if (exito)
@@ -273,15 +272,31 @@ namespace ControlInventarioMovil.Views
             _categoriaEnEdicion = (CategoriaPadreUI)boton.BindingContext;
 
             LblFormTitulo.Text = "EDITAR CATEGORÍA PADRE";
+
+            BtnConfirmarForm.Text = "ACTUALIZAR";
+            BtnConfirmarForm.BackgroundColor = Color.FromArgb("#EFA72F");
+            BtnConfirmarForm.TextColor = Color.FromArgb("#1C262E");
+
             TxtNombreCat.Text = _categoriaEnEdicion.Name;
             TxtDescription.Text = _categoriaEnEdicion.Description;
 
             SecContexto.IsVisible = false;
-            SecReglas.IsVisible = false;
+            SecAtributos.IsVisible = false;
+            SecNamingMethod.IsVisible = false;
             SecUnidadesMedida.IsVisible = false;
+            ContenedorRetornable.IsVisible = false;
             Grid.SetColumnSpan(SecNombre, 2);
 
             AbrirFormulario();
+        }
+
+        // 🚀 MÉTODO SEGURO PARA ACTUALIZAR LA FÓRMULA SIN DISPARAR LA VALIDACIÓN
+        private void SetFormulaText(string text)
+        {
+            _isSystemEdit = true; // 🛑 Bloqueamos
+            TxtNamingCustom.Text = text;
+            _isSystemEdit = false; // 🟢 Desbloqueamos
+            ActualizarColoresBotonesNaming();
         }
 
         private void OnEditarHijaClicked(object sender, EventArgs e)
@@ -290,11 +305,26 @@ namespace ControlInventarioMovil.Views
             _categoriaEnEdicion = (Category)boton.BindingContext;
 
             LblFormTitulo.Text = "EDITAR CATEGORÍA HIJA";
+
+            BtnConfirmarForm.Text = "ACTUALIZAR";
+            BtnConfirmarForm.BackgroundColor = Color.FromArgb("#EFA72F");
+            BtnConfirmarForm.TextColor = Color.FromArgb("#1C262E");
+
             TxtNombreCat.Text = _categoriaEnEdicion.Name;
             TxtDescription.Text = _categoriaEnEdicion.Description;
 
+            TxtLabel1.Text = _categoriaEnEdicion.Label1;
+            TxtLabel2.Text = _categoriaEnEdicion.Label2;
+            TxtLabel3.Text = _categoriaEnEdicion.Label3;
+            TxtLabel4.Text = _categoriaEnEdicion.Label4;
+            TxtLabel5.Text = _categoriaEnEdicion.Label5;
+
+            var propertyL6 = _categoriaEnEdicion.GetType().GetProperty("Label6");
+            if (propertyL6 != null) { TxtLabel6.Text = propertyL6.GetValue(_categoriaEnEdicion) as string; }
+
+            ActualizarVisibilidadBotonesSlots();
+
             SecContexto.IsVisible = true;
-            SecReglas.IsVisible = true;
             SecUnidadesMedida.IsVisible = true;
             Grid.SetColumnSpan(SecNombre, 1);
 
@@ -306,17 +336,31 @@ namespace ControlInventarioMovil.Views
             }
 
             if (_categoriaEnEdicion.TrackingMode == TrackingMode.Serialized.ToString())
+            {
                 PkrTrackingMode.SelectedIndex = 1;
+                SecAtributos.IsVisible = true;
+                SecNamingMethod.IsVisible = true;
+            }
             else if (_categoriaEnEdicion.TrackingMode == TrackingMode.Standard.ToString())
+            {
                 PkrTrackingMode.SelectedIndex = 2;
+                SecAtributos.IsVisible = false;
+                SecNamingMethod.IsVisible = true;
+            }
             else if (_categoriaEnEdicion.TrackingMode == TrackingMode.Bulk.ToString())
+            {
                 PkrTrackingMode.SelectedIndex = 3;
+                SecAtributos.IsVisible = false;
+                SecNamingMethod.IsVisible = true;
+            }
+            else
+            {
+                SecNamingMethod.IsVisible = false;
+            }
 
             SwRetornable.IsToggled = _categoriaEnEdicion.IsReturnable == 1;
 
             ActualizarControlesNamingSegunTracking();
-
-            _etiquetasNombramiento.Clear();
 
             bool esGranel = PkrTrackingMode.SelectedIndex == 3;
 
@@ -324,15 +368,15 @@ namespace ControlInventarioMovil.Views
             {
                 SwModoLibre.IsToggled = false;
                 ContenedorCheckLibre.IsVisible = false;
-                ContainerBotonesNaming.IsVisible = false;
+
+                ContainerBotonesNaming.Opacity = 0;
+                ContainerBotonesNaming.InputTransparent = true;
 
                 ContainerPickerNaming.IsVisible = true;
                 ContainerTxtNaming.IsVisible = false;
 
                 PkrNaming.SelectedIndex = 0;
-                TxtNamingCustom.Text = "[Nombre] + [Código]";
-
-                ReiniciarBotonesYFormula();
+                SetFormulaText("[Marca]");
             }
             else
             {
@@ -346,30 +390,22 @@ namespace ControlInventarioMovil.Views
                         PkrNaming.SelectedItem = _categoriaEnEdicion.NamingMethod;
                         ContainerPickerNaming.IsVisible = true;
                         ContainerTxtNaming.IsVisible = false;
-                        ContainerBotonesNaming.IsVisible = false;
 
-                        ReiniciarBotonesYFormula();
+                        ContainerBotonesNaming.Opacity = 0;
+                        ContainerBotonesNaming.InputTransparent = true;
+                        SetFormulaText("[Marca]");
                     }
                     else
                     {
                         SwModoLibre.IsToggled = true;
                         ContainerPickerNaming.IsVisible = false;
                         ContainerTxtNaming.IsVisible = true;
-                        ContainerBotonesNaming.IsVisible = true;
-                        TxtNamingCustom.Text = _categoriaEnEdicion.NamingMethod;
 
-                        var matches = Regex.Matches(_categoriaEnEdicion.NamingMethod, @"\[(.*?)\]");
-                        foreach (Match match in matches)
-                        {
-                            _etiquetasNombramiento.Add(match.Groups[1].Value);
-                        }
+                        ContainerBotonesNaming.Opacity = 1;
+                        ContainerBotonesNaming.InputTransparent = false;
 
-                        if (_etiquetasNombramiento.Count == 0)
-                        {
-                            _etiquetasNombramiento.Add("Marca"); // 🚨 POR DEFECTO ES MARCA
-                        }
-
-                        ActualizarColoresBotonesEdicion();
+                        SetFormulaText(_categoriaEnEdicion.NamingMethod);
+                        ActualizarColoresBotonesNaming();
                     }
                 }
                 else
@@ -378,7 +414,7 @@ namespace ControlInventarioMovil.Views
                     PkrNaming.SelectedIndex = 0;
                     ContainerPickerNaming.IsVisible = true;
                     ContainerTxtNaming.IsVisible = false;
-                    ReiniciarBotonesYFormula();
+                    SetFormulaText("[Marca]");
                 }
             }
 
@@ -391,108 +427,120 @@ namespace ControlInventarioMovil.Views
             AbrirFormulario();
         }
 
-        private void ActualizarColoresBotonesEdicion()
-        {
-            bool isDarkMode = Application.Current?.RequestedTheme == AppTheme.Dark;
-            Color colorActivoBg = isDarkMode ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
-            Color colorActivoText = isDarkMode ? Color.FromArgb("#1C262E") : Colors.White;
-            Color colorInactivoBg = isDarkMode ? Color.FromArgb("#232B35") : Color.FromArgb("#E9ECEF");
-            Color colorInactivoText = isDarkMode ? Color.FromArgb("#939CA5") : Color.FromArgb("#54606C");
-
-            BtnTagMarca.BackgroundColor = _etiquetasNombramiento.Contains("Marca") ? colorActivoBg : colorInactivoBg;
-            BtnTagMarca.TextColor = _etiquetasNombramiento.Contains("Marca") ? colorActivoText : colorInactivoText;
-
-            BtnTagCodigo.BackgroundColor = _etiquetasNombramiento.Contains("Código") ? colorActivoBg : colorInactivoBg;
-            BtnTagCodigo.TextColor = _etiquetasNombramiento.Contains("Código") ? colorActivoText : colorInactivoText;
-            BtnTagSerie.BackgroundColor = _etiquetasNombramiento.Contains("Serie") ? colorActivoBg : colorInactivoBg;
-            BtnTagSerie.TextColor = _etiquetasNombramiento.Contains("Serie") ? colorActivoText : colorInactivoText;
-            BtnTagModelo.BackgroundColor = _etiquetasNombramiento.Contains("Modelo") ? colorActivoBg : colorInactivoBg;
-            BtnTagModelo.TextColor = _etiquetasNombramiento.Contains("Modelo") ? colorActivoText : colorInactivoText;
-            BtnTagPresentacion.BackgroundColor = _etiquetasNombramiento.Contains("Pres.") ? colorActivoBg : colorInactivoBg;
-            BtnTagPresentacion.TextColor = _etiquetasNombramiento.Contains("Pres.") ? colorActivoText : colorInactivoText;
-        }
-
         private async void OnConfirmarFormClicked(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(TxtNombreCat.Text))
+            try
             {
-                await DisplayAlertAsync("Atención", "El nombre de la categoría es obligatorio.", "OK");
-                return;
-            }
-
-            int? parentId = null;
-            if (SecContexto.IsVisible && PkrPadre.SelectedIndex > 0)
-                parentId = _categoriasPadre[PkrPadre.SelectedIndex - 1].Id;
-
-            string? namingMethod = string.Empty;
-
-            // 🚨 Identificamos si es A Granel (Bulk)
-            bool esGranel = SecReglas.IsVisible && PkrTrackingMode.SelectedIndex == 3;
-
-            if (SecReglas.IsVisible)
-            {
-                if (esGranel)
+                if (string.IsNullOrWhiteSpace(TxtNombreCat.Text))
                 {
-                    namingMethod = "Nombre";
+                    await DisplayAlertAsync("Atención", "El nombre de la categoría es obligatorio.", "OK");
+                    return;
+                }
+
+                if (SecContexto.IsVisible && PkrPadre.SelectedIndex <= 0)
+                {
+                    await DisplayAlertAsync("Validación", "Debes seleccionar un Grupo (Padre) para enlazar esta subcategoría.", "OK");
+                    return;
+                }
+
+                if (OverlayCarga != null)
+                {
+                    OverlayCarga.Opacity = 1;
+                    OverlayCarga.IsVisible = true;
+                }
+
+                var lblCarga = this.FindByName<Label>("LblOverlayCarga");
+                lblCarga?.Text = _categoriaEnEdicion == null ? "Guardando categoría..." : "Actualizando categoría...";
+
+                await Task.Delay(100);
+
+                int? parentId = null;
+                if (SecContexto.IsVisible && PkrPadre.SelectedIndex > 0)
+                    parentId = _categoriasPadre[PkrPadre.SelectedIndex - 1].Id;
+
+                string? namingMethod = string.Empty;
+                bool esGranel = SecNamingMethod.IsVisible && PkrTrackingMode.SelectedIndex == 3;
+
+                if (SecNamingMethod.IsVisible)
+                {
+                    if (esGranel)
+                        namingMethod = "Nombre";
+                    else
+                    {
+                        if (SwModoLibre.IsToggled)
+                            namingMethod = TxtNamingCustom.Text;
+                        else if (PkrNaming.SelectedIndex >= 0)
+                            namingMethod = PkrNaming.SelectedItem?.ToString();
+                    }
+                }
+
+                TrackingMode trackingModeEnum = TrackingMode.Standard;
+                bool esRetornable = false;
+
+                if (PkrTrackingMode.SelectedIndex > 0)
+                {
+                    esRetornable = SwRetornable.IsToggled;
+
+                    if (PkrTrackingMode.SelectedIndex == 1) trackingModeEnum = TrackingMode.Serialized;
+                    else if (PkrTrackingMode.SelectedIndex == 2) trackingModeEnum = TrackingMode.Standard;
+                    else if (PkrTrackingMode.SelectedIndex == 3) trackingModeEnum = TrackingMode.Bulk;
+                }
+
+                var categoriaProcesada = new Category
+                {
+                    Id = _categoriaEnEdicion != null ? _categoriaEnEdicion.Id : 0,
+                    InventoryId = UserSession.CurrentInventory?.Id ?? 1,
+                    Name = TxtNombreCat.Text,
+                    ParentCategoryId = parentId,
+                    TrackingMode = trackingModeEnum.ToString(),
+                    NamingMethod = namingMethod,
+                    Description = TxtDescription.Text,
+                    IsReturnable = esRetornable ? 1 : 0,
+                    CreationDate = _categoriaEnEdicion != null ? _categoriaEnEdicion.CreationDate : DateTime.Now,
+                    CreationUser = _categoriaEnEdicion != null ? _categoriaEnEdicion.CreationUser : "Admin",
+                    SelectedUnitIds = new List<int>(_unidadesSeleccionadasTemporales),
+                    Label1 = TxtLabel1.Text,
+                    Label2 = TxtLabel2.Text,
+                    Label3 = TxtLabel3.Text,
+                    Label4 = TxtLabel4.Text,
+                    Label5 = TxtLabel5.Text,
+                    Label6 = TxtLabel6.Text,
+                    IsActive = true
+                };
+
+                bool exito;
+                if (_categoriaEnEdicion == null)
+                {
+                    exito = await _apiService.CreateCategoryAsync(categoriaProcesada);
                 }
                 else
                 {
-                    if (SwModoLibre.IsToggled)
-                        namingMethod = TxtNamingCustom.Text;
-                    else if (PkrNaming.SelectedIndex >= 0)
-                        namingMethod = PkrNaming.SelectedItem?.ToString();
+                    exito = await _apiService.UpdateCategoryAsync(categoriaProcesada);
+                }
+
+                if (OverlayCarga != null)
+                {
+                    await OverlayCarga.FadeToAsync(0, 200);
+                    OverlayCarga.IsVisible = false;
+                }
+
+                if (exito)
+                {
+                    OnCerrarFormClicked(null, null);
+                    lblCarga?.Text = "Refrescando datos...";
+                    if (OverlayCarga != null) { OverlayCarga.Opacity = 1; OverlayCarga.IsVisible = true; }
+
+                    await CargarCategoriasPadre();
+                }
+                else
+                {
+                    await DisplayAlertAsync("Error", "Ocurrió un problema al guardar. La API rechazó la petición.", "OK");
                 }
             }
-
-            TrackingMode trackingModeEnum = TrackingMode.Standard;
-            bool esRetornable = false;
-
-            if (SecReglas.IsVisible)
+            catch (Exception ex)
             {
-                esRetornable = SwRetornable.IsToggled;
-
-                if (PkrTrackingMode.SelectedIndex == 1)
-                    trackingModeEnum = TrackingMode.Serialized;
-                else if (PkrTrackingMode.SelectedIndex == 2)
-                    trackingModeEnum = TrackingMode.Standard;
-                else if (PkrTrackingMode.SelectedIndex == 3)
-                    trackingModeEnum = TrackingMode.Bulk;
-            }
-
-            var categoriaProcesada = new Category
-            {
-                Id = _categoriaEnEdicion != null ? _categoriaEnEdicion.Id : 0,
-                InventoryId = UserSession.CurrentInventory?.Id ?? 1,
-                Name = TxtNombreCat.Text,
-                ParentCategoryId = parentId,
-                TrackingMode = trackingModeEnum.ToString(),
-                NamingMethod = namingMethod,
-                Description = TxtDescription.Text,
-                IsReturnable = esRetornable ? 1 : 0,
-                CreationDate = _categoriaEnEdicion != null ? _categoriaEnEdicion.CreationDate : DateTime.Now,
-                CreationUser = _categoriaEnEdicion != null ? _categoriaEnEdicion.CreationUser : "Admin",
-                SelectedUnitIds = new List<int>(_unidadesSeleccionadasTemporales)
-            };
-
-            bool exito;
-            if (_categoriaEnEdicion == null)
-            {
-                exito = await _apiService.CreateCategoryAsync(categoriaProcesada);
-            }
-            else
-            {
-                exito = await _apiService.UpdateCategoryAsync(categoriaProcesada);
-            }
-
-            if (exito)
-            {
-                await DisplayAlertAsync("Éxito", "Categoría guardada correctamente.", "OK");
-                OnCerrarFormClicked(null, null);
-                await CargarCategoriasPadre();
-            }
-            else
-            {
-                await DisplayAlertAsync("Error", "Ocurrió un problema al guardar en el servidor.", "OK");
+                OverlayCarga?.IsVisible = false;
+                await DisplayAlertAsync("Error Crítico", $"El formulario falló: {ex.Message}", "OK");
             }
         }
 
@@ -500,9 +548,16 @@ namespace ControlInventarioMovil.Views
         {
             _categoriaEnEdicion = null;
             LblFormTitulo.Text = "AGREGAR CATEGORÍA PADRE";
+
+            BtnConfirmarForm.Text = "GUARDAR";
+            BtnConfirmarForm.BackgroundColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
+            BtnConfirmarForm.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#1C262E") : Colors.White;
+
             SecContexto.IsVisible = false;
-            SecReglas.IsVisible = false;
+            SecAtributos.IsVisible = false;
+            SecNamingMethod.IsVisible = false;
             SecUnidadesMedida.IsVisible = false;
+            ContenedorRetornable.IsVisible = false;
             Grid.SetColumnSpan(SecNombre, 2);
             AbrirFormulario();
         }
@@ -511,9 +566,16 @@ namespace ControlInventarioMovil.Views
         {
             _categoriaEnEdicion = null;
             LblFormTitulo.Text = "AGREGAR CATEGORÍA HIJA";
+
+            BtnConfirmarForm.Text = "GUARDAR";
+            BtnConfirmarForm.BackgroundColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
+            BtnConfirmarForm.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#1C262E") : Colors.White;
+
             SecContexto.IsVisible = true;
-            SecReglas.IsVisible = true;
+            SecAtributos.IsVisible = false;
+            SecNamingMethod.IsVisible = false;
             SecUnidadesMedida.IsVisible = true;
+            ContenedorRetornable.IsVisible = false;
             Grid.SetColumnSpan(SecNombre, 1);
 
             _unidadesSeleccionadasTemporales.Clear();
@@ -541,6 +603,14 @@ namespace ControlInventarioMovil.Views
 
             TxtNombreCat.Text = string.Empty;
             TxtDescription.Text = string.Empty;
+            TxtLabel1.Text = string.Empty;
+            TxtLabel2.Text = string.Empty;
+            TxtLabel3.Text = string.Empty;
+            TxtLabel4.Text = string.Empty;
+            TxtLabel5.Text = string.Empty;
+            TxtLabel6.Text = string.Empty;
+            ActualizarVisibilidadBotonesSlots();
+
             PkrPadre.SelectedIndex = 0;
             PkrTrackingMode.SelectedIndex = 0;
             PkrNaming.SelectedIndex = 0;
@@ -556,12 +626,15 @@ namespace ControlInventarioMovil.Views
                 ContenedorRetornable.IsVisible = false;
                 SwRetornable.IsToggled = false;
                 BtnConfigurarUnidades.IsEnabled = false;
+                SecAtributos.IsVisible = false;
+                SecNamingMethod.IsVisible = false;
                 return;
             }
 
+            SecNamingMethod.IsVisible = true;
+
             string? seleccion = PkrTrackingMode.SelectedItem?.ToString();
 
-            if (seleccion == "Serializado" || seleccion == "Estándar")
             if (seleccion == "Serializado" || seleccion == "Estándar")
             {
                 ContenedorRetornable.IsVisible = true;
@@ -576,10 +649,12 @@ namespace ControlInventarioMovil.Views
             {
                 BtnConfigurarUnidades.IsEnabled = false;
                 _unidadesSeleccionadasTemporales.Clear();
+                SecAtributos.IsVisible = true;
             }
             else
             {
                 BtnConfigurarUnidades.IsEnabled = true;
+                SecAtributos.IsVisible = false;
             }
 
             ActualizarControlesNamingSegunTracking();
@@ -597,7 +672,10 @@ namespace ControlInventarioMovil.Views
 
                 SwModoLibre.IsToggled = false;
                 ContenedorCheckLibre.IsVisible = false;
-                ContainerBotonesNaming.IsVisible = false;
+
+                ContainerBotonesNaming.Opacity = 0;
+                ContainerBotonesNaming.InputTransparent = true;
+
                 ContainerPickerNaming.IsVisible = true;
                 ContainerTxtNaming.IsVisible = false;
             }
@@ -611,43 +689,29 @@ namespace ControlInventarioMovil.Views
                 ContenedorCheckLibre.IsVisible = true;
             }
 
+            BtnTagSerie.IsVisible = !isBulk;
+            BtnTagModelo.IsVisible = !isBulk;
+            BtnTagPresentacion.IsVisible = !isBulk;
+
             if (isBulk)
             {
-                BtnTagSerie.IsVisible = false;
-                BtnTagModelo.IsVisible = false;
-
-                GridBotonesNaming.ColumnDefinitions = new ColumnDefinitionCollection
-                {
-                    new ColumnDefinition { Width = GridLength.Star },
-                    new ColumnDefinition { Width = GridLength.Star }
-                };
-                Grid.SetColumn(BtnTagCodigo, 1);
-
-                if (_etiquetasNombramiento != null)
-                {
-                    _etiquetasNombramiento.Remove("Serie");
-                    _etiquetasNombramiento.Remove("Modelo");
-
-                    if (_etiquetasNombramiento.Count == 0) TxtNamingCustom.Text = "[Marca]";
-                    else TxtNamingCustom.Text = string.Join(" + ", _etiquetasNombramiento.Select(t => $"[{t}]"));
-                }
+                SetFormulaText("[Marca]");
             }
-            else
-            {
-                BtnTagSerie.IsVisible = true;
-                BtnTagModelo.IsVisible = true;
+        }
 
-                GridBotonesNaming.ColumnDefinitions = new ColumnDefinitionCollection
-                {
-                    new ColumnDefinition { Width = GridLength.Star },
-                    new ColumnDefinition { Width = GridLength.Star },
-                    new ColumnDefinition { Width = GridLength.Star },
-                    new ColumnDefinition { Width = GridLength.Star }
-                };
-                Grid.SetColumn(BtnTagCodigo, 1);
-                Grid.SetColumn(BtnTagSerie, 2);
-                Grid.SetColumn(BtnTagModelo, 3);
-            }
+        private void OnLabelTextChanged(object sender, TextChangedEventArgs e)
+        {
+            ActualizarVisibilidadBotonesSlots();
+        }
+
+        private void ActualizarVisibilidadBotonesSlots()
+        {
+            bool has1 = !string.IsNullOrWhiteSpace(TxtLabel1.Text); BtnTagL1.IsVisible = has1; if (has1) BtnTagL1.Text = TxtLabel1.Text;
+            bool has2 = !string.IsNullOrWhiteSpace(TxtLabel2.Text); BtnTagL2.IsVisible = has2; if (has2) BtnTagL2.Text = TxtLabel2.Text;
+            bool has3 = !string.IsNullOrWhiteSpace(TxtLabel3.Text); BtnTagL3.IsVisible = has3; if (has3) BtnTagL3.Text = TxtLabel3.Text;
+            bool has4 = !string.IsNullOrWhiteSpace(TxtLabel4.Text); BtnTagL4.IsVisible = has4; if (has4) BtnTagL4.Text = TxtLabel4.Text;
+            bool has5 = !string.IsNullOrWhiteSpace(TxtLabel5.Text); BtnTagL5.IsVisible = has5; if (has5) BtnTagL5.Text = TxtLabel5.Text;
+            bool has6 = !string.IsNullOrWhiteSpace(TxtLabel6.Text); BtnTagL6.IsVisible = has6; if (has6) BtnTagL6.Text = TxtLabel6.Text;
         }
 
         private void OnModoLibreToggled(object sender, ToggledEventArgs e)
@@ -656,60 +720,23 @@ namespace ControlInventarioMovil.Views
             {
                 ContainerPickerNaming.IsVisible = false;
                 ContainerTxtNaming.IsVisible = true;
-                ContainerBotonesNaming.IsVisible = true;
+
+                ContainerBotonesNaming.Opacity = 1;
+                ContainerBotonesNaming.InputTransparent = false;
 
                 PkrNaming.SelectedIndex = 0;
 
-                ReiniciarBotonesYFormula();
+                SetFormulaText("[Marca]");
             }
             else
             {
                 ContainerPickerNaming.IsVisible = true;
                 ContainerTxtNaming.IsVisible = false;
-                ContainerBotonesNaming.IsVisible = false;
 
-                ReiniciarBotonesYFormula();
-            }
-        }
+                ContainerBotonesNaming.Opacity = 0;
+                ContainerBotonesNaming.InputTransparent = true;
 
-        private void ReiniciarBotonesYFormula()
-        {
-            _etiquetasNombramiento.Clear();
-            _etiquetasNombramiento.Add("Marca");
-
-            bool isDarkMode = Application.Current?.RequestedTheme == AppTheme.Dark;
-            Color colorActivoBg = isDarkMode ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
-            Color colorActivoText = isDarkMode ? Color.FromArgb("#1C262E") : Colors.White;
-            Color colorInactivoBg = isDarkMode ? Color.FromArgb("#232B35") : Color.FromArgb("#E9ECEF");
-            Color colorInactivoText = isDarkMode ? Color.FromArgb("#939CA5") : Color.FromArgb("#54606C");
-
-            BtnTagMarca.BackgroundColor = colorActivoBg;
-            BtnTagMarca.TextColor = colorActivoText;
-
-            BtnTagCodigo.BackgroundColor = colorInactivoBg;
-            BtnTagCodigo.TextColor = colorInactivoText;
-            BtnTagSerie.BackgroundColor = colorInactivoBg;
-            BtnTagSerie.TextColor = colorInactivoText;
-            BtnTagModelo.BackgroundColor = colorInactivoBg;
-            BtnTagModelo.TextColor = colorInactivoText;
-
-            TxtNamingCustom.Text = "[Marca]";
-        }
-
-        private void OnTagToggleClicked(object sender, EventArgs e)
-        {
-            var boton = sender as Button;
-            if (boton == null) return;
-
-            string tag = boton.Text;
-
-            if (string.IsNullOrEmpty(TxtNamingCustom.Text))
-            {
-                TxtNamingCustom.Text = tag;
-            }
-            else
-            {
-                TxtNamingCustom.Text += $"-{tag}";
+                SetFormulaText("[Marca]");
             }
         }
 
@@ -857,15 +884,12 @@ namespace ControlInventarioMovil.Views
                 }
 
                 switchControl.IsEnabled = false;
-
                 bool guardadoExitoso = await _apiService.UpdateCategoryAsync(_categoriaUnidadesActual);
-
                 switchControl.IsEnabled = true;
 
                 if (!guardadoExitoso)
                 {
                     await DisplayAlertAsync("Error del Servidor", "No se pudo guardar la unidad. Verifica tu conexión o el estado de la API.", "OK");
-
                     unitSelection.IsSelected = !e.Value;
                 }
             }
@@ -883,46 +907,89 @@ namespace ControlInventarioMovil.Views
             }
         }
 
-        private async void  OnNamingTagClicked(object sender, EventArgs e)
+        // 🚀 EL CEREBRO REGEX QUE EVITA QUE SE BORREN LAS ETIQUETAS
+        private void OnNamingCustomTextChanged(object sender, TextChangedEventArgs e)
         {
-            var btn = (Button)sender;
-            string tag = btn.Text;
+            if (_isSystemEdit) return; // Si lo está editando el sistema, no validamos
 
-            if (_etiquetasNombramiento.Contains(tag) && _etiquetasNombramiento.Count == 1)
+            string oldText = e.OldTextValue ?? "";
+            string newText = e.NewTextValue ?? "";
+
+            if (oldText == newText) return;
+
+            // Ignoramos los símbolos permitidos y los espacios
+            string strippedOld = Regex.Replace(oldText, @"[\s\-\/\|,\+]", "");
+            string strippedNew = Regex.Replace(newText, @"[\s\-\/\|,\+]", "");
+
+            // Si los textos sin símbolos NO coinciden, intentaste modificar una etiqueta
+            if (strippedOld != strippedNew)
             {
-                var currentPage = btn.Window?.Page;
+                _isSystemEdit = true;
+                int cursor = TxtNamingCustom.CursorPosition;
+                TxtNamingCustom.Text = oldText; // Revertimos el cambio ilegal
 
-                if (currentPage == null && Application.Current?.Windows.Count > 0)
-                {
-                    currentPage = Application.Current.Windows[0].Page;
-                }
-
-                if (currentPage != null)
-                {
-                    await currentPage.DisplayAlertAsync("Fórmula", "Debe dejar al menos una etiqueta activa para el nombre.", "OK");
-                }
+                // Mantenemos el cursor en su sitio
+                if (cursor > 0 && cursor <= oldText.Length) TxtNamingCustom.CursorPosition = cursor - 1;
+                _isSystemEdit = false;
                 return;
             }
 
-            if (!_etiquetasNombramiento.Remove(tag))
-            {
-                _etiquetasNombramiento.Add(tag);
-            }
-
-            ActualizarPantallaFormula();
-            ActualizarColoresBotonesEdicion();
+            ActualizarColoresBotonesNaming();
         }
 
-        private void ActualizarPantallaFormula()
+        private void ActualizarColoresBotonesNaming()
         {
-            if (_etiquetasNombramiento.Count == 0)
+            string formula = TxtNamingCustom.Text ?? "";
+            bool isDarkMode = Application.Current?.RequestedTheme == AppTheme.Dark;
+            Color actBg = isDarkMode ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
+            Color actTxt = isDarkMode ? Color.FromArgb("#1C262E") : Colors.White;
+            Color inactBg = isDarkMode ? Color.FromArgb("#232B35") : Color.FromArgb("#E9ECEF");
+            Color inactTxt = isDarkMode ? Color.FromArgb("#939CA5") : Color.FromArgb("#54606C");
+
+            void SetColor(Button btn, string tag)
             {
-                TxtNamingCustom.Text = "[Nombre]";
+                if (btn == null) return;
+                bool contains = formula.Contains($"[{tag}]");
+                btn.BackgroundColor = contains ? actBg : inactBg;
+                btn.TextColor = contains ? actTxt : inactTxt;
+            }
+
+            SetColor(BtnTagMarca, "Marca");
+            SetColor(BtnTagCodigo, "Código");
+            SetColor(BtnTagSerie, "Serie");
+            SetColor(BtnTagModelo, "Modelo");
+            SetColor(BtnTagPresentacion, "Pres.");
+
+            if (BtnTagL1.IsVisible) SetColor(BtnTagL1, BtnTagL1.Text);
+            if (BtnTagL2.IsVisible) SetColor(BtnTagL2, BtnTagL2.Text);
+            if (BtnTagL3.IsVisible) SetColor(BtnTagL3, BtnTagL3.Text);
+            if (BtnTagL4.IsVisible) SetColor(BtnTagL4, BtnTagL4.Text);
+            if (BtnTagL5.IsVisible) SetColor(BtnTagL5, BtnTagL5.Text);
+            if (BtnTagL6.IsVisible) SetColor(BtnTagL6, BtnTagL6.Text);
+        }
+
+        // 🚀 ACCIÓN DE TOGGLE RÁPIDO: Pone y Quita sin preguntar
+        private void OnTagClicked(object sender, EventArgs e)
+        {
+            var btn = (Button)sender;
+            string tag = $"[{btn.Text}]";
+            string formula = TxtNamingCustom.Text ?? "";
+
+            if (formula.Contains(tag))
+            {
+                string nuevaFormula = formula.Replace(tag, "").Trim();
+                nuevaFormula = Regex.Replace(nuevaFormula, @"\+\s*\+", "+"); // Limpia dobles "+"
+                nuevaFormula = nuevaFormula.TrimEnd('+', ' ').TrimStart('+', ' '); // Limpia bordes
+                SetFormulaText(nuevaFormula);
             }
             else
             {
-                var tagsFormateados = _etiquetasNombramiento.Select(t => $"[{t}]");
-                TxtNamingCustom.Text = string.Join(" + ", tagsFormateados);
+                if (formula.Length > 0)
+                {
+                    if (!formula.EndsWith(" ")) formula += " ";
+                    if (!formula.EndsWith("+ ")) formula += "+ ";
+                }
+                SetFormulaText(formula + tag);
             }
         }
     }
@@ -933,7 +1000,7 @@ namespace ControlInventarioMovil.Views
         public event PropertyChangedEventHandler? PropertyChanged;
         public bool TieneHijas => Subcategorias != null && Subcategorias.Count > 0;
         private bool _isExpanded;
-        public string ToggleText => IsExpanded ? "▲ Ocultar Subcategorías" : "▼ Ver Subcategorías";        
+        public string ToggleText => IsExpanded ? "▲ Ocultar Subcategorías" : "▼ Ver Subcategorías";
 
         public CategoriaPadreUI(Category b)
         {
@@ -947,7 +1014,16 @@ namespace ControlInventarioMovil.Views
             IsReturnable = b.IsReturnable;
             SelectedUnitIds = b.SelectedUnitIds;
             IsActive = b.IsActive;
+            Label1 = b.Label1;
+            Label2 = b.Label2;
+            Label3 = b.Label3;
+            Label4 = b.Label4;
+            Label5 = b.Label5;
+
+            var propertyL6 = b.GetType().GetProperty("Label6");
+            if (propertyL6 != null) { Label6 = propertyL6.GetValue(b) as string; }
         }
+
         public bool IsExpanded
         {
             get => _isExpanded;

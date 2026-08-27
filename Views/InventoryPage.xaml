@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:ControlInventario.Shared.Models;assembly=ControlInventario.Shared"
+             xmlns:localViews="clr-namespace:ControlInventarioMovil.Views"
              xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
              x:Class="ControlInventarioMovil.Views.InventoryPage"
              Title="Inventario Real"
@@ -18,11 +19,19 @@
             <ImageButton Grid.Column="1" Source="config_icon.png" WidthRequest="22" HeightRequest="22" BackgroundColor="Transparent" Padding="0" VerticalOptions="Center" Margin="0,0,10,0" Opacity="0.8" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnConfigCategoriesClicked"/>
         </Grid>
 
-        <Grid Grid.Row="1" RowDefinitions="Auto, *" Padding="15,12">
+        <!-- 🚀 1. DIVIDIMOS ESTE GRID PARA METER LOS 3 BOTONES DE CLASIFICACIÓN -->
+        <Grid Grid.Row="1" RowDefinitions="Auto, Auto, *" Padding="15,12">
 
-            <Button Grid.Row="0" x:Name="BtnToggleStock" Text="Ver Agotados (Stock 0)" Clicked="OnToggleStockCeroClicked" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" CornerRadius="6" HeightRequest="36" FontSize="11" HorizontalOptions="End" Margin="0,0,0,10" helpers:EfectosVisualesHelper.Animar="True"/>
+            <!-- Los 3 Botones de Categorías -->
+            <Grid Grid.Row="0" ColumnDefinitions="*, *, *" Margin="0,0,0,12" ColumnSpacing="8">
+                <Button x:Name="BtnStandard" Grid.Column="0" Text="📦 Estándar" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="#8A2BE2" TextColor="White" Clicked="OnTabStandardClicked" Padding="0"/>
+                <Button x:Name="BtnBulk" Grid.Column="1" Text="⚖️ Bulk" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="Transparent" TextColor="Gray" BorderColor="Gray" BorderWidth="1" Clicked="OnTabBulkClicked" Padding="0"/>
+                <Button x:Name="BtnSerialized" Grid.Column="2" Text="📱 Serial" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="Transparent" TextColor="Gray" BorderColor="Gray" BorderWidth="1" Clicked="OnTabSerializedClicked" Padding="0"/>
+            </Grid>
 
-            <Grid Grid.Row="1">
+            <Button Grid.Row="1" x:Name="BtnToggleStock" Text="Ver Agotados (Stock 0)" Clicked="OnToggleStockCeroClicked" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" CornerRadius="6" HeightRequest="36" FontSize="11" HorizontalOptions="End" Margin="0,0,0,10" helpers:EfectosVisualesHelper.Animar="True"/>
+
+            <Grid Grid.Row="2">
 
                 <ActivityIndicator x:Name="ActCargando" IsRunning="False" IsVisible="False" Color="#A2D149" HorizontalOptions="Center" VerticalOptions="Center" HeightRequest="40" WidthRequest="40"/>
 
@@ -35,14 +44,21 @@
                 <Grid x:Name="ContenedorLista">
                     <CollectionView x:Name="CvwArticulos" SelectionMode="None">
                         <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="{x:Null}">
-                                <Grid Padding="0,0,0,10">
+                            <DataTemplate x:DataType="localViews:ArticleUI">
+                                <!-- 🚀 2. METIMOS TU TARJETA EN UN VERTICAL STACK PARA EL ACORDEÓN -->
+                                <VerticalStackLayout Spacing="0" Padding="0,0,0,10">
                                     <Border StrokeShape="RoundRectangle 8" 
                                             Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#26313C}" 
                                             BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" 
                                             Padding="15,14">
 
-                                        <Grid ColumnDefinitions="Auto, *, Auto" RowDefinitions="Auto, Auto" RowSpacing="0" ColumnSpacing="12">
+                                        <!-- Habilitamos el toque en toda la tarjeta para abrir el acordeón -->
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnProductHeaderTapped" />
+                                        </Border.GestureRecognizers>
+
+                                        <!-- Agregamos una 4ta columna para la flecha -->
+                                        <Grid ColumnDefinitions="Auto, *, Auto, Auto" RowDefinitions="Auto, Auto" RowSpacing="0" ColumnSpacing="12">
 
                                             <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" WidthRequest="75" HeightRequest="85" StrokeShape="RoundRectangle 8" StrokeThickness="0" IsVisible="{Binding ShowThumbnail}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1A232D}" VerticalOptions="Fill">
                                                 <Border.GestureRecognizers>
@@ -94,7 +110,10 @@
                                                 </HorizontalStackLayout>
                                             </VerticalStackLayout>
 
-                                            <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" ColumnDefinitions="*, Auto" Margin="0,10,0,0">
+                                            <!-- 🚀 FLECHA DEL ACORDEÓN -->
+                                            <Label Grid.Row="0" Grid.Column="3" Text="{Binding ExpansionIcon}" FontSize="18" VerticalOptions="Center" TextColor="Gray" IsVisible="{Binding IsSerialized}" Margin="5,0,0,0"/>
+
+                                            <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" ColumnDefinitions="*, Auto" Margin="0,10,0,0">
 
                                                 <HorizontalStackLayout Grid.Column="0" Spacing="8" VerticalOptions="Center">
                                                     <Label Text="Stock disponible:" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" VerticalOptions="Center"/>
@@ -105,14 +124,37 @@
 
                                                 <HorizontalStackLayout Grid.Column="1" Spacing="10" HorizontalOptions="End" VerticalOptions="Center">
                                                     <ImageButton Source="edit_icon.png" WidthRequest="32" HeightRequest="32" CornerRadius="6" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#2E3842}" VerticalOptions="Center" HorizontalOptions="End" Padding="7" Opacity="0.9" CommandParameter="{Binding .}" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditarArticuloClicked"/>
-
                                                     <ImageButton Source="delete_icon.png" WidthRequest="32" HeightRequest="32" CornerRadius="6" BackgroundColor="{AppThemeBinding Light=#FCE8E6, Dark=#3D2321}" VerticalOptions="Center" HorizontalOptions="End" Padding="7" Opacity="0.9" CommandParameter="{Binding .}" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEliminarStockClicked"/>
                                                 </HorizontalStackLayout>
                                             </Grid>
 
                                         </Grid>
                                     </Border>
-                                </Grid>
+
+                                    <!-- 🚀 3. EL CONTENIDO DEL ACORDEÓN (LOS IMEIs) -->
+                                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Serials}" 
+                                                         IsVisible="{Binding IsExpanded}"
+                                                         Margin="25,8,25,5" Spacing="6">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate x:DataType="localViews:ArticleSerialDto">
+                                                <Border Padding="12,10" BackgroundColor="{AppThemeBinding Light=#EBE6F7, Dark=#201633}" StrokeThickness="0">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="8" />
+                                                    </Border.StrokeShape>
+                                                    <Grid ColumnDefinitions="Auto, *, Auto">
+                                                        <Label Grid.Column="0" Text="🟢" FontSize="10" VerticalOptions="Center" Margin="0,0,8,0"/>
+                                                        <VerticalStackLayout Grid.Column="1">
+                                                            <Label Text="{Binding SerialNumber}" FontAttributes="Bold" FontSize="13" TextColor="{AppThemeBinding Light=#8A2BE2, Dark=#B67BFF}"/>
+                                                            <Label Text="{Binding Location, StringFormat='Ubicación: {0}'}" FontSize="11" TextColor="Gray"/>
+                                                        </VerticalStackLayout>
+                                                        <Label Grid.Column="2" Text="{Binding Status}" FontSize="11" FontAttributes="Bold" TextColor="#00CED1" VerticalOptions="Center"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </VerticalStackLayout>
+
+                                </VerticalStackLayout>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
@@ -125,24 +167,21 @@
             <Button x:Name="BtnNuevoArticulo" Grid.Column="1" Text="+ NUEVO ARTÍCULO" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" FontSize="12" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAgregarArticuloClicked"/>
         </Grid>
 
+        <!-- (El Visor de Fotos se mantiene intacto al final) -->
         <Grid x:Name="OverlayVisorFoto" Grid.RowSpan="3" IsVisible="False" BackgroundColor="#CC000000" Opacity="0" Padding="20">
+            <!-- ... Código de tu visor fotográfico ... -->
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnCerrarVisorClicked" />
             </Grid.GestureRecognizers>
-
-            <Border StrokeShape="RoundRectangle 12" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C262E}" 
-                VerticalOptions="Center" HorizontalOptions="Fill" Padding="0" StrokeThickness="0">
-
+            <Border StrokeShape="RoundRectangle 12" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C262E}" VerticalOptions="Center" HorizontalOptions="Fill" Padding="0" StrokeThickness="0">
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer />
                 </Border.GestureRecognizers>
-
                 <Grid RowDefinitions="Auto, *, Auto">
                     <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Padding="15,15,15,10">
                         <Label x:Name="LblVisorTitulo" Text="Vista Previa" FontAttributes="Bold" FontSize="16" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" VerticalOptions="Center"/>
                         <ImageButton Grid.Column="1" Source="cancel_icon.png" WidthRequest="30" HeightRequest="30" Padding="4" CornerRadius="6" VerticalOptions="Center" HorizontalOptions="End" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnCerrarVisorClicked"/>
                     </Grid>
-
                     <Border Grid.Row="1" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" StrokeThickness="0" HeightRequest="350">
                         <Grid>
                             <Image x:Name="ImgVisorAmpliado" Aspect="AspectFit" HorizontalOptions="Center" VerticalOptions="Center">
@@ -153,7 +192,6 @@
                             </Image>
                         </Grid>
                     </Border>
-
                     <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="10" Padding="15">
                         <Button Grid.Column="0" Text="ELIMINAR" BackgroundColor="#FCE8E6" TextColor="#D32F2F" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" Clicked="OnEliminarFotoVisorClicked"/>
                         <Button Grid.Column="1" Text="CAMBIAR FOTO" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="6" HeightRequest="42" Clicked="OnCambiarFotoVisorClicked"/>
@@ -161,6 +199,5 @@
                 </Grid>
             </Border>
         </Grid>
-
     </Grid>
 </ContentPage>

@@ -321,7 +321,14 @@ namespace ControlInventarioMovil.Services
                     isReturnable = newCategory.IsReturnable,
                     creationDate = newCategory.CreationDate ?? DateTime.Now,
                     creationUser = newCategory.CreationUser,
-                    selectedUnitIds = newCategory.SelectedUnitIds
+                    selectedUnitIds = newCategory.SelectedUnitIds,
+                    isActive = newCategory.IsActive,
+                    label1 = newCategory.Label1,
+                    label2 = newCategory.Label2,
+                    label3 = newCategory.Label3,
+                    label4 = newCategory.Label4,
+                    label5 = newCategory.Label5,
+                    label6 = newCategory.Label6
                 };
 
                 var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Categories", payload);
@@ -358,7 +365,14 @@ namespace ControlInventarioMovil.Services
                     creationUser = updatedCategory.CreationUser,
                     modificationDate = DateTime.Now,
                     modificationUser = updatedCategory.ModificationUser,
-                    selectedUnitIds = updatedCategory.SelectedUnitIds
+                    selectedUnitIds = updatedCategory.SelectedUnitIds,
+                    isActive = updatedCategory.IsActive,
+                    label1 = updatedCategory.Label1,
+                    label2 = updatedCategory.Label2,
+                    label3 = updatedCategory.Label3,
+                    label4 = updatedCategory.Label4,
+                    label5 = updatedCategory.Label5,
+                    label6 = updatedCategory.Label6
                 };
 
                 var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Categories/{updatedCategory.Id}", payload);
@@ -1044,10 +1058,21 @@ namespace ControlInventarioMovil.Services
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Movements");
                 if (response.IsSuccessStatusCode)
                 {
-                    return await response.Content.ReadFromJsonAsync<List<Movement>>() ?? new List<Movement>();
+                    var json = await response.Content.ReadAsStringAsync();
+
+                    return JsonConvert.DeserializeObject<List<Movement>>(json) ?? new List<Movement>();
+                }
+                else
+                {
+                    string errorDetail = await response.Content.ReadAsStringAsync();
+                    Debug.WriteLine($"[API_RECHAZO_MOVEMENTS] Código {response.StatusCode}: {errorDetail}");
                 }
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERR] GetMovements: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_CRITICAL_EX] GetMovements: {ex.ToString()}");
+            }
+
             return new List<Movement>();
         }
         public async Task<List<HistoryLog>> GetHistoryLogsAsync()

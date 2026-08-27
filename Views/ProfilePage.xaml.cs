@@ -123,13 +123,10 @@ public partial class ProfilePage : ContentPage
 
                 await Task.Delay(500);
 
-                
-                MainThread.BeginInvokeOnMainThread(() =>
+
+                MainThread.BeginInvokeOnMainThread(async () =>
                 {
-                    if (Application.Current?.Windows.Count > 0)
-                    {
-                        Application.Current.Windows[0].Page = new LoginPage();
-                    }
+                    await Shell.Current.GoToAsync("//LoginPage");
                 });
             }
         }

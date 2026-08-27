@@ -7,6 +7,13 @@
     xmlns:views="clr-namespace:ControlInventarioMovil.Views"
     Title="ControlInventarioMovil">
 
+    <ShellContent 
+        Route="LoginPage" 
+        ContentTemplate="{DataTemplate views:LoginPage}" 
+        FlyoutItemIsVisible="False" 
+        Shell.NavBarIsVisible="False" 
+        Shell.TabBarIsVisible="False" />
+
     <ShellContent
         Title="Home"
         ContentTemplate="{DataTemplate views:MainPage}"
