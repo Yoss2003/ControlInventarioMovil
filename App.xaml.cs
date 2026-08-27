@@ -1,5 +1,6 @@
 ﻿using ControlInventarioMovil.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 namespace ControlInventarioMovil
 {
@@ -14,7 +15,7 @@ namespace ControlInventarioMovil
                 context.Database.EnsureDeleted();
 
                 var rutaDb = context.Database.GetDbConnection().DataSource;
-                System.Diagnostics.Debug.WriteLine($"📂 RUTA DE LA BD LOCAL: {rutaDb}");
+                Debug.WriteLine($"📂 RUTA DE LA BD LOCAL: {rutaDb}");
 
                 context.Database.EnsureCreated();
             }
@@ -23,20 +24,19 @@ namespace ControlInventarioMovil
             {
                 if (args.ExceptionObject is Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[CRASH GLOBAL]: {ex.Message} \n {ex.StackTrace}");
+                    Debug.WriteLine($"[CRASH GLOBAL]: {ex.Message} \n {ex.StackTrace}");
                 }
             };
 
             TaskScheduler.UnobservedTaskException += (sender, args) =>
             {
-                System.Diagnostics.Debug.WriteLine($"[CRASH ASYNC]: {args.Exception.Message}");
+                Debug.WriteLine($"[CRASH ASYNC]: {args.Exception.Message}");
             };
         }
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            var loginPage = new Views.LoginPage();
-            return new Window(loginPage);
+            return new Window(new AppShell());
         }
     }
 }

@@ -27,30 +27,24 @@
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="{x:Null}">
                             <VerticalStackLayout Margin="0,0,0,15">
-
                                 <Border StrokeShape="RoundRectangle 10" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15" Margin="0,15,0,0" ZIndex="1">
                                     <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto" RowSpacing="10">
-
                                         <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="2" VerticalOptions="Center">
                                             <Label Text="{Binding Name}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="16" FontAttributes="Bold"/>
                                             <Label Text="{Binding Description, TargetNullValue='Sin descripción'}" TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="12" LineBreakMode="TailTruncation"/>
                                         </VerticalStackLayout>
-
                                         <HorizontalStackLayout Grid.Row="0" Grid.Column="1" Spacing="8" VerticalOptions="Start">
                                             <ImageButton Source="edit_icon.png" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#2E3842}" CornerRadius="6" WidthRequest="32" HeightRequest="32" Padding="8" helpers:EfectosVisualesHelper.Animar="True" CommandParameter="{Binding .}" Clicked="OnEditarPadreClicked"/>
                                             <ImageButton Source="delete_icon.png" BackgroundColor="{AppThemeBinding Light=#FCE8E6, Dark=#3D2321}" CornerRadius="6" WidthRequest="32" HeightRequest="32" Padding="8" helpers:EfectosVisualesHelper.Animar="True" CommandParameter="{Binding .}" Clicked="OnEliminarPadreClicked"/>
                                         </HorizontalStackLayout>
-
                                         <HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="2" Spacing="5" HorizontalOptions="Start" helpers:EfectosVisualesHelper.Animar="True" IsVisible="{Binding TieneHijas}">
                                             <HorizontalStackLayout.GestureRecognizers>
                                                 <TapGestureRecognizer Tapped="OnToggleSubcategoriasTapped" CommandParameter="{Binding .}"/>
                                             </HorizontalStackLayout.GestureRecognizers>
                                             <Label Text="{Binding ToggleText}" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" VerticalOptions="Center"/>
                                         </HorizontalStackLayout>
-
                                     </Grid>
                                 </Border>
-
                                 <Grid x:Name="ContenedorHijas" IsVisible="False" Opacity="0" Margin="25,8,0,0">
                                     <VerticalStackLayout BindableLayout.ItemsSource="{Binding Subcategorias}" Spacing="8" Margin="0,10,0,0">
                                         <BindableLayout.ItemTemplate>
@@ -74,7 +68,6 @@
                                                                     <DataTrigger TargetType="ImageButton" Binding="{Binding TrackingMode}" Value="Serialized">
                                                                         <Setter Property="IsVisible" Value="False" />
                                                                     </DataTrigger>
-
                                                                     <DataTrigger TargetType="ImageButton" Binding="{Binding TrackingMode}" Value="Serializado">
                                                                         <Setter Property="IsVisible" Value="False" />
                                                                     </DataTrigger>
@@ -108,6 +101,7 @@
             </Grid>
         </Grid>
 
+        <!-- FORMULARIO MODAL OVERLAY -->
         <Grid x:Name="FormOverlay" RowDefinitions="Auto, *, Auto" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}" IsVisible="False" TranslationY="1000" ZIndex="5">
             <Grid Grid.Row="0" Padding="15,20,15,15" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
                 <Label x:Name="LblFormTitulo" Text="AGREGAR CATEGORÍA" TextColor="White" FontAttributes="Bold" FontSize="16" CharacterSpacing="1" HorizontalOptions="Center"/>
@@ -115,12 +109,12 @@
 
             <ScrollView Grid.Row="1" Padding="15,10,15,15">
                 <VerticalStackLayout Spacing="20">
+
                     <Label Text="IDENTIDAD DE CATEGORÍA" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
                     <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" ColumnSpacing="12" Margin="0,-10,0,0">
-
                         <VerticalStackLayout x:Name="SecNombre" Grid.Column="0" Spacing="5">
                             <Label Text="Nombre (Oblig.)" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
-                            <Border HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="10,0">
+                            <Border HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="10,-10">
                                 <Entry x:Name="TxtNombreCat" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ej. Laptops" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Fill" VerticalTextAlignment="Center" BackgroundColor="Transparent" Margin="0"/>
                             </Border>
                         </VerticalStackLayout>
@@ -136,9 +130,9 @@
                     <VerticalStackLayout x:Name="SecReglas">
                         <Label Text="REGLAS Y SEGUIMIENTO" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
 
-                        <Grid ColumnDefinitions="*, *" ColumnSpacing="12" RowDefinitions="Auto, Auto" RowSpacing="15" Margin="0,5,0,0">
-
-                            <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="5">
+                        <!-- PARTE 1: TRACKING Y UNIDADES -->
+                        <Grid ColumnDefinitions="*, *" ColumnSpacing="12" Margin="0,5,0,0">
+                            <VerticalStackLayout Grid.Column="0" Spacing="5">
                                 <Grid ColumnDefinitions="*, Auto" HeightRequest="24">
                                     <Label Grid.Column="0" Text="TrackingMode" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" VerticalOptions="Center"/>
                                     <HorizontalStackLayout Grid.Column="1" x:Name="ContenedorRetornable" Spacing="2" VerticalOptions="Center" IsVisible="False">
@@ -158,60 +152,118 @@
                                 </Border>
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout x:Name="SecUnidadesMedida" Grid.Row="0" Grid.Column="1" Spacing="5" IsVisible="False">
+                            <VerticalStackLayout x:Name="SecUnidadesMedida" Grid.Column="1" Spacing="5" IsVisible="False">
                                 <Label Text=" " HeightRequest="24" VerticalOptions="Center"/>
-                                <Button x:Name="BtnConfigurarUnidades" 
-                                        Text="📏 GESTIONAR UNIDADES" 
-                                        IsEnabled="False" 
-                                        BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#232B35}" 
-                                        TextColor="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}" 
-                                        FontAttributes="Bold" 
-                                        CornerRadius="8" 
-                                        HeightRequest="40" 
-                                        MinimumHeightRequest="0"
-                                        Margin="0"
-                                        Padding="0"
-                                        HorizontalOptions="Fill" 
-                                        BorderColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" 
-                                        BorderWidth="1" 
-                                        helpers:EfectosVisualesHelper.Animar="True" 
-                                        Clicked="OnConfigurarUnidadesClicked"/>
+                                <Button x:Name="BtnConfigurarUnidades" Text="📏 GESTIONAR UNIDADES" IsEnabled="False" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}" FontAttributes="Bold" CornerRadius="8" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="0" HorizontalOptions="Fill" BorderColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BorderWidth="1" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnConfigurarUnidadesClicked"/>
                             </VerticalStackLayout>
+                        </Grid>
 
-                            <VerticalStackLayout Grid.Row="1" Grid.Column="0" Spacing="5">
+                        <!-- 🚀 PARTE 2: NAMING METHOD -->
+                        <Grid x:Name="SecNamingMethod" ColumnDefinitions="*, *" ColumnSpacing="12" Margin="0,15,0,0" IsVisible="False" HorizontalOptions="Fill">
+
+                            <!-- COLUMNA IZQUIERDA: FÓRMULA / PICKER -->
+                            <VerticalStackLayout Grid.Column="0" Spacing="5">
                                 <Grid ColumnDefinitions="*, Auto" HeightRequest="24" VerticalOptions="Center">
                                     <Label Text="NamingMethod" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" VerticalOptions="Center"/>
-
                                     <HorizontalStackLayout x:Name="ContenedorCheckLibre" Grid.Column="1" Spacing="2" VerticalOptions="Center">
                                         <Label Text="Libre" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="10" VerticalOptions="Center"/>
                                         <Switch x:Name="SwModoLibre" IsToggled="False" OnColor="#A2D149" ThumbColor="White" Scale="0.6" VerticalOptions="Center" Margin="0,-10,0,-10" Toggled="OnModoLibreToggled"/>
                                     </HorizontalStackLayout>
                                 </Grid>
 
-                                <Border x:Name="ContainerPickerNaming" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="10,0" VerticalOptions="Center">
-                                    <Picker x:Name="PkrNaming" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" Margin="0" />
-                                </Border>
+                                <Grid HeightRequest="40">
+                                    <Border x:Name="ContainerPickerNaming" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="10,0" VerticalOptions="Fill">
+                                        <Picker x:Name="PkrNaming" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" Margin="0" />
+                                    </Border>
 
-                                <Border x:Name="ContainerTxtNaming" IsVisible="False" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="10,0" VerticalOptions="Center">
-                                    <Grid ColumnDefinitions="Auto, *">
-                                        <Label Grid.Column="0" Text="Fórmula:" VerticalOptions="Center" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" FontSize="12" FontAttributes="Bold" Margin="0,0,8,0"/>
-                                        <Entry Grid.Column="1" x:Name="TxtNamingCustom" Text="[Marca]" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" IsReadOnly="True" VerticalOptions="Center" BackgroundColor="Transparent"/>
-                                    </Grid>
-                                </Border>
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout x:Name="ContainerBotonesNaming" Grid.Row="1" Grid.Column="1" Spacing="5" IsVisible="False" VerticalOptions="End">
-                                <Label Text="Toca para agregar a la estructura:" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" FontSize="11" FontAttributes="Italic" HeightRequest="24" VerticalOptions="Center" Margin="0,0,0,0"/>
-                                <Grid x:Name="GridBotonesNaming" ColumnDefinitions="*, *, *, *, *" ColumnSpacing="6" HeightRequest="40">
-                                    <Button x:Name="BtnTagMarca" Grid.Column="0" Text="Marca" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="0" CornerRadius="8" FontSize="10" FontAttributes="Bold" Clicked="OnNamingTagClicked" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}"/>
-                                    <Button x:Name="BtnTagCodigo" Grid.Column="1" Text="Código" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="0" CornerRadius="8" FontSize="10" FontAttributes="Bold" Clicked="OnNamingTagClicked" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
-                                    <Button x:Name="BtnTagSerie" Grid.Column="2" Text="Serie" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="0" CornerRadius="8" FontSize="10" FontAttributes="Bold" Clicked="OnNamingTagClicked" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
-                                    <Button x:Name="BtnTagModelo" Grid.Column="3" Text="Modelo" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="0" CornerRadius="8" FontSize="10" FontAttributes="Bold" Clicked="OnNamingTagClicked" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
-                                    <Button x:Name="BtnTagPresentacion" Grid.Column="4" Text="Pres." ToolTipProperties.Text="Presentación" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="0" CornerRadius="8" FontSize="10" FontAttributes="Bold" Clicked="OnNamingTagClicked" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
+                                    <!-- CAJA TEXTO ENTRY -->
+                                    <Border x:Name="ContainerTxtNaming" IsVisible="False" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="12,0" VerticalOptions="Fill">
+                                        <Grid ColumnDefinitions="Auto, *" VerticalOptions="Center">
+                                            <Label Grid.Column="0" Text="Fórmula:" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" VerticalTextAlignment="Center" Margin="0,0,8,0"/>
+                                            <Entry Grid.Column="1" x:Name="TxtNamingCustom" TextChanged="OnNamingCustomTextChanged" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" VerticalTextAlignment="Center" BackgroundColor="Transparent"/>
+                                        </Grid>
+                                    </Border>
                                 </Grid>
                             </VerticalStackLayout>
 
+                            <!-- COLUMNA DERECHA: BOTONES Y TOGGLES -->
+                            <Grid x:Name="ContainerBotonesNaming" Grid.Column="1" RowDefinitions="Auto, Auto" RowSpacing="5" Opacity="0" InputTransparent="True" VerticalOptions="Start" HorizontalOptions="Fill" IsClippedToBounds="True">
+                                <HorizontalStackLayout Spacing="5" Margin="0,0,0,0">
+                                    <Label Text="Toca un botón para activar/desactivar:" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" FontSize="11" FontAttributes="Italic" VerticalOptions="Center"/>
+                                    <Label Text="(Reemplaza los '+' por - | / , )" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" FontSize="9" FontAttributes="Italic" VerticalOptions="Center"/>
+                                </HorizontalStackLayout>
+
+                                <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Default" HeightRequest="54" Padding="0,0,0,10" HorizontalOptions="Fill">
+                                    <HorizontalStackLayout Spacing="6" HorizontalOptions="Start" VerticalOptions="Start">
+                                        <Button x:Name="BtnTagMarca" Text="Marca" Clicked="OnTagClicked" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="12,0" CornerRadius="8" FontSize="10" FontAttributes="Bold" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
+                                        <Button x:Name="BtnTagCodigo" Text="Código" Clicked="OnTagClicked" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="12,0" CornerRadius="8" FontSize="10" FontAttributes="Bold" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
+                                        <Button x:Name="BtnTagSerie" Text="Serie" Clicked="OnTagClicked" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="12,0" CornerRadius="8" FontSize="10" FontAttributes="Bold" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
+                                        <Button x:Name="BtnTagModelo" Text="Modelo" Clicked="OnTagClicked" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="12,0" CornerRadius="8" FontSize="10" FontAttributes="Bold" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
+                                        <Button x:Name="BtnTagPresentacion" Text="Pres." Clicked="OnTagClicked" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="12,0" CornerRadius="8" FontSize="10" FontAttributes="Bold" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
+
+                                        <BoxView WidthRequest="2" BackgroundColor="Transparent"/>
+
+                                        <Button x:Name="BtnTagL1" IsVisible="False" Clicked="OnTagClicked" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="12,0" CornerRadius="8" FontSize="10" FontAttributes="Bold"/>
+                                        <Button x:Name="BtnTagL2" IsVisible="False" Clicked="OnTagClicked" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="12,0" CornerRadius="8" FontSize="10" FontAttributes="Bold"/>
+                                        <Button x:Name="BtnTagL3" IsVisible="False" Clicked="OnTagClicked" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="12,0" CornerRadius="8" FontSize="10" FontAttributes="Bold"/>
+                                        <Button x:Name="BtnTagL4" IsVisible="False" Clicked="OnTagClicked" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="12,0" CornerRadius="8" FontSize="10" FontAttributes="Bold"/>
+                                        <Button x:Name="BtnTagL5" IsVisible="False" Clicked="OnTagClicked" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="12,0" CornerRadius="8" FontSize="10" FontAttributes="Bold"/>
+                                        <Button x:Name="BtnTagL6" IsVisible="False" Clicked="OnTagClicked" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="12,0" CornerRadius="8" FontSize="10" FontAttributes="Bold"/>
+                                    </HorizontalStackLayout>
+                                </ScrollView>
+                            </Grid>
                         </Grid>
+
+                        <VerticalStackLayout x:Name="SecAtributos" Spacing="10" IsVisible="False" Margin="0,20,0,0">
+                            <Label Text="ATRIBUTOS DE SERIALIZACIÓN (MÁX 6)" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="11" FontAttributes="Bold" CharacterSpacing="1"/>
+                            <Label Text="Nombra las características específicas que se pedirán al crear el artículo (Ej. Memoria RAM, Color)." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" Margin="0,-5,0,5"/>
+
+                            <Grid ColumnDefinitions="*, *" RowDefinitions="Auto, Auto, Auto" ColumnSpacing="12" RowSpacing="10">
+
+                                <Border Grid.Row="0" Grid.Column="0" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="10,0">
+                                    <Grid ColumnDefinitions="Auto, *">
+                                        <Label Grid.Column="0" Text="1." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
+                                        <Entry Grid.Column="1" x:Name="TxtLabel1" Placeholder="Atributo 1" TextChanged="OnLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
+                                <Border Grid.Row="1" Grid.Column="0" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="10,0">
+                                    <Grid ColumnDefinitions="Auto, *">
+                                        <Label Grid.Column="0" Text="2." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
+                                        <Entry Grid.Column="1" x:Name="TxtLabel2" Placeholder="Atributo 2" TextChanged="OnLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
+                                <Border Grid.Row="2" Grid.Column="0" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="10,0">
+                                    <Grid ColumnDefinitions="Auto, *">
+                                        <Label Grid.Column="0" Text="3." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
+                                        <Entry Grid.Column="1" x:Name="TxtLabel3" Placeholder="Atributo 3" TextChanged="OnLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
+                                <Border Grid.Row="0" Grid.Column="1" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="10,0">
+                                    <Grid ColumnDefinitions="Auto, *">
+                                        <Label Grid.Column="0" Text="4." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
+                                        <Entry Grid.Column="1" x:Name="TxtLabel4" Placeholder="Atributo 4" TextChanged="OnLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
+                                <Border Grid.Row="1" Grid.Column="1" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="10,0">
+                                    <Grid ColumnDefinitions="Auto, *">
+                                        <Label Grid.Column="0" Text="5." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
+                                        <Entry Grid.Column="1" x:Name="TxtLabel5" Placeholder="Atributo 5" TextChanged="OnLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
+                                <Border Grid.Row="2" Grid.Column="1" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="10,0">
+                                    <Grid ColumnDefinitions="Auto, *">
+                                        <Label Grid.Column="0" Text="6." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
+                                        <Entry Grid.Column="1" x:Name="TxtLabel6" Placeholder="Atributo 6" TextChanged="OnLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
+                            </Grid>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
 
                     <VerticalStackLayout Spacing="5">
@@ -225,7 +277,7 @@
 
             <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="12" Padding="15,10,15,15" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#161F27}">
                 <Button Grid.Column="0" Text="CANCELAR" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=#939CA5}" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Clicked="OnCerrarFormClicked"/>
-                <Button Grid.Column="1" Text="CONFIRMAR" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Clicked="OnConfirmarFormClicked"/>
+                <Button x:Name="BtnConfirmarForm" Grid.Column="1" Text="CONFIRMAR" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Clicked="OnConfirmarFormClicked"/>
             </Grid>
         </Grid>
 
@@ -237,7 +289,6 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="{x:Null}">
                         <Grid Padding="0,0,0,12">
-
                             <Border StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="20,10">
                                 <Grid ColumnDefinitions="*, Auto">
                                     <HorizontalStackLayout Grid.Column="0" VerticalOptions="Center" Spacing="6">
@@ -247,11 +298,9 @@
                                     <Switch Grid.Column="1" IsToggled="{Binding IsSelected}" OnColor="#A2D149" ThumbColor="White" VerticalOptions="Center" Toggled="OnUnitSwitchToggled"/>
                                 </Grid>
                             </Border>
-
                         </Grid>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
-
                 <CollectionView.EmptyView>
                     <Label Text="Cargando unidades maestras..." TextColor="Gray" HorizontalOptions="Center" Margin="20"/>
                 </CollectionView.EmptyView>
@@ -261,10 +310,11 @@
                 <Button Grid.Column="1" Text="GUARDAR UNIDADES" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Clicked="OnConfirmarUnidadesClicked"/>
             </Grid>
         </Grid>
-        <Grid x:Name="OverlayCarga" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}" ZIndex="20">
+
+        <Grid x:Name="OverlayCarga" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}" ZIndex="20" IsVisible="False">
             <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="15">
                 <ActivityIndicator IsRunning="True" Color="#A2D149" HeightRequest="50" WidthRequest="50"/>
-                <Label Text="Cargando categorías..." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center"/>
+                <Label x:Name="LblOverlayCarga" Text="Cargando categorías..." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center"/>
             </VerticalStackLayout>
         </Grid>
     </Grid>

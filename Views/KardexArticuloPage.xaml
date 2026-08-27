@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:utilities="clr-namespace:ControlInventarioMovil.Utilities"
+             x:Class="ControlInventarioMovil.Views.KardexArticuloPage"
+             Shell.NavBarIsVisible="False"
+             Title="Kárdex de Artículo"
+             BackgroundColor="{AppThemeBinding Light=#F4F6FA, Dark=#0F151A}">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <!-- Conectamos con tu carpeta Utilities -->
+            <utilities:ActionTypeConverter x:Key="ActionTypeConverter" />
+            <utilities:ActionTypeColorConverter x:Key="ActionColorConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto, Auto, *">
+
+        <!-- ========================================== -->
+        <!-- 1. BARRA DE NAVEGACIÓN -->
+        <!-- ========================================== -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *" Padding="16,15,16,10">
+            <ImageButton Source="arrow_back.png" 
+                         BackgroundColor="Transparent"
+                         HeightRequest="24" WidthRequest="24" 
+                         VerticalOptions="Center" 
+                         Clicked="OnBackClicked" />
+            <Label Grid.Column="1" Text="Kárdex Detallado" 
+                   FontSize="20" FontAttributes="Bold" 
+                   VerticalOptions="Center" Margin="15,0,0,0" 
+                   TextColor="{AppThemeBinding Light=Black, Dark=White}"/>
+        </Grid>
+
+        <!-- ========================================== -->
+        <!-- 2. CABECERA: RESUMEN DE SALDOS (EL BALANCE) -->
+        <!-- ========================================== -->
+        <Border Grid.Row="1" Margin="16,5,16,15" Padding="20" BackgroundColor="#8A2BE2" StrokeThickness="0">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="16" />
+            </Border.StrokeShape>
+            <VerticalStackLayout Spacing="10">
+                <Label Text="{Binding ArticleName}" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                <Label Text="{Binding Sku, StringFormat='SKU: {0}'}" FontSize="12" TextColor="#D0B0FF" Margin="0,-5,0,5"/>
+
+                <Grid ColumnDefinitions="*, *">
+                    <VerticalStackLayout Grid.Column="0">
+                        <Label Text="Stock Actual" FontSize="12" TextColor="#D0B0FF"/>
+                        <Label Text="{Binding CurrentStock}" FontSize="22" FontAttributes="Bold" TextColor="White"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Column="1" HorizontalOptions="End">
+                        <Label Text="Costo Promedio" FontSize="12" TextColor="#D0B0FF" HorizontalOptions="End"/>
+                        <Label Text="{Binding AverageCost, StringFormat='S/ {0:N2}'}" FontSize="22" FontAttributes="Bold" TextColor="White" HorizontalOptions="End"/>
+                    </VerticalStackLayout>
+                </Grid>
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- ========================================== -->
+        <!-- 3. HISTORIAL: LÍNEA DE TIEMPO CONTABLE -->
+        <!-- ========================================== -->
+        <CollectionView Grid.Row="2" x:Name="listKardexTimeline" SelectionMode="None" Margin="16,0">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="0,0,0,12">
+                        <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#171F24}" StrokeThickness="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="8">
+
+                                <!-- FILA A: Acción y Fecha -->
+                                <Grid ColumnDefinitions="Auto, *, Auto">
+                                    <Border Grid.Column="0" 
+                                            BackgroundColor="{Binding ActionId, Converter={StaticResource ActionColorConverter}}" 
+                                            StrokeThickness="0" Padding="8,4">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="6" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding ActionId, Converter={StaticResource ActionTypeConverter}}" 
+                                               TextColor="White" FontSize="11" FontAttributes="Bold"/>
+                                    </Border>
+
+                                    <Label Grid.Column="2" Text="{Binding MovementDate}" 
+                                           TextColor="Gray" FontSize="12" VerticalOptions="Center"/>
+                                </Grid>
+
+                                <!-- FILA B: Observación / Documento -->
+                                <Label Text="{Binding Observation}" FontAttributes="Bold" FontSize="14" 
+                                       TextColor="{AppThemeBinding Light=Black, Dark=White}"/>
+
+                                <!-- FILA C: Detalles de la Operación (Cantidades y Precios movidos) -->
+                                <Grid ColumnDefinitions="Auto, *, Auto" Margin="0,5,0,5">
+                                    <!-- Si es entrada se ve verde, si es salida rojo. Esto lo manejaremos en C# o con otro converter rápido -->
+                                    <Label Grid.Column="0" Text="{Binding OperationDisplay}" 
+                                           FontAttributes="Bold" FontSize="15" TextColor="#00CED1"/>
+
+                                    <Label Grid.Column="2" Text="{Binding OperationTotalValue, StringFormat='Total: S/ {0:N2}'}" 
+                                           TextColor="Gray" FontSize="13" VerticalOptions="Center"/>
+                                </Grid>
+
+                                <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#E0E0E0, Dark=#2A353D}" Margin="0,5"/>
+
+                                <!-- FILA D: EL SALDO ACUMULADO (El corazón del Kárdex) -->
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <Label Grid.Column="0" Text="📦 Saldo tras operación:" TextColor="Gray" FontSize="12" FontAttributes="Italic"/>
+                                    <HorizontalStackLayout Grid.Column="1" Spacing="8">
+                                        <Label Text="{Binding BalanceStock, StringFormat='{0} un.'}" TextColor="Gray" FontSize="12" FontAttributes="Bold"/>
+                                        <Label Text="|" TextColor="Gray" FontSize="12"/>
+                                        <Label Text="{Binding BalanceCost, StringFormat='C.P: S/ {0:N2}'}" TextColor="Gray" FontSize="12"/>
+                                    </HorizontalStackLayout>
+                                </Grid>
+
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

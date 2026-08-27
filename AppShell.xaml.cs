@@ -35,7 +35,6 @@ namespace ControlInventarioMovil
             Routing.RegisterRoute("CustomersPage", typeof(CustomersPage));
             Routing.RegisterRoute("EmployeesPage", typeof(EmployeesPage));
             Routing.RegisterRoute("RegistrosPage", typeof(RegistrosPage));
-            Routing.RegisterRoute("LoginPage", typeof(LoginPage));
             Routing.RegisterRoute("InventoryPage", typeof(InventoryPage));
             Routing.RegisterRoute("ProfilePage", typeof(ProfilePage));
             Routing.RegisterRoute("EditProfilePage", typeof(EditProfilePage));

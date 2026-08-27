@@ -706,5 +706,10 @@ namespace ControlInventarioMovil.Views
 
             await Shell.Current.GoToAsync("ShareInventoryPage");
         }
+
+        private async void OnTestKardexTapped(object sender, TappedEventArgs e)
+        {
+            await Navigation.PushAsync(new KardexArticuloPage());
+        }
     }
 }
