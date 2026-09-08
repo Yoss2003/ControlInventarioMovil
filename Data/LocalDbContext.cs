@@ -46,7 +46,7 @@ namespace ControlInventarioMovil.Data
         // Tablas adicionales financieras (opcionales)
         public DbSet<AccountReceivable> AccountReceivables { get; set; } = null!;
         public DbSet<InstallmentPayment> InstallmentPayments { get; set; } = null!;
-        public DbSet<ArticleDetail> ArticleDetails { get; set; }
+        public DbSet<ArticleDetails> ArticleDetails { get; set; }
 
         private readonly string _dbPath;
 

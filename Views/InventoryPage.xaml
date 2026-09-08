@@ -32,9 +32,6 @@
             <Button Grid.Row="1" x:Name="BtnToggleStock" Text="Ver Agotados (Stock 0)" Clicked="OnToggleStockCeroClicked" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" CornerRadius="6" HeightRequest="36" FontSize="11" HorizontalOptions="End" Margin="0,0,0,10" helpers:EfectosVisualesHelper.Animar="True"/>
 
             <Grid Grid.Row="2">
-
-                <ActivityIndicator x:Name="ActCargando" IsRunning="False" IsVisible="False" Color="#A2D149" HorizontalOptions="Center" VerticalOptions="Center" HeightRequest="40" WidthRequest="40"/>
-
                 <VerticalStackLayout x:Name="SecEstadoVacio" IsVisible="False" VerticalOptions="Center" Spacing="10">
                     <Image Source="reportes.png" HeightRequest="50" WidthRequest="50" Opacity="0.3" HorizontalOptions="Center"/>
                     <Label Text="Almacén sin existencias" TextColor="{AppThemeBinding Light=#1C262E, Dark=#939CA5}" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
@@ -115,14 +112,30 @@
 
                                             <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" ColumnDefinitions="*, Auto" Margin="0,10,0,0">
 
-                                                <HorizontalStackLayout Grid.Column="0" Spacing="8" VerticalOptions="Center">
-                                                    <Label Text="Stock disponible:" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" VerticalOptions="Center"/>
-                                                    <Border BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B3B2B}" Stroke="{AppThemeBinding Light=#C8E6C9, Dark=#2E7D32}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="10,4" VerticalOptions="Center">
-                                                        <Label Text="{Binding Stock, StringFormat='{0:0.##}'}" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="13" VerticalOptions="Center"/>
+                                                <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
+                                                    <Label Text="Stock disponible:" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" VerticalOptions="Center"/>
+                                                    <Border HeightRequest="26" VerticalOptions="Center" BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B3B2B}" Stroke="{AppThemeBinding Light=#C8E6C9, Dark=#2E7D32}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="2,0">
+                                                        <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                                            <ImageButton Source="minus_icon.png" WidthRequest="20" HeightRequest="20" MinimumHeightRequest="0" MinimumWidthRequest="0" Padding="3" Aspect="AspectFit" BackgroundColor="Transparent" VerticalOptions="Center" Clicked="OnDisminuirStockPendienteClicked" CommandParameter="{Binding .}"/>
+                                                            <Entry Text="{Binding DisplayStock, Mode=TwoWay, StringFormat='{0:0.##}'}" 
+       TextChanged="OnStockTextChanged"
+       Keyboard="Numeric"
+       TextColor="{Binding ActionColor}" 
+       FontAttributes="Bold" 
+       FontSize="13" 
+       VerticalOptions="Center" 
+       HorizontalOptions="Center"
+       WidthRequest="50" 
+       Margin="0,-7,0,0"
+       HorizontalTextAlignment="Center"
+       BackgroundColor="Transparent"/>
+                                                            <ImageButton Source="add_icon.png" WidthRequest="20" HeightRequest="20" MinimumHeightRequest="0" MinimumWidthRequest="0" Padding="3" Aspect="AspectFit" BackgroundColor="Transparent" VerticalOptions="Center" Clicked="OnAumentarStockPendienteClicked" CommandParameter="{Binding .}"/>
+                                                        </HorizontalStackLayout>
                                                     </Border>
                                                 </HorizontalStackLayout>
 
-                                                <HorizontalStackLayout Grid.Column="1" Spacing="10" HorizontalOptions="End" VerticalOptions="Center">
+                                                <HorizontalStackLayout Grid.Column="1" Spacing="8" HorizontalOptions="End" VerticalOptions="Center">
+                                                    <ImageButton Source="{Binding ActionIcon}" WidthRequest="32" HeightRequest="32" CornerRadius="6" BackgroundColor="{Binding ActionColor}" VerticalOptions="Center" HorizontalOptions="End" Padding="7" Opacity="0.9" CommandParameter="{Binding .}" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnBotonInteligenteClicked"/>
                                                     <ImageButton Source="edit_icon.png" WidthRequest="32" HeightRequest="32" CornerRadius="6" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#2E3842}" VerticalOptions="Center" HorizontalOptions="End" Padding="7" Opacity="0.9" CommandParameter="{Binding .}" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditarArticuloClicked"/>
                                                     <ImageButton Source="delete_icon.png" WidthRequest="32" HeightRequest="32" CornerRadius="6" BackgroundColor="{AppThemeBinding Light=#FCE8E6, Dark=#3D2321}" VerticalOptions="Center" HorizontalOptions="End" Padding="7" Opacity="0.9" CommandParameter="{Binding .}" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEliminarStockClicked"/>
                                                 </HorizontalStackLayout>
@@ -141,13 +154,23 @@
                                                     <Border.StrokeShape>
                                                         <RoundRectangle CornerRadius="8" />
                                                     </Border.StrokeShape>
-                                                    <Grid ColumnDefinitions="Auto, *, Auto">
-                                                        <Label Grid.Column="0" Text="🟢" FontSize="10" VerticalOptions="Center" Margin="0,0,8,0"/>
-                                                        <VerticalStackLayout Grid.Column="1">
-                                                            <Label Text="{Binding SerialNumber}" FontAttributes="Bold" FontSize="13" TextColor="{AppThemeBinding Light=#8A2BE2, Dark=#B67BFF}"/>
-                                                            <Label Text="{Binding Location, StringFormat='Ubicación: {0}'}" FontSize="11" TextColor="Gray"/>
+                                                    <Grid ColumnDefinitions="25, *, Auto, Auto" ColumnSpacing="12">
+                                                        <Label Grid.Column="0" Text="🟢" FontSize="10" VerticalOptions="Center"/>
+
+                                                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Margin="0,0,5,0">
+                                                            <Label Text="{Binding SerialNumber}" FontAttributes="Bold" FontSize="13" TextColor="{AppThemeBinding Light=#8A2BE2, Dark=#B67BFF}" LineBreakMode="TailTruncation"/>
+
+                                                            <Label Text="{Binding UniqueAttributesDisplay}" FontSize="10" TextColor="{AppThemeBinding Light=#E65100, Dark=#EFA72F}" FontAttributes="Italic" IsVisible="{Binding HasUniqueAttributes}" LineBreakMode="TailTruncation"/>
+
+                                                            <Label Text="{Binding Location, StringFormat='Ubicación: {0}'}" FontSize="11" TextColor="Gray" LineBreakMode="TailTruncation"/>
                                                         </VerticalStackLayout>
-                                                        <Label Grid.Column="2" Text="{Binding Status}" FontSize="11" FontAttributes="Bold" TextColor="#00CED1" VerticalOptions="Center"/>
+
+                                                        <Label Grid.Column="2" Text="{Binding Status}" FontSize="11" FontAttributes="Bold" TextColor="#00CED1" VerticalOptions="Center" LineBreakMode="TailTruncation" Margin="0,0,5,0"/>
+
+                                                        <HorizontalStackLayout Grid.Column="3" Spacing="6" VerticalOptions="Center" HorizontalOptions="End">
+                                                            <ImageButton Source="edit_icon.png" WidthRequest="26" HeightRequest="26" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#2E3842}" CornerRadius="4" Padding="5" Clicked="OnEditarSerieClicked" CommandParameter="{Binding .}"/>
+                                                            <ImageButton Source="delete_icon.png" WidthRequest="26" HeightRequest="26" BackgroundColor="{AppThemeBinding Light=#FCE8E6, Dark=#3D2321}" CornerRadius="4" Padding="5" Clicked="OnEliminarSerieClicked" CommandParameter="{Binding .}"/>
+                                                        </HorizontalStackLayout>
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
@@ -169,7 +192,6 @@
 
         <!-- (El Visor de Fotos se mantiene intacto al final) -->
         <Grid x:Name="OverlayVisorFoto" Grid.RowSpan="3" IsVisible="False" BackgroundColor="#CC000000" Opacity="0" Padding="20">
-            <!-- ... Código de tu visor fotográfico ... -->
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnCerrarVisorClicked" />
             </Grid.GestureRecognizers>
@@ -198,6 +220,103 @@
                     </Grid>
                 </Grid>
             </Border>
+        </Grid>
+        <Grid x:Name="OverlayAgregarSerie" Grid.RowSpan="3" BackgroundColor="#CC000000" IsVisible="False" Opacity="0" ZIndex="100">
+            <Border VerticalOptions="Center" HorizontalOptions="Fill" Margin="20" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12"/>
+                </Border.StrokeShape>
+                <Grid RowDefinitions="Auto, *, Auto">
+                    <!-- CABECERA -->
+                    <VerticalStackLayout Grid.Row="0" Padding="20" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
+                        <Label Text="AGREGAR UNIDADES SERIALIZADAS" TextColor="{AppThemeBinding Light=White, Dark=#A2D149}" FontAttributes="Bold" HorizontalOptions="Center" FontSize="14"/>
+                        <Label x:Name="LblOverlayArticuloNombre" Text="Producto" TextColor="{AppThemeBinding Light=#CDD5DB, Dark=White}" FontAttributes="Bold" HorizontalOptions="Center" Margin="0,5,0,0" FontSize="16" HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+
+                    <!-- CUERPO DINÁMICO (Genera N tarjetas según el stock) -->
+                    <ScrollView Grid.Row="1" MaximumHeightRequest="450">
+                        <VerticalStackLayout x:Name="ContenedorSeriesDinamicas" Padding="20" Spacing="15">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="15">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="8"/>
+                                        </Border.StrokeShape>
+                                        <VerticalStackLayout Spacing="10">
+                                            <Label Text="{Binding Titulo}" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="13"/>
+
+                                            <!-- Número de Serie Base -->
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label Text="Número de Serie / IMEI (Obligatorio) *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11"/>
+                                                <Border BackgroundColor="{AppThemeBinding Light=#F8F9FA, Dark=#161F27}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="10,0" HeightRequest="40">
+                                                    <Entry Text="{Binding SerialNumber}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ej: IMEI-99887766" BackgroundColor="Transparent"/>
+                                                </Border>
+                                            </VerticalStackLayout>
+
+                                            <!-- Atributos Únicos Dinámicos -->
+                                            <VerticalStackLayout Spacing="10">
+                                                <VerticalStackLayout IsVisible="{Binding ShowAttr1}" Spacing="2">
+                                                    <Label Text="{Binding LabelAttr1}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11"/>
+                                                    <Border BackgroundColor="{AppThemeBinding Light=#F8F9FA, Dark=#161F27}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="10,0" HeightRequest="40">
+                                                        <Entry Text="{Binding ValAttr1}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent"/>
+                                                    </Border>
+                                                </VerticalStackLayout>
+
+                                                <VerticalStackLayout IsVisible="{Binding ShowAttr2}" Spacing="2">
+                                                    <Label Text="{Binding LabelAttr2}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11"/>
+                                                    <Border BackgroundColor="{AppThemeBinding Light=#F8F9FA, Dark=#161F27}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="10,0" HeightRequest="40">
+                                                        <Entry Text="{Binding ValAttr2}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent"/>
+                                                    </Border>
+                                                </VerticalStackLayout>
+
+                                                <VerticalStackLayout IsVisible="{Binding ShowAttr3}" Spacing="2">
+                                                    <Label Text="{Binding LabelAttr3}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11"/>
+                                                    <Border BackgroundColor="{AppThemeBinding Light=#F8F9FA, Dark=#161F27}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="10,0" HeightRequest="40">
+                                                        <Entry Text="{Binding ValAttr3}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent"/>
+                                                    </Border>
+                                                </VerticalStackLayout>
+                                                
+                                                <VerticalStackLayout IsVisible="{Binding ShowAttr4}" Spacing="2">
+                                                    <Label Text="{Binding LabelAttr4}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11"/>
+                                                    <Border BackgroundColor="{AppThemeBinding Light=#F8F9FA, Dark=#161F27}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="10,0" HeightRequest="40">
+                                                        <Entry Text="{Binding ValAttr4}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent"/>
+                                                    </Border>
+                                                </VerticalStackLayout>
+                                                
+                                                <VerticalStackLayout IsVisible="{Binding ShowAttr5}" Spacing="2">
+                                                    <Label Text="{Binding LabelAttr5}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11"/>
+                                                    <Border BackgroundColor="{AppThemeBinding Light=#F8F9FA, Dark=#161F27}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="10,0" HeightRequest="40">
+                                                        <Entry Text="{Binding ValAttr5}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent"/>
+                                                    </Border>
+                                                </VerticalStackLayout>
+
+                                                <VerticalStackLayout IsVisible="{Binding ShowAttr6}" Spacing="2">
+                                                    <Label Text="{Binding LabelAttr6}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11"/>
+                                                    <Border BackgroundColor="{AppThemeBinding Light=#F8F9FA, Dark=#161F27}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="10,0" HeightRequest="40">
+                                                        <Entry Text="{Binding ValAttr6}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent"/>
+                                                    </Border>
+                                                </VerticalStackLayout>
+                                            </VerticalStackLayout>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </ScrollView>
+
+                    <!-- PIE DE BOTONES -->
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="15" Padding="20" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#161F27}">
+                        <Button Grid.Column="0" Text="CANCELAR" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#54606C, Dark=White}" FontAttributes="Bold" Clicked="OnCancelarMultiplesSeriesClicked" CornerRadius="8"/>
+                        <Button Grid.Column="1" Text="GUARDAR UNIDADES" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" Clicked="OnGuardarMultiplesSeriesClicked" CornerRadius="8"/>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+        <Grid x:Name="OverlayCargando" Grid.RowSpan="3" BackgroundColor="#B3000000" IsVisible="False" ZIndex="110">
+            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="15">
+                <ActivityIndicator x:Name="ActCargando" IsRunning="False" IsVisible="True" Color="#A2D149" WidthRequest="50" HeightRequest="50" />
+                <Label Text="Procesando datos..." TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" />
+            </VerticalStackLayout>
         </Grid>
     </Grid>
 </ContentPage>

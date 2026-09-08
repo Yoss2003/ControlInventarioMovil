@@ -647,21 +647,32 @@ namespace ControlInventarioMovil.Views
         {
             try
             {
-                // 1. Tomamos el ID del inventario que esté seleccionado en la sesión en este milisegundo
                 int idInventarioSeleccionado = UserSession.CurrentInventory?.Id ?? 1;
+                int idEmpresa = UserSession.CurrentUser?.CompanyId ?? 1;
 
-                // 2. Consultamos al servidor de Somee la suma del stock de ese almacén específico
-                int totalReal = await _apiService.GetArticleCountByInventoryAsync(idInventarioSeleccionado);
+                var listaArticulos = await _apiService.GetArticlesAsync();
 
-                // 3. Pintamos el número en tu Label del círculo verde
+                int totalSKUsDisponibles = 0;
+
+                if (listaArticulos != null)
+                {
+                    totalSKUsDisponibles = listaArticulos.Count(a =>
+                        a.InventoryId == idInventarioSeleccionado &&
+                        a.CompanyId == idEmpresa &&
+                        a.Stock > 0);
+                }
+
+                // 4. Reflejamos el número real en la pantalla
                 MainThread.BeginInvokeOnMainThread(() => {
-                    LblTotalArticulos.Text = $"{totalReal:N0} artículos";
+                    LblTotalArticulos.Text = $"{totalSKUsDisponibles:N0} artículos";
                 });
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error al actualizar stock circular: {ex.Message}");
-                LblTotalArticulos.Text = "0 artículos";
+                MainThread.BeginInvokeOnMainThread(() => {
+                    LblTotalArticulos.Text = "0 artículos";
+                });
             }
         }
 

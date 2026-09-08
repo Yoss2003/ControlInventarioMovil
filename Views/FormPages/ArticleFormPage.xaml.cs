@@ -4,11 +4,12 @@ using ControlInventarioMovil.Data;
 using ControlInventarioMovil.Services;
 using SkiaSharp;
 using System.Diagnostics;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using ZXing.Common;
 using ZXing.Net.Maui;
 using ZXing.SkiaSharp;
-using System.Text.Json;
-using System.Text.RegularExpressions;
+using static Android.Provider.Contacts.Intents;
 
 namespace ControlInventarioMovil.Views
 {
@@ -43,6 +44,7 @@ namespace ControlInventarioMovil.Views
         private double _xOffset = 0;
         private double _yOffset = 0;
         private int _tipoFotoEnVisor = 0;
+        private string _formulaBackupQC = "";
         #endregion
 
         #region 2. CICLO DE VIDA DE LA VISTA
@@ -532,7 +534,8 @@ namespace ControlInventarioMovil.Views
 
             if (unidadesSeleccionadas && !string.Equals(uCompra, uVenta, StringComparison.OrdinalIgnoreCase))
             {
-                LblConversionTitle.Text = $"Unds. por {uCompra}:";
+                LblCantidadInicial.Text = $"Cant. de {uCompra}s:";
+                LblConversionTitle.Text = $"{uVenta}s por cada {uCompra}:";
                 AplicarLayoutTresColumnas();
             }
             else
@@ -627,15 +630,16 @@ namespace ControlInventarioMovil.Views
                 {
                     SecBarcode.IsVisible = false;
                     SecSku.IsVisible = true;
-                    ContenedorMarca.IsVisible = false;
-                    SepMarca.IsVisible = false;
+                    ContenedorMarca.IsVisible = true;
+                    SepMarca.IsVisible = true;
                     SecModelSerie.IsVisible = false;
                     SepModelSerie.IsVisible = false;
                     BloqueSerializadoCondicional.IsVisible = false;
-
+                    SecCondicionFisica.IsVisible = false;
                     TxtStock.IsReadOnly = false;
                     if (UserSession.CurrentArticleToEdit == null) TxtStock.Text = string.Empty;
                     ContenedorUnidades.IsVisible = true;
+                    SecBotonesFracciones.IsVisible = true;
                 }
                 else if (isSerialized)
                 {
@@ -645,7 +649,10 @@ namespace ControlInventarioMovil.Views
                     SepMarca.IsVisible = true;
                     SecModelSerie.IsVisible = true;
                     SepModelSerie.IsVisible = true;
-                    ColSerialNumber.IsVisible = true;
+                    SecCondicionFisica.IsVisible = true;
+                    bool esNuevo = (UserSession.CurrentArticleToEdit == null);
+                    ColSerialNumber.IsVisible = esNuevo;
+                    Grid.SetColumnSpan(ColModel, esNuevo ? 1 : 2); 
                     LblModelTitle.Text = TITULO_TECNOLOGIA;
                     TxtModel.Placeholder = PLACEHOLDER_TECNOLOGIA;
                     BloqueSerializadoCondicional.IsVisible = true;
@@ -663,10 +670,11 @@ namespace ControlInventarioMovil.Views
                     SepModelSerie.IsVisible = false;
                     ColSerialNumber.IsVisible = false;
                     BloqueSerializadoCondicional.IsVisible = false;
-
+                    SecCondicionFisica.IsVisible = true;
                     if (UserSession.CurrentArticleToEdit == null) TxtStock.Text = string.Empty;
                     TxtStock.IsReadOnly = false;
                     ContenedorUnidades.IsVisible = true;
+                    SecBotonesFracciones.IsVisible = false;
                 }
 
                 // 🚀 DIBUJAR LOS SLOTS DINÁMICOS
@@ -1371,8 +1379,10 @@ namespace ControlInventarioMovil.Views
             }
 
             int brandIdFinal = 0;
-            if (!isBulk) { brandIdFinal = _marcasFiltradas != null && _marcasFiltradas.Count > 0 && PkrBrand.SelectedIndex > 0 ? _marcasFiltradas[PkrBrand.SelectedIndex - 1].Id : 0; }
-
+            if (_marcasFiltradas != null && _marcasFiltradas.Count > 0 && PkrBrand.SelectedIndex > 0)
+            {
+                brandIdFinal = _marcasFiltradas[PkrBrand.SelectedIndex - 1].Id;
+            }
             int? conditionIdFinal = PkrConditionParam.SelectedIndex > 0 ? _condicionesParam[PkrConditionParam.SelectedIndex - 1].Id : null;
             int? locationIdFinal = PkrLocationParam.SelectedIndex > 0 ? _ubicacionesParam[PkrLocationParam.SelectedIndex - 1].Id : null;
             int? supplierIdFinal = PkrSupplier.SelectedIndex > 0 ? _proveedoresGlobales[PkrSupplier.SelectedIndex - 1].Id : null;
@@ -1380,6 +1390,18 @@ namespace ControlInventarioMovil.Views
             string? saleCurrencyFinal = PkrSaleCurrency.SelectedIndex > 0 ? _monedasGlobales[PkrSaleCurrency.SelectedIndex - 1].CurrencyCode : "S/.";
 
             decimal.TryParse(TxtStock.Text, out decimal stockReal);
+
+            if (UserSession.CurrentArticleToEdit != null)
+            {
+                decimal stockOriginalValidacion = Convert.ToDecimal(UserSession.CurrentArticleToEdit.Stock);
+                if (stockReal < stockOriginalValidacion)
+                {
+                    await DisplayAlertAsync("Acción Denegada", $"No puedes reducir el stock desde la ventana de edición.\n\nEl stock actual es de {stockOriginalValidacion:0.##}.\nSi deseas registrar una salida, utiliza el módulo de Ventas.", "Entendido");
+
+                    TxtStock.Text = stockOriginalValidacion.ToString("0.##");
+                    return;
+                }
+            }
 
             string codeEnvio = isStandard ? $"BAR-{TxtBarcode.Text.Trim()}" : TxtSku.Text.Trim();
             string modelEnvio = "N/A";
@@ -1395,12 +1417,38 @@ namespace ControlInventarioMovil.Views
 
             // 🚀 GUARDAR ESTADO DE CHECKBOXES EN JSON
             var dictSpecs = new Dictionary<string, string>();
-            if (BoxAttr1.IsVisible) { dictSpecs["L1"] = TxtAttr1.Text?.Trim() ?? ""; dictSpecs["L1_Show"] = ChkShowL1.IsChecked.ToString(); dictSpecs["L1_Pos"] = ChkPosL1.IsChecked.ToString(); }
-            if (BoxAttr2.IsVisible) { dictSpecs["L2"] = TxtAttr2.Text?.Trim() ?? ""; dictSpecs["L2_Show"] = ChkShowL2.IsChecked.ToString(); dictSpecs["L2_Pos"] = ChkPosL2.IsChecked.ToString(); }
-            if (BoxAttr3.IsVisible) { dictSpecs["L3"] = TxtAttr3.Text?.Trim() ?? ""; dictSpecs["L3_Show"] = ChkShowL3.IsChecked.ToString(); dictSpecs["L3_Pos"] = ChkPosL3.IsChecked.ToString(); }
-            if (BoxAttr4.IsVisible) { dictSpecs["L4"] = TxtAttr4.Text?.Trim() ?? ""; dictSpecs["L4_Show"] = ChkShowL4.IsChecked.ToString(); dictSpecs["L4_Pos"] = ChkPosL4.IsChecked.ToString(); }
-            if (BoxAttr5.IsVisible) { dictSpecs["L5"] = TxtAttr5.Text?.Trim() ?? ""; dictSpecs["L5_Show"] = ChkShowL5.IsChecked.ToString(); dictSpecs["L5_Pos"] = ChkPosL5.IsChecked.ToString(); }
-            if (BoxAttr6.IsVisible) { dictSpecs["L6"] = TxtAttr6.Text?.Trim() ?? ""; dictSpecs["L6_Show"] = ChkShowL6.IsChecked.ToString(); dictSpecs["L6_Pos"] = ChkPosL6.IsChecked.ToString(); }
+            string? attr1Unico = null, attr2Unico = null, attr3Unico = null, attr4Unico = null, attr5Unico = null, attr6Unico = null;
+
+            if (BoxAttr1.IsVisible)
+            {
+                if (catSel.IsUnique1) attr1Unico = TxtAttr1.Text?.Trim(); else dictSpecs["L1"] = TxtAttr1.Text?.Trim() ?? "";
+                dictSpecs["L1_Show"] = ChkShowL1.IsChecked.ToString(); dictSpecs["L1_Pos"] = ChkPosL1.IsChecked.ToString();
+            }
+            if (BoxAttr2.IsVisible)
+            {
+                if (catSel.IsUnique2) attr2Unico = TxtAttr2.Text?.Trim(); else dictSpecs["L2"] = TxtAttr2.Text?.Trim() ?? "";
+                dictSpecs["L2_Show"] = ChkShowL2.IsChecked.ToString(); dictSpecs["L2_Pos"] = ChkPosL2.IsChecked.ToString();
+            }
+            if (BoxAttr3.IsVisible)
+            {
+                if (catSel.IsUnique3) attr3Unico = TxtAttr3.Text?.Trim(); else dictSpecs["L3"] = TxtAttr3.Text?.Trim() ?? "";
+                dictSpecs["L3_Show"] = ChkShowL3.IsChecked.ToString(); dictSpecs["L3_Pos"] = ChkPosL3.IsChecked.ToString();
+            }
+            if (BoxAttr4.IsVisible)
+            {
+                if (catSel.IsUnique4) attr4Unico = TxtAttr4.Text?.Trim(); else dictSpecs["L4"] = TxtAttr4.Text?.Trim() ?? "";
+                dictSpecs["L4_Show"] = ChkShowL4.IsChecked.ToString(); dictSpecs["L4_Pos"] = ChkPosL4.IsChecked.ToString();
+            }
+            if (BoxAttr5.IsVisible)
+            {
+                if (catSel.IsUnique5) attr5Unico = TxtAttr5.Text?.Trim(); else dictSpecs["L5"] = TxtAttr5.Text?.Trim() ?? "";
+                dictSpecs["L5_Show"] = ChkShowL5.IsChecked.ToString(); dictSpecs["L5_Pos"] = ChkPosL5.IsChecked.ToString();
+            }
+            if (BoxAttr6.IsVisible)
+            {
+                if (catSel.IsUnique6) attr6Unico = TxtAttr6.Text?.Trim(); else dictSpecs["L6"] = TxtAttr6.Text?.Trim() ?? "";
+                dictSpecs["L6_Show"] = ChkShowL6.IsChecked.ToString(); dictSpecs["L6_Pos"] = ChkPosL6.IsChecked.ToString();
+            }
             string caracteristicasJSON = JsonSerializer.Serialize(dictSpecs);
 
             var articuloData = new Article
@@ -1413,7 +1461,7 @@ namespace ControlInventarioMovil.Views
                 Presentation = TxtPresentacion.Text?.Trim(),
                 CategoryId = catSel.Id,
                 BrandId = brandIdFinal,
-                Tracking = isSerialized ? TrackingMode.Serialized : TrackingMode.Standard,
+                Tracking = isSerialized ? TrackingMode.Serialized : (isBulk ? TrackingMode.Bulk : TrackingMode.Standard),
                 AcquisitionUnit = PkrAcquisitionUnit.SelectedIndex > 0 ? (PkrAcquisitionUnit.SelectedItem?.ToString() ?? "Unidades") : null,
                 SaleUnit = PkrSaleUnit.SelectedIndex > 0 ? (PkrSaleUnit.SelectedItem?.ToString() ?? "Unidades") : null,
                 ConversionFactor = factorConv,
@@ -1450,20 +1498,126 @@ namespace ControlInventarioMovil.Views
             try
             {
                 using var context = new LocalDbContext();
-                if (UserSession.CurrentArticleToEdit != null) { articuloData.Id = UserSession.CurrentArticleToEdit.Id; context.Articles.Update(articuloData); } else { context.Articles.Add(articuloData); }
+
+                if (UserSession.CurrentArticleToEdit != null)
+                {
+                    articuloData.Id = UserSession.CurrentArticleToEdit.Id;
+                    context.Articles.Update(articuloData);
+                }
+                else
+                {
+                    context.Articles.Add(articuloData);
+                }
+
                 await context.SaveChangesAsync();
 
-                if (UserSession.CurrentArticleToEdit != null) { exitoNube = await _apiService.UpdateArticleAsync(articuloData.Id, articuloData); }
-                else { int idLocal = articuloData.Id; articuloData.Id = 0; exitoNube = await _apiService.CreateArticleAsync(articuloData); articuloData.Id = idLocal; }
+                if (UserSession.CurrentArticleToEdit != null)
+                {
+                    exitoNube = await _apiService.UpdateArticleAsync(articuloData.Id, articuloData);
+                }
+                else
+                {
+                    int idLocal = articuloData.Id;
+                    articuloData.Id = 0;
 
-                if (exitoNube) { articuloData.IsSynced = true; context.Articles.Update(articuloData); await context.SaveChangesAsync(); }
-                else { apiErrorMessage = "La API devolvió FALSE sin lanzar un error."; }
+                    exitoNube = await _apiService.CreateArticleAsync(articuloData);
+
+                    articuloData.Id = idLocal;
+                }
+
+                if (exitoNube)
+                {
+                    articuloData.IsSynced = true;
+                    context.Articles.Update(articuloData);
+                    await context.SaveChangesAsync();
+
+                    decimal stockOriginal = UserSession.CurrentArticleToEdit != null ? Convert.ToDecimal(UserSession.CurrentArticleToEdit.Stock) : 0m;
+                    decimal diferenciaStock = stockReal - stockOriginal;
+
+                    if (diferenciaStock > 0)
+                    {
+                        int empleadoIdReal = UserSession.CurrentUser?.Employee?.Id ?? 1;
+                        string nombreEmpleado = $"{UserSession.CurrentUser?.Employee?.FirstName} {UserSession.CurrentUser?.Employee?.LastName}".Trim();
+
+                        var movimientoKardex = new Movement
+                        {
+                            ArticleId = articuloData.Id,
+                            EmployeeId = empleadoIdReal,
+                            ActionId = 1,
+                            MovementDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                            Observation = UserSession.CurrentArticleToEdit == null
+                                ? $"Stock Inicial (Nuevo Artículo) por {nombreEmpleado}"
+                                : $"Ingreso manual de stock (+{diferenciaStock:0.##}) por {nombreEmpleado}",
+                            Amount = diferenciaStock,
+                            SalePrice = 0,
+                            PaymentMethod = "N/A",
+                            Recipient = "Almacén Local"
+                        };
+                        bool kardexOk = await _apiService.CreateMovementAsync(movimientoKardex);
+
+                        var log = new HistoryLog
+                        {
+                            LogDate = DateTime.Now,
+                            Username = nombreEmpleado,
+                            ModuleName = "Inventario",
+                            ActionName = "Modificación Manual",
+                            Detail = $"Stock de '{articuloData.Name}' actualizado manualmente (+{diferenciaStock:0.##})",
+                        };
+                        await _apiService.CreateHistoryLogAsync(log);
+
+                        if (!kardexOk)
+                        {
+                            await DisplayAlertAsync("Alerta de Servidor", "Artículo guardado, pero la API rechazó registrar el Kárdex.", "Entendido");
+                        }
+                    }
+
+                    // 2. Lógica para artículos serializados (IMEIs)
+                    if (isSerialized && !string.IsNullOrWhiteSpace(TxtSerialNumber.Text) && UserSession.CurrentArticleToEdit == null)
+                    {
+                        var nuevaSerie = new ArticleDetails
+                        {
+                            ArticleId = articuloData.Id,
+                            SerialNumber = TxtSerialNumber.Text.Trim(),
+                            StatusId = idEstadoAutomático,
+                            IsActive = true,
+                            RegistrationDate = DateTime.Now,
+                            Attr1 = attr1Unico,
+                            Attr2 = attr2Unico,
+                            Attr3 = attr3Unico,
+                            Attr4 = attr4Unico,
+                            Attr5 = attr5Unico,
+                            Attr6 = attr6Unico
+                        };
+
+                        await _apiService.AddArticleDetailAsync(nuevaSerie);
+                    }
+                }
+                else
+                {
+                    apiErrorMessage = "La API devolvió FALSE sin lanzar un error.";
+                }
             }
-            catch (Exception ex) { exitoNube = false; apiErrorMessage = ex.Message; if (ex.InnerException != null) { apiErrorMessage += $"\nDetalle interno: {ex.InnerException.Message}"; } }
+            catch (Exception ex)
+            {
+                exitoNube = false;
+                apiErrorMessage = ex.Message;
+                if (ex.InnerException != null)
+                {
+                    apiErrorMessage += $"\nDetalle interno: {ex.InnerException.Message}";
+                }
+            }
 
             OverlayCargando.IsVisible = false;
-            if (exitoNube) { await DisplayAlertAsync("Éxito", $"Artículo '{articuloData.Name}' guardado.", "OK"); CleanupSessionAndLeave(); }
-            else { await DisplayAlertAsync("❌ Error del Servidor", $"No se pudo sincronizar.\n\nRazón:\n{apiErrorMessage}", "Entendido"); }
+
+            if (exitoNube)
+            {
+                await DisplayAlertAsync("Éxito", $"Artículo '{articuloData.Name}' guardado.", "OK");
+                CleanupSessionAndLeave();
+            }
+            else
+            {
+                await DisplayAlertAsync("❌ Error del Servidor", $"No se pudo sincronizar.\n\nRazón:\n{apiErrorMessage}", "Entendido");
+            }
         }
 
         private async void CleanupSessionAndLeave() { OverlayCargando.IsVisible = true; LblOverlayTexto.Text = "Regresando..."; await Task.Delay(50); UserSession.CurrentArticleToEdit = null; await Shell.Current.GoToAsync("..", false); }
@@ -1493,6 +1647,7 @@ namespace ControlInventarioMovil.Views
         {
             _isSystemEdit = true; // 🛑 Bloqueamos
             TxtQCFormula.Text = text;
+            _formulaBackupQC = text;
             _isSystemEdit = false; // 🟢 Desbloqueamos
             ActualizarQCColoresBotones();
         }
@@ -1502,15 +1657,20 @@ namespace ControlInventarioMovil.Views
             if (PkrCategory.SelectedIndex <= 0) { await DisplayAlertAsync("Aviso", "Primero selecciona una categoría.", "OK"); return; }
             var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
 
-            TxtQCL1.Text = catSel.Label1; TxtQCL2.Text = catSel.Label2; TxtQCL3.Text = catSel.Label3;
-            TxtQCL4.Text = catSel.Label4; TxtQCL5.Text = catSel.Label5;
-            var propL6 = catSel.GetType().GetProperty("Label6");
-            if (propL6 != null) TxtQCL6.Text = propL6.GetValue(catSel) as string;
+            TxtQCL1.Text = catSel.Label1; ChkQCUniqueL1.IsChecked = catSel.IsUnique1;
+            TxtQCL2.Text = catSel.Label2; ChkQCUniqueL2.IsChecked = catSel.IsUnique2;
+            TxtQCL3.Text = catSel.Label3; ChkQCUniqueL3.IsChecked = catSel.IsUnique3;
+            TxtQCL4.Text = catSel.Label4; ChkQCUniqueL4.IsChecked = catSel.IsUnique4;
+            TxtQCL5.Text = catSel.Label5; ChkQCUniqueL5.IsChecked = catSel.IsUnique5;
+            TxtQCL6.Text = catSel.Label6; ChkQCUniqueL6.IsChecked = catSel.IsUnique6;
 
             TxtQCObservaciones.Text = catSel.Description;
 
-            // Usar el método seguro para evitar que el Regex borre el texto inicial
-            SetQCFormulaText(string.IsNullOrWhiteSpace(catSel.NamingMethod) ? "[Marca]" : catSel.NamingMethod);
+            _isSystemEdit = true;
+            TxtQCFormula.Text = string.IsNullOrWhiteSpace(catSel.NamingMethod) ? "[Marca]" : catSel.NamingMethod;
+            _isSystemEdit = false;
+
+            _formulaBackupQC = TxtQCFormula.Text; // 🚀 Backup inicial al abrir modal
 
             ActualizarQCVisibilidadBotonesSlots();
             ActualizarQCColoresBotones();
@@ -1520,93 +1680,151 @@ namespace ControlInventarioMovil.Views
         }
 
         private async void OnCerrarConfigCategoriaClicked(object sender, EventArgs e) { await OverlayConfigCategoria.FadeToAsync(0, 150); OverlayConfigCategoria.IsVisible = false; }
-
         private async void OnGuardarConfigCategoriaClicked(object sender, EventArgs e)
         {
+            TxtQCFormula.Unfocus();
             var catSel = _categoriasHijas[PkrCategory.SelectedIndex - 1];
 
+            string trackingMode = catSel.TrackingMode?.Trim() ?? "";
+            bool isSerialized = string.Equals(trackingMode, "Serialized", StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(trackingMode, "Serializado", StringComparison.OrdinalIgnoreCase);
+
+            bool algunUnico = ChkQCUniqueL1.IsChecked || ChkQCUniqueL2.IsChecked ||
+                              ChkQCUniqueL3.IsChecked || ChkQCUniqueL4.IsChecked ||
+                              ChkQCUniqueL5.IsChecked || ChkQCUniqueL6.IsChecked;
+
+            if (isSerialized && !algunUnico)
+            {
+                bool continuar = await DisplayAlertAsync(
+                    "Verificación de Atributos",
+                    "No has marcado ningún atributo dinámico como 'Dato Único'.\n\nEsto significa que el único dato irrepetible para esta categoría será el [Número de Serie] principal, y el resto de especificaciones serán compartidas.\n\n¿Estás seguro de guardar la configuración así?",
+                    "Sí, guardar",
+                    "No, revisar"
+                );
+
+                if (!continuar) return;
+            }
+
             catSel.Label1 = string.IsNullOrWhiteSpace(TxtQCL1.Text) ? null : TxtQCL1.Text.Trim();
+            catSel.IsUnique1 = ChkQCUniqueL1.IsChecked;
+
             catSel.Label2 = string.IsNullOrWhiteSpace(TxtQCL2.Text) ? null : TxtQCL2.Text.Trim();
+            catSel.IsUnique2 = ChkQCUniqueL2.IsChecked;
+
             catSel.Label3 = string.IsNullOrWhiteSpace(TxtQCL3.Text) ? null : TxtQCL3.Text.Trim();
+            catSel.IsUnique3 = ChkQCUniqueL3.IsChecked;
+
             catSel.Label4 = string.IsNullOrWhiteSpace(TxtQCL4.Text) ? null : TxtQCL4.Text.Trim();
+            catSel.IsUnique4 = ChkQCUniqueL4.IsChecked;
+
             catSel.Label5 = string.IsNullOrWhiteSpace(TxtQCL5.Text) ? null : TxtQCL5.Text.Trim();
+            catSel.IsUnique5 = ChkQCUniqueL5.IsChecked;
+
+            catSel.Label6 = string.IsNullOrWhiteSpace(TxtQCL6.Text) ? null : TxtQCL6.Text.Trim();
+            catSel.IsUnique6 = ChkQCUniqueL6.IsChecked;
+
             var propL6 = catSel.GetType().GetProperty("Label6");
             propL6?.SetValue(catSel, string.IsNullOrWhiteSpace(TxtQCL6.Text) ? null : TxtQCL6.Text.Trim());
 
             catSel.NamingMethod = string.IsNullOrWhiteSpace(TxtQCFormula.Text) ? null : TxtQCFormula.Text.Trim();
             catSel.Description = string.IsNullOrWhiteSpace(TxtQCObservaciones.Text) ? null : TxtQCObservaciones.Text.Trim();
 
-            OverlayCargando.IsVisible = true; LblOverlayTexto.Text = "Actualizando categoría..."; await Task.Delay(50);
+            OverlayCargando.IsVisible = true;
+            LblOverlayTexto.Text = "Actualizando categoría...";
+            await Task.Delay(50);
+
             bool exito = await _apiService.UpdateCategoryAsync(catSel);
+
             OverlayCargando.IsVisible = false;
 
-            if (exito) { OnCerrarConfigCategoriaClicked(sender, e); OnCategoryChanged(PkrCategory, EventArgs.Empty); }
-            else { await DisplayAlertAsync("Error", "No se pudo actualizar la categoría en el servidor.", "OK"); }
+            if (exito)
+            {
+                OnCerrarConfigCategoriaClicked(sender, e);
+
+                string? l6Val = propL6?.GetValue(catSel) as string;
+
+                BoxAttr1.IsVisible = !string.IsNullOrWhiteSpace(catSel.Label1); LblAttr1.Text = catSel.Label1;
+                BoxAttr2.IsVisible = !string.IsNullOrWhiteSpace(catSel.Label2); LblAttr2.Text = catSel.Label2;
+                BoxAttr3.IsVisible = !string.IsNullOrWhiteSpace(catSel.Label3); LblAttr3.Text = catSel.Label3;
+                BoxAttr4.IsVisible = !string.IsNullOrWhiteSpace(catSel.Label4); LblAttr4.Text = catSel.Label4;
+                BoxAttr5.IsVisible = !string.IsNullOrWhiteSpace(catSel.Label5); LblAttr5.Text = catSel.Label5;
+                BoxAttr6.IsVisible = !string.IsNullOrWhiteSpace(l6Val); LblAttr6.Text = l6Val;
+
+                SecAtributosDinamicos.IsVisible = BoxAttr1.IsVisible || BoxAttr2.IsVisible || BoxAttr3.IsVisible || BoxAttr4.IsVisible || BoxAttr5.IsVisible || BoxAttr6.IsVisible;
+
+                GenerarNombrePorFormula();
+            }
+            else
+            {
+                await DisplayAlertAsync("Error", "No se pudo actualizar la categoría en el servidor.", "OK");
+            }
         }
 
-        private void OnQCLabelTextChanged(object sender, TextChangedEventArgs e) { ActualizarQCVisibilidadBotonesSlots(); }
+        private void OnQCLabelTextChanged(object sender, TextChangedEventArgs e) 
+        { 
+            ActualizarQCVisibilidadBotonesSlots();
+            ActualizarQCColoresBotones();
+        }
 
         private void ActualizarQCVisibilidadBotonesSlots()
         {
             bool has1 = !string.IsNullOrWhiteSpace(TxtQCL1.Text); BtnQCTagL1.IsVisible = has1; if (has1) BtnQCTagL1.Text = TxtQCL1.Text;
+            ChkQCUniqueL1.IsEnabled = has1; if (!has1) ChkQCUniqueL1.IsChecked = false;
+
             bool has2 = !string.IsNullOrWhiteSpace(TxtQCL2.Text); BtnQCTagL2.IsVisible = has2; if (has2) BtnQCTagL2.Text = TxtQCL2.Text;
+            ChkQCUniqueL2.IsEnabled = has2; if (!has2) ChkQCUniqueL2.IsChecked = false;
+
             bool has3 = !string.IsNullOrWhiteSpace(TxtQCL3.Text); BtnQCTagL3.IsVisible = has3; if (has3) BtnQCTagL3.Text = TxtQCL3.Text;
+            ChkQCUniqueL3.IsEnabled = has3; if (!has3) ChkQCUniqueL3.IsChecked = false;
+
             bool has4 = !string.IsNullOrWhiteSpace(TxtQCL4.Text); BtnQCTagL4.IsVisible = has4; if (has4) BtnQCTagL4.Text = TxtQCL4.Text;
+            ChkQCUniqueL4.IsEnabled = has4; if (!has4) ChkQCUniqueL4.IsChecked = false;
+
             bool has5 = !string.IsNullOrWhiteSpace(TxtQCL5.Text); BtnQCTagL5.IsVisible = has5; if (has5) BtnQCTagL5.Text = TxtQCL5.Text;
+            ChkQCUniqueL5.IsEnabled = has5; if (!has5) ChkQCUniqueL5.IsChecked = false;
+
             bool has6 = !string.IsNullOrWhiteSpace(TxtQCL6.Text); BtnQCTagL6.IsVisible = has6; if (has6) BtnQCTagL6.Text = TxtQCL6.Text;
-        }
-
-        // 🚀 EL CEREBRO REGEX QUE EVITA QUE SE BORREN LAS ETIQUETAS
-        private void OnQCFormulaTextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_isSystemEdit) return; // Si lo está editando el sistema, no validamos
-
-            string oldText = e.OldTextValue ?? "";
-            string newText = e.NewTextValue ?? "";
-
-            if (oldText == newText) return;
-
-            // Ignoramos los símbolos permitidos y los espacios
-            string strippedOld = Regex.Replace(oldText, @"[\s\-\/\|,\+]", "");
-            string strippedNew = Regex.Replace(newText, @"[\s\-\/\|,\+]", "");
-
-            // Si los textos sin símbolos NO coinciden, intentaste modificar una etiqueta
-            if (strippedOld != strippedNew)
-            {
-                _isSystemEdit = true;
-                int cursor = TxtQCFormula.CursorPosition;
-                TxtQCFormula.Text = oldText; // Revertimos el cambio ilegal
-
-                // Mantenemos el cursor en su sitio
-                if (cursor > 0 && cursor <= oldText.Length) TxtQCFormula.CursorPosition = cursor - 1;
-                _isSystemEdit = false;
-                return;
-            }
-
-            ActualizarQCColoresBotones();
+            ChkQCUniqueL6.IsEnabled = has6; if (!has6) ChkQCUniqueL6.IsChecked = false;
         }
 
         private void ActualizarQCColoresBotones()
         {
             string formula = TxtQCFormula.Text ?? "";
+            string molde = _formulaBackupQC ?? ""; // Nuestro backup
             bool isDarkMode = Application.Current?.RequestedTheme == AppTheme.Dark;
-            Color actBg = isDarkMode ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
+
+            Color actBg = isDarkMode ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32"); // Verde
+            Color modBg = Color.FromArgb("#EFA72F"); // 🚀 Naranja (Estado de Advertencia)
+            Color inactBg = isDarkMode ? Color.FromArgb("#232B35") : Color.FromArgb("#E9ECEF"); // Gris
+
             Color actTxt = isDarkMode ? Color.FromArgb("#1C262E") : Colors.White;
-            Color inactBg = isDarkMode ? Color.FromArgb("#232B35") : Color.FromArgb("#E9ECEF");
+            Color modTxt = Color.FromArgb("#1C262E"); // Texto oscuro para el Naranja
             Color inactTxt = isDarkMode ? Color.FromArgb("#939CA5") : Color.FromArgb("#54606C");
 
             void SetColor(Button btn, string tag)
             {
                 if (btn == null) return;
-                bool contains = formula.Contains($"[{tag}]");
-                btn.BackgroundColor = contains ? actBg : inactBg;
-                btn.TextColor = contains ? actTxt : inactTxt;
+                string baseTag = $"[{tag}]";
+
+                bool enPantalla = formula.Contains(baseTag) || formula.Contains($"[{tag}:Izq]") || formula.Contains($"[{tag}:Der]");
+                bool enMolde = molde.Contains(baseTag) || molde.Contains($"[{tag}:Izq]") || molde.Contains($"[{tag}:Der]");
+
+                if (enPantalla)
+                {
+                    btn.BackgroundColor = actBg; btn.TextColor = actTxt;
+                }
+                else if (enMolde)
+                {
+                    btn.BackgroundColor = modBg; btn.TextColor = modTxt; // 🚀 Si lo borró manual, se pone NARANJA
+                }
+                else
+                {
+                    btn.BackgroundColor = inactBg; btn.TextColor = inactTxt;
+                }
             }
 
-            SetColor(BtnQCTagMarca, "Marca");
-            SetColor(BtnQCTagCodigo, "Código");
-            SetColor(BtnQCTagSerie, "Serie");
-            SetColor(BtnQCTagModelo, "Modelo");
+            SetColor(BtnQCTagMarca, "Marca"); SetColor(BtnQCTagCodigo, "Código");
+            SetColor(BtnQCTagSerie, "Serie"); SetColor(BtnQCTagModelo, "Modelo");
             SetColor(BtnQCTagPresentacion, "Pres.");
 
             if (BtnQCTagL1.IsVisible) SetColor(BtnQCTagL1, BtnQCTagL1.Text);
@@ -1617,29 +1835,102 @@ namespace ControlInventarioMovil.Views
             if (BtnQCTagL6.IsVisible) SetColor(BtnQCTagL6, BtnQCTagL6.Text);
         }
 
-        // 🚀 ACCIÓN DE TOGGLE RÁPIDO: Pone y Quita sin preguntar
         private void OnQCTagClicked(object sender, EventArgs e)
         {
             var btn = (Button)sender;
-            string tag = $"[{btn.Text}]";
-            string formula = TxtQCFormula.Text ?? "";
+            string baseTag = btn.Text;
 
-            if (formula.Contains(tag))
+            bool existeEnMolde = _formulaBackupQC.Contains($"[{baseTag}]") ||
+                                 _formulaBackupQC.Contains($"[{baseTag}:Izq]") ||
+                                 _formulaBackupQC.Contains($"[{baseTag}:Der]");
+
+            _isSystemEdit = true;
+
+            if (existeEnMolde)
             {
-                string nuevaFormula = formula.Replace(tag, "").Trim();
-                nuevaFormula = Regex.Replace(nuevaFormula, @"\+\s*\+", "+"); // Limpia dobles "+"
-                nuevaFormula = nuevaFormula.TrimEnd('+', ' ').TrimStart('+', ' '); // Limpia bordes
-                SetQCFormulaText(nuevaFormula);
+                string nuevaFormula = _formulaBackupQC.Replace($"[{baseTag}]", "")
+                                                      .Replace($"[{baseTag}:Izq]", "")
+                                                      .Replace($"[{baseTag}:Der]", "").Trim();
+
+                nuevaFormula = Regex.Replace(nuevaFormula, @"\s+", " ");
+                nuevaFormula = Regex.Replace(nuevaFormula, @"([-|/,+])\s*(?=[-|/,+])", "");
+                _formulaBackupQC = Regex.Replace(nuevaFormula, @"^[\s-|/,+]+|[\s-|/,+]+$", "");
             }
             else
             {
-                if (formula.Length > 0)
-                {
-                    if (!formula.EndsWith(" ")) formula += " ";
-                    if (!formula.EndsWith("+ ")) formula += "+ ";
-                }
-                SetQCFormulaText(formula + tag);
+                if (_formulaBackupQC.Length > 0 && !Regex.IsMatch(_formulaBackupQC, @"[+\-\|\/,]\s*$"))
+                    _formulaBackupQC += " + ";
+                else if (_formulaBackupQC.Length > 0 && !_formulaBackupQC.EndsWith(" "))
+                    _formulaBackupQC += " ";
+
+                _formulaBackupQC += $"[{baseTag}]";
             }
+
+            TxtQCFormula.Text = AutoCorregirFormulaQC(TxtQCFormula.Text);
+
+            _isSystemEdit = false;
+            ActualizarQCColoresBotones();
+            TxtQCFormula.Unfocus();
+        }
+
+        private void OnQCFormulaFocused(object sender, FocusEventArgs e)
+        {
+            _formulaBackupQC = TxtQCFormula.Text ?? "";
+        }
+
+        private void OnQCFormulaUnfocused(object sender, FocusEventArgs e)
+        {
+            string corregido = AutoCorregirFormulaQC(TxtQCFormula.Text);
+
+            if (string.IsNullOrWhiteSpace(corregido)) TxtQCFormula.Text = _formulaBackupQC;
+            else TxtQCFormula.Text = corregido;
+
+            ActualizarQCColoresBotones();
+        }
+
+        private string AutoCorregirFormulaQC(string input)
+        {
+            if (string.IsNullOrWhiteSpace(_formulaBackupQC)) return "";
+
+            var expectedTags = Regex.Matches(_formulaBackupQC, @"\[.*?\]").Cast<Match>().Select(m => m.Value).ToList();
+
+            string pattern = @"[A-Za-zÀ-ÿ0-9\[\]:.]+";
+            string[] separators = Regex.Split(input ?? "", pattern);
+
+            string result = "";
+            for (int i = 0; i < expectedTags.Count; i++)
+            {
+                string sep = "";
+                if (i < separators.Length && i > 0) sep = separators[i];
+                else if (i > 0) sep = " + ";
+                else if (separators.Length > 0) sep = separators[0];
+
+                if (i > 0 && !Regex.IsMatch(sep, @"[+\-\|\/,]")) sep = " + ";
+
+                result += sep + expectedTags[i];
+            }
+
+            // Limpiamos los bordes
+            result = Regex.Replace(result, @"^[\s+|/,-]+|[\s+|/,-]+$", "");
+            return result.Trim();
+        }
+
+        private void OnQCFormulaTextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isSystemEdit) return;
+            ActualizarQCColoresBotones();
+        }
+
+        private void OnAddQuarterClicked(object sender, EventArgs e) => AgregarFraccionAStock(0.25m);
+        private void OnAddHalfClicked(object sender, EventArgs e) => AgregarFraccionAStock(0.5m);
+        private void OnAddThreeQuartersClicked(object sender, EventArgs e) => AgregarFraccionAStock(0.75m);
+
+        private void AgregarFraccionAStock(decimal fraccion)
+        {
+            decimal stockActual = decimal.TryParse(TxtStock.Text, out decimal s) ? s : 0;
+            TxtStock.Text = (stockActual + fraccion).ToString("0.##");
+
+            OnCalculoGananciaTriggered(null, EventArgs.Empty);
         }
         #endregion
     }
