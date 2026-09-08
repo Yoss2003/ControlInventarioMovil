@@ -93,14 +93,17 @@ namespace ControlInventarioMovil.Views
 
                     // Ordenar cronológicamente para calcular el saldo progresivo
                     var orderedMovs = group.OrderBy(m => m.Id).ToList();
-                    double runningStock = 0;
+                    decimal runningStock = 0;
                     var dtoList = new List<KardexMovementDto>();
 
                     foreach (var m in orderedMovs)
                     {
-                        if (m.ActionId == 1) runningStock += m.Amount ?? 0;
-                        else if (m.ActionId == 2) runningStock -= m.Amount ?? 0;
-                        else runningStock += m.Amount ?? 0;
+                        if (m.ActionId == 1)
+                            runningStock += m.Amount ?? 0;
+                        else if (m.ActionId == 2)
+                            runningStock -= m.Amount ?? 0;
+                        else
+                            runningStock += m.Amount ?? 0;
 
                         dtoList.Add(new KardexMovementDto
                         {
@@ -109,8 +112,8 @@ namespace ControlInventarioMovil.Views
                             MovementDate = m.MovementDate ?? string.Empty,
                             Observation = m.Observation ?? "Sin observación",
                             Recipient = m.Recipient ?? string.Empty,
-                            Amount = m.Amount ?? 0,
-                            SalePrice = m.SalePrice ?? 0,
+                            Amount = m.Amount ?? 0m,
+                            SalePrice = m.SalePrice ?? 0m,
                             RunningBalance = runningStock
                         });
                     }

@@ -14,11 +14,14 @@ namespace ControlInventarioMovil.Views
     {
         private bool _isCargandoUnidades = false;
         private readonly ApiService _apiService;
-        private ObservableCollection<CategoriaPadreUI> _categoriasPadre = new ObservableCollection<CategoriaPadreUI>();
+        private ObservableCollection<CategoriaPadreUI> _categoriasPadre = [];
         private Category? _categoriaEnEdicion = null;
-        private List<int> _unidadesSeleccionadasTemporales = new List<int>();
+        private List<int> _unidadesSeleccionadasTemporales = [];
         private Category? _categoriaUnidadesActual = null;
-        private bool _isSystemEdit = false; // 🚀 BANDERA PARA BLOQUEAR VALIDACIÓN
+        private bool _isSystemEdit = false;
+
+        // 🚀 VARIABLE DE BACKUP 
+        private string _formulaBackupCat = "";
 
         public class SelectableUnit : INotifyPropertyChanged
         {
@@ -81,6 +84,10 @@ namespace ControlInventarioMovil.Views
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     ColCategoriasPadre.ItemsSource = _categoriasPadre;
+
+                    bool hayDatos = _categoriasPadre.Any();
+                    ColCategoriasPadre.IsVisible = hayDatos;
+                    SecEstadoVacio.IsVisible = !hayDatos;
 
                     PkrPadre.Items.Clear();
                     PkrPadre.Items.Add("-- SELECCIONE --");
@@ -171,11 +178,20 @@ namespace ControlInventarioMovil.Views
                     var rootContenedor = (View)border.Parent;
 
                     await Task.WhenAll(
-                        rootContenedor.ScaleToAsync(0.8, 250, Easing.CubicIn),
-                        rootContenedor.FadeToAsync(0, 250, Easing.CubicIn)
+                        rootContenedor.ScaleToAsync(0.8, 100, Easing.CubicIn),
+                        rootContenedor.FadeToAsync(0, 100, Easing.CubicIn)
                     );
 
-                    _categoriasPadre.Remove(categoriaPadre);
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        _categoriasPadre.Remove(categoriaPadre);
+
+                        if (!_categoriasPadre.Any())
+                        {
+                            ColCategoriasPadre.IsVisible = false;
+                            SecEstadoVacio.IsVisible = true;
+                        }
+                    });
                 }
                 else
                 {
@@ -244,20 +260,23 @@ namespace ControlInventarioMovil.Views
                     var rootContenedorHija = (View)border.Parent;
 
                     await Task.WhenAll(
-                        rootContenedorHija.ScaleToAsync(0.5, 250, Easing.CubicIn),
-                        rootContenedorHija.FadeToAsync(0, 250, Easing.CubicIn)
+                        rootContenedorHija.ScaleToAsync(0.5, 100, Easing.CubicIn),
+                        rootContenedorHija.FadeToAsync(0, 100, Easing.CubicIn)
                     );
 
-                    var padre = _categoriasPadre.FirstOrDefault(p => p.Subcategorias.Any(h => h.Id == subcategoria.Id));
-                    if (padre != null)
+                    MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        var itemToRemove = padre.Subcategorias.FirstOrDefault(h => h.Id == subcategoria.Id);
-                        if (itemToRemove != null)
+                        var padre = _categoriasPadre.FirstOrDefault(p => p.Subcategorias.Any(h => h.Id == subcategoria.Id));
+                        if (padre != null)
                         {
-                            padre.Subcategorias.Remove(itemToRemove);
-                            padre.ActualizarEstadoHijas();
+                            var itemToRemove = padre.Subcategorias.FirstOrDefault(h => h.Id == subcategoria.Id);
+                            if (itemToRemove != null)
+                            {
+                                padre.Subcategorias.Remove(itemToRemove);
+                                padre.ActualizarEstadoHijas();
+                            }
                         }
-                    }
+                    });
                 }
                 else
                 {
@@ -280,6 +299,7 @@ namespace ControlInventarioMovil.Views
             TxtNombreCat.Text = _categoriaEnEdicion.Name;
             TxtDescription.Text = _categoriaEnEdicion.Description;
 
+            SecReglas.IsVisible = false;
             SecContexto.IsVisible = false;
             SecAtributos.IsVisible = false;
             SecNamingMethod.IsVisible = false;
@@ -293,9 +313,10 @@ namespace ControlInventarioMovil.Views
         // 🚀 MÉTODO SEGURO PARA ACTUALIZAR LA FÓRMULA SIN DISPARAR LA VALIDACIÓN
         private void SetFormulaText(string text)
         {
-            _isSystemEdit = true; // 🛑 Bloqueamos
+            _isSystemEdit = true;
             TxtNamingCustom.Text = text;
-            _isSystemEdit = false; // 🟢 Desbloqueamos
+            _formulaBackupCat = text;
+            _isSystemEdit = false;
             ActualizarColoresBotonesNaming();
         }
 
@@ -314,16 +335,26 @@ namespace ControlInventarioMovil.Views
             TxtDescription.Text = _categoriaEnEdicion.Description;
 
             TxtLabel1.Text = _categoriaEnEdicion.Label1;
-            TxtLabel2.Text = _categoriaEnEdicion.Label2;
-            TxtLabel3.Text = _categoriaEnEdicion.Label3;
-            TxtLabel4.Text = _categoriaEnEdicion.Label4;
-            TxtLabel5.Text = _categoriaEnEdicion.Label5;
+            ChkUniqueL1.IsChecked = _categoriaEnEdicion.IsUnique1;
 
-            var propertyL6 = _categoriaEnEdicion.GetType().GetProperty("Label6");
-            if (propertyL6 != null) { TxtLabel6.Text = propertyL6.GetValue(_categoriaEnEdicion) as string; }
+            TxtLabel2.Text = _categoriaEnEdicion.Label2;
+            ChkUniqueL2.IsChecked = _categoriaEnEdicion.IsUnique2;
+
+            TxtLabel3.Text = _categoriaEnEdicion.Label3;
+            ChkUniqueL3.IsChecked = _categoriaEnEdicion.IsUnique3;
+
+            TxtLabel4.Text = _categoriaEnEdicion.Label4;
+            ChkUniqueL4.IsChecked = _categoriaEnEdicion.IsUnique4;
+
+            TxtLabel5.Text = _categoriaEnEdicion.Label5;
+            ChkUniqueL5.IsChecked = _categoriaEnEdicion.IsUnique5;
+
+            TxtLabel6.Text = _categoriaEnEdicion.Label6;
+            ChkUniqueL6.IsChecked = _categoriaEnEdicion.IsUnique6;
 
             ActualizarVisibilidadBotonesSlots();
 
+            SecReglas.IsVisible = true;
             SecContexto.IsVisible = true;
             SecUnidadesMedida.IsVisible = true;
             Grid.SetColumnSpan(SecNombre, 1);
@@ -429,12 +460,32 @@ namespace ControlInventarioMovil.Views
 
         private async void OnConfirmarFormClicked(object sender, EventArgs e)
         {
+            TxtNamingCustom.Unfocus();
             try
             {
                 if (string.IsNullOrWhiteSpace(TxtNombreCat.Text))
                 {
                     await DisplayAlertAsync("Atención", "El nombre de la categoría es obligatorio.", "OK");
                     return;
+                }
+
+                string trackingMode = PkrTrackingMode.SelectedItem?.ToString() ?? "";
+                bool isSerialized = trackingMode.Contains("Serial", StringComparison.OrdinalIgnoreCase);
+
+                bool algunUnico = ChkUniqueL1.IsChecked || ChkUniqueL2.IsChecked ||
+                                  ChkUniqueL3.IsChecked || ChkUniqueL4.IsChecked ||
+                                  ChkUniqueL5.IsChecked || ChkUniqueL6.IsChecked;
+
+                if (isSerialized && !algunUnico)
+                {
+                    bool continuar = await DisplayAlertAsync(
+                        "Verificación de Atributos",
+                        "No has marcado ningún atributo dinámico como 'Dato Único'.\n\nEsto significa que el único dato irrepetible para esta categoría será el [Número de Serie] principal, y el resto de especificaciones serán compartidas.\n\n¿Estás seguro de guardar la configuración así?",
+                        "Sí, guardar",
+                        "No, revisar"
+                    );
+
+                    if (!continuar) return;
                 }
 
                 if (SecContexto.IsVisible && PkrPadre.SelectedIndex <= 0)
@@ -500,11 +551,23 @@ namespace ControlInventarioMovil.Views
                     CreationUser = _categoriaEnEdicion != null ? _categoriaEnEdicion.CreationUser : "Admin",
                     SelectedUnitIds = new List<int>(_unidadesSeleccionadasTemporales),
                     Label1 = TxtLabel1.Text,
+                    IsUnique1 = ChkUniqueL1.IsChecked,
+
                     Label2 = TxtLabel2.Text,
+                    IsUnique2 = ChkUniqueL2.IsChecked,
+
                     Label3 = TxtLabel3.Text,
+                    IsUnique3 = ChkUniqueL3.IsChecked,
+
                     Label4 = TxtLabel4.Text,
+                    IsUnique4 = ChkUniqueL4.IsChecked,
+
                     Label5 = TxtLabel5.Text,
+                    IsUnique5 = ChkUniqueL5.IsChecked,
+
                     Label6 = TxtLabel6.Text,
+                    IsUnique6 = ChkUniqueL6.IsChecked,
+
                     IsActive = true
                 };
 
@@ -527,7 +590,7 @@ namespace ControlInventarioMovil.Views
                 if (exito)
                 {
                     OnCerrarFormClicked(null, null);
-                    lblCarga?.Text = "Refrescando datos...";
+                    if (lblCarga != null) lblCarga.Text = "Refrescando datos...";
                     if (OverlayCarga != null) { OverlayCarga.Opacity = 1; OverlayCarga.IsVisible = true; }
 
                     await CargarCategoriasPadre();
@@ -539,7 +602,7 @@ namespace ControlInventarioMovil.Views
             }
             catch (Exception ex)
             {
-                OverlayCarga?.IsVisible = false;
+                if (OverlayCarga != null) OverlayCarga.IsVisible = false;
                 await DisplayAlertAsync("Error Crítico", $"El formulario falló: {ex.Message}", "OK");
             }
         }
@@ -553,6 +616,7 @@ namespace ControlInventarioMovil.Views
             BtnConfirmarForm.BackgroundColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
             BtnConfirmarForm.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#1C262E") : Colors.White;
 
+            SecReglas.IsVisible = false;
             SecContexto.IsVisible = false;
             SecAtributos.IsVisible = false;
             SecNamingMethod.IsVisible = false;
@@ -571,6 +635,7 @@ namespace ControlInventarioMovil.Views
             BtnConfirmarForm.BackgroundColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
             BtnConfirmarForm.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#1C262E") : Colors.White;
 
+            SecReglas.IsVisible = true;
             SecContexto.IsVisible = true;
             SecAtributos.IsVisible = false;
             SecNamingMethod.IsVisible = false;
@@ -609,7 +674,20 @@ namespace ControlInventarioMovil.Views
             TxtLabel4.Text = string.Empty;
             TxtLabel5.Text = string.Empty;
             TxtLabel6.Text = string.Empty;
+            ChkUniqueL1.IsChecked = false;
+            ChkUniqueL2.IsChecked = false;
+            ChkUniqueL3.IsChecked = false;
+            ChkUniqueL4.IsChecked = false;
+            ChkUniqueL5.IsChecked = false;
+            ChkUniqueL6.IsChecked = false;
+
+            _formulaBackupCat = "";
+            _isSystemEdit = true;
+            TxtNamingCustom.Text = string.Empty;
+            _isSystemEdit = false;
+
             ActualizarVisibilidadBotonesSlots();
+            ActualizarColoresBotonesNaming();
 
             PkrPadre.SelectedIndex = 0;
             PkrTrackingMode.SelectedIndex = 0;
@@ -702,16 +780,40 @@ namespace ControlInventarioMovil.Views
         private void OnLabelTextChanged(object sender, TextChangedEventArgs e)
         {
             ActualizarVisibilidadBotonesSlots();
+            ActualizarColoresBotonesNaming();
         }
 
         private void ActualizarVisibilidadBotonesSlots()
         {
-            bool has1 = !string.IsNullOrWhiteSpace(TxtLabel1.Text); BtnTagL1.IsVisible = has1; if (has1) BtnTagL1.Text = TxtLabel1.Text;
-            bool has2 = !string.IsNullOrWhiteSpace(TxtLabel2.Text); BtnTagL2.IsVisible = has2; if (has2) BtnTagL2.Text = TxtLabel2.Text;
-            bool has3 = !string.IsNullOrWhiteSpace(TxtLabel3.Text); BtnTagL3.IsVisible = has3; if (has3) BtnTagL3.Text = TxtLabel3.Text;
-            bool has4 = !string.IsNullOrWhiteSpace(TxtLabel4.Text); BtnTagL4.IsVisible = has4; if (has4) BtnTagL4.Text = TxtLabel4.Text;
-            bool has5 = !string.IsNullOrWhiteSpace(TxtLabel5.Text); BtnTagL5.IsVisible = has5; if (has5) BtnTagL5.Text = TxtLabel5.Text;
-            bool has6 = !string.IsNullOrWhiteSpace(TxtLabel6.Text); BtnTagL6.IsVisible = has6; if (has6) BtnTagL6.Text = TxtLabel6.Text;
+            // Atributo 1
+            bool has1 = !string.IsNullOrWhiteSpace(TxtLabel1.Text);
+            BtnTagL1.IsVisible = has1; if (has1) BtnTagL1.Text = TxtLabel1.Text;
+            ChkUniqueL1.IsEnabled = has1; if (!has1) ChkUniqueL1.IsChecked = false;
+
+            // Atributo 2
+            bool has2 = !string.IsNullOrWhiteSpace(TxtLabel2.Text);
+            BtnTagL2.IsVisible = has2; if (has2) BtnTagL2.Text = TxtLabel2.Text;
+            ChkUniqueL2.IsEnabled = has2; if (!has2) ChkUniqueL2.IsChecked = false;
+
+            // Atributo 3
+            bool has3 = !string.IsNullOrWhiteSpace(TxtLabel3.Text);
+            BtnTagL3.IsVisible = has3; if (has3) BtnTagL3.Text = TxtLabel3.Text;
+            ChkUniqueL3.IsEnabled = has3; if (!has3) ChkUniqueL3.IsChecked = false;
+
+            // Atributo 4
+            bool has4 = !string.IsNullOrWhiteSpace(TxtLabel4.Text);
+            BtnTagL4.IsVisible = has4; if (has4) BtnTagL4.Text = TxtLabel4.Text;
+            ChkUniqueL4.IsEnabled = has4; if (!has4) ChkUniqueL4.IsChecked = false;
+
+            // Atributo 5
+            bool has5 = !string.IsNullOrWhiteSpace(TxtLabel5.Text);
+            BtnTagL5.IsVisible = has5; if (has5) BtnTagL5.Text = TxtLabel5.Text;
+            ChkUniqueL5.IsEnabled = has5; if (!has5) ChkUniqueL5.IsChecked = false;
+
+            // Atributo 6
+            bool has6 = !string.IsNullOrWhiteSpace(TxtLabel6.Text);
+            BtnTagL6.IsVisible = has6; if (has6) BtnTagL6.Text = TxtLabel6.Text;
+            ChkUniqueL6.IsEnabled = has6; if (!has6) ChkUniqueL6.IsChecked = false;
         }
 
         private void OnModoLibreToggled(object sender, ToggledEventArgs e)
@@ -907,57 +1009,95 @@ namespace ControlInventarioMovil.Views
             }
         }
 
-        // 🚀 EL CEREBRO REGEX QUE EVITA QUE SE BORREN LAS ETIQUETAS
-        private void OnNamingCustomTextChanged(object sender, TextChangedEventArgs e)
+        // ==========================================
+        // 🚀 CEREBRO DE FÓRMULA (VALIDACIÓN DETRÁS DE CÁMARA)
+        // ==========================================
+
+        private void OnNamingCustomFocused(object sender, FocusEventArgs e)
         {
-            if (_isSystemEdit) return; // Si lo está editando el sistema, no validamos
+            _formulaBackupCat = TxtNamingCustom.Text ?? "";
+        }
 
-            string oldText = e.OldTextValue ?? "";
-            string newText = e.NewTextValue ?? "";
+        private void OnNamingCustomUnfocused(object sender, FocusEventArgs e)
+        {
+            string corregido = AutoCorregirFormulaCat(TxtNamingCustom.Text);
 
-            if (oldText == newText) return;
+            if (string.IsNullOrWhiteSpace(corregido)) TxtNamingCustom.Text = _formulaBackupCat;
+            else TxtNamingCustom.Text = corregido;
 
-            // Ignoramos los símbolos permitidos y los espacios
-            string strippedOld = Regex.Replace(oldText, @"[\s\-\/\|,\+]", "");
-            string strippedNew = Regex.Replace(newText, @"[\s\-\/\|,\+]", "");
+            ActualizarColoresBotonesNaming();
+        }
 
-            // Si los textos sin símbolos NO coinciden, intentaste modificar una etiqueta
-            if (strippedOld != strippedNew)
+        private string AutoCorregirFormulaCat(string input)
+        {
+            if (string.IsNullOrWhiteSpace(_formulaBackupCat)) return "";
+
+            var expectedTags = Regex.Matches(_formulaBackupCat, @"\[.*?\]").Cast<Match>().Select(m => m.Value).ToList();
+
+            string pattern = @"[A-Za-zÀ-ÿ0-9\[\]:.]+";
+            string[] separators = Regex.Split(input ?? "", pattern);
+
+            string result = "";
+            for (int i = 0; i < expectedTags.Count; i++)
             {
-                _isSystemEdit = true;
-                int cursor = TxtNamingCustom.CursorPosition;
-                TxtNamingCustom.Text = oldText; // Revertimos el cambio ilegal
+                string sep = "";
+                if (i < separators.Length && i > 0) sep = separators[i];
+                else if (i > 0) sep = " + ";
+                else if (separators.Length > 0) sep = separators[0];
 
-                // Mantenemos el cursor en su sitio
-                if (cursor > 0 && cursor <= oldText.Length) TxtNamingCustom.CursorPosition = cursor - 1;
-                _isSystemEdit = false;
-                return;
+                if (i > 0 && !Regex.IsMatch(sep, @"[+\-\|\/,]")) sep = " + ";
+
+                result += sep + expectedTags[i];
             }
 
+            result = Regex.Replace(result, @"^[\s+|/,-]+|[\s+|/,-]+$", "");
+            return result.Trim();
+        }
+
+        private void OnNamingCustomTextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isSystemEdit) return;
             ActualizarColoresBotonesNaming();
         }
 
         private void ActualizarColoresBotonesNaming()
         {
             string formula = TxtNamingCustom.Text ?? "";
+            string molde = _formulaBackupCat ?? "";
             bool isDarkMode = Application.Current?.RequestedTheme == AppTheme.Dark;
-            Color actBg = isDarkMode ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
+
+            Color actBg = isDarkMode ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32"); // Verde
+            Color modBg = Color.FromArgb("#EFA72F"); // 🚀 Naranja (Estado de Advertencia)
+            Color inactBg = isDarkMode ? Color.FromArgb("#232B35") : Color.FromArgb("#E9ECEF"); // Gris
+
             Color actTxt = isDarkMode ? Color.FromArgb("#1C262E") : Colors.White;
-            Color inactBg = isDarkMode ? Color.FromArgb("#232B35") : Color.FromArgb("#E9ECEF");
+            Color modTxt = Color.FromArgb("#1C262E");
             Color inactTxt = isDarkMode ? Color.FromArgb("#939CA5") : Color.FromArgb("#54606C");
 
             void SetColor(Button btn, string tag)
             {
                 if (btn == null) return;
-                bool contains = formula.Contains($"[{tag}]");
-                btn.BackgroundColor = contains ? actBg : inactBg;
-                btn.TextColor = contains ? actTxt : inactTxt;
+                string baseTag = $"[{tag}]";
+
+                bool enPantalla = formula.Contains(baseTag) || formula.Contains($"[{tag}:Izq]") || formula.Contains($"[{tag}:Der]");
+                bool enMolde = molde.Contains(baseTag) || molde.Contains($"[{tag}:Izq]") || molde.Contains($"[{tag}:Der]");
+
+                if (enPantalla)
+                {
+                    btn.BackgroundColor = actBg; btn.TextColor = actTxt;
+                }
+                else if (enMolde)
+                {
+                    btn.BackgroundColor = modBg; btn.TextColor = modTxt;
+                }
+                else
+                {
+                    btn.BackgroundColor = inactBg; btn.TextColor = inactTxt;
+                }
             }
 
-            SetColor(BtnTagMarca, "Marca");
-            SetColor(BtnTagCodigo, "Código");
-            SetColor(BtnTagSerie, "Serie");
-            SetColor(BtnTagModelo, "Modelo");
+            SetColor(BtnTagMarca, "Marca"); SetColor(BtnTagCodigo, "Código");
+            SetColor(BtnTagSerie, "Serie"); SetColor(BtnTagModelo, "Modelo");
             SetColor(BtnTagPresentacion, "Pres.");
 
             if (BtnTagL1.IsVisible) SetColor(BtnTagL1, BtnTagL1.Text);
@@ -968,29 +1108,46 @@ namespace ControlInventarioMovil.Views
             if (BtnTagL6.IsVisible) SetColor(BtnTagL6, BtnTagL6.Text);
         }
 
-        // 🚀 ACCIÓN DE TOGGLE RÁPIDO: Pone y Quita sin preguntar
         private void OnTagClicked(object sender, EventArgs e)
         {
             var btn = (Button)sender;
-            string tag = $"[{btn.Text}]";
-            string formula = TxtNamingCustom.Text ?? "";
+            string baseTag = btn.Text;
 
-            if (formula.Contains(tag))
+            bool existeEnMolde = _formulaBackupCat.Contains($"[{baseTag}]") ||
+                                 _formulaBackupCat.Contains($"[{baseTag}:Izq]") ||
+                                 _formulaBackupCat.Contains($"[{baseTag}:Der]");
+
+            _isSystemEdit = true;
+
+            if (existeEnMolde)
             {
-                string nuevaFormula = formula.Replace(tag, "").Trim();
-                nuevaFormula = Regex.Replace(nuevaFormula, @"\+\s*\+", "+"); // Limpia dobles "+"
-                nuevaFormula = nuevaFormula.TrimEnd('+', ' ').TrimStart('+', ' '); // Limpia bordes
-                SetFormulaText(nuevaFormula);
+                string nuevaFormula = _formulaBackupCat.Replace($"[{baseTag}]", "")
+                                                      .Replace($"[{baseTag}:Izq]", "")
+                                                      .Replace($"[{baseTag}:Der]", "").Trim();
+
+                nuevaFormula = Regex.Replace(nuevaFormula, @"\s+", " ");
+                nuevaFormula = Regex.Replace(nuevaFormula, @"([-|/,+])\s*(?=[-|/,+])", "");
+                nuevaFormula = Regex.Replace(nuevaFormula, @"^[\s-|/,+]+|[\s-|/,+]+$", "");
+
+                if (string.IsNullOrWhiteSpace(nuevaFormula)) return;
+
+                _formulaBackupCat = nuevaFormula;
             }
             else
             {
-                if (formula.Length > 0)
-                {
-                    if (!formula.EndsWith(" ")) formula += " ";
-                    if (!formula.EndsWith("+ ")) formula += "+ ";
-                }
-                SetFormulaText(formula + tag);
+                if (_formulaBackupCat.Length > 0 && !Regex.IsMatch(_formulaBackupCat, @"[+\-\|\/,]\s*$"))
+                    _formulaBackupCat += " + ";
+                else if (_formulaBackupCat.Length > 0 && !_formulaBackupCat.EndsWith(" "))
+                    _formulaBackupCat += " ";
+
+                _formulaBackupCat += $"[{baseTag}]";
             }
+
+            TxtNamingCustom.Text = AutoCorregirFormulaCat(TxtNamingCustom.Text);
+
+            _isSystemEdit = false;
+            ActualizarColoresBotonesNaming();
+            TxtNamingCustom.Unfocus();
         }
     }
 
@@ -1014,14 +1171,18 @@ namespace ControlInventarioMovil.Views
             IsReturnable = b.IsReturnable;
             SelectedUnitIds = b.SelectedUnitIds;
             IsActive = b.IsActive;
-            Label1 = b.Label1;
-            Label2 = b.Label2;
-            Label3 = b.Label3;
-            Label4 = b.Label4;
-            Label5 = b.Label5;
-
-            var propertyL6 = b.GetType().GetProperty("Label6");
-            if (propertyL6 != null) { Label6 = propertyL6.GetValue(b) as string; }
+            Label1 = b.Label1; 
+            IsUnique1 = b.IsUnique1;
+            Label2 = b.Label2; 
+            IsUnique2 = b.IsUnique2;
+            Label3 = b.Label3; 
+            IsUnique3 = b.IsUnique3;
+            Label4 = b.Label4; 
+            IsUnique4 = b.IsUnique4;
+            Label5 = b.Label5; 
+            IsUnique5 = b.IsUnique5;
+            Label6 = b.Label6;
+            IsUnique6 = b.IsUnique6;
         }
 
         public bool IsExpanded

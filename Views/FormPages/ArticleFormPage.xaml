@@ -127,7 +127,7 @@
                                 <BoxView IsVisible="{Binding Source={x:Reference SecSku}, Path=IsVisible}" HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
 
                                 <Grid x:Name="SecModelSerie" ColumnDefinitions="*, *" ColumnSpacing="12" IsVisible="False">
-                                    <VerticalStackLayout Grid.Column="0" Spacing="5">
+                                    <VerticalStackLayout x:Name="ColModel" Grid.Column="0" Spacing="5">
                                         <Label x:Name="LblModelTitle" Text="Modelo" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                         <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
                                             <Entry x:Name="TxtModel" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ej. L14 Gen 3" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnGeneradorNombreTriggered"/>
@@ -191,12 +191,12 @@
                                             <Grid ColumnDefinitions="*, Auto, Auto">
                                                 <Label x:Name="LblAttr1" Text="Attr1" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" FontAttributes="Bold" VerticalOptions="Center"/>
                                                 <HorizontalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center" Margin="0,0,5,0">
-                                                    <Label Text="Ver" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                                    <Label Text="Mostrar nombre" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
                                                     <CheckBox x:Name="ChkShowL1" IsChecked="False" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4" CheckedChanged="OnGeneradorNombreTriggered"/>
                                                 </HorizontalStackLayout>
                                                 <HorizontalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
-                                                    <Label Text="Izq" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
-                                                    <CheckBox x:Name="ChkPosL1" IsChecked="True" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4" CheckedChanged="OnGeneradorNombreTriggered"/>
+                                                    <Label Text="A la izquierda" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                                    <CheckBox x:Name="ChkPosL1" IsChecked="False" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4" CheckedChanged="OnGeneradorNombreTriggered"/>
                                                 </HorizontalStackLayout>
                                             </Grid>
                                             <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
@@ -209,11 +209,11 @@
                                             <Grid ColumnDefinitions="*, Auto, Auto">
                                                 <Label x:Name="LblAttr2" Text="Attr2" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" FontAttributes="Bold" VerticalOptions="Center"/>
                                                 <HorizontalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center" Margin="0,0,5,0">
-                                                    <Label Text="Ver" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                                    <Label Text="Mostrar nombre" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
                                                     <CheckBox x:Name="ChkShowL2" IsChecked="False" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4" CheckedChanged="OnGeneradorNombreTriggered"/>
                                                 </HorizontalStackLayout>
                                                 <HorizontalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
-                                                    <Label Text="Izq" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                                    <Label Text="A la izquierda" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
                                                     <CheckBox x:Name="ChkPosL2" IsChecked="True" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4" CheckedChanged="OnGeneradorNombreTriggered"/>
                                                 </HorizontalStackLayout>
                                             </Grid>
@@ -227,11 +227,11 @@
                                             <Grid ColumnDefinitions="*, Auto, Auto">
                                                 <Label x:Name="LblAttr3" Text="Attr3" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" FontAttributes="Bold" VerticalOptions="Center"/>
                                                 <HorizontalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center" Margin="0,0,5,0">
-                                                    <Label Text="Ver" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                                    <Label Text="Mostrar nombre" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
                                                     <CheckBox x:Name="ChkShowL3" IsChecked="False" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4" CheckedChanged="OnGeneradorNombreTriggered"/>
                                                 </HorizontalStackLayout>
                                                 <HorizontalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
-                                                    <Label Text="Izq" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                                    <Label Text="A la izquierda" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
                                                     <CheckBox x:Name="ChkPosL3" IsChecked="True" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4" CheckedChanged="OnGeneradorNombreTriggered"/>
                                                 </HorizontalStackLayout>
                                             </Grid>
@@ -245,11 +245,11 @@
                                             <Grid ColumnDefinitions="*, Auto, Auto">
                                                 <Label x:Name="LblAttr4" Text="Attr4" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" FontAttributes="Bold" VerticalOptions="Center"/>
                                                 <HorizontalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center" Margin="0,0,5,0">
-                                                    <Label Text="Ver" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                                    <Label Text="Mostrar nombre" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
                                                     <CheckBox x:Name="ChkShowL4" IsChecked="False" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4" CheckedChanged="OnGeneradorNombreTriggered"/>
                                                 </HorizontalStackLayout>
                                                 <HorizontalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
-                                                    <Label Text="Izq" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                                    <Label Text="A la izquierda" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
                                                     <CheckBox x:Name="ChkPosL4" IsChecked="True" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4" CheckedChanged="OnGeneradorNombreTriggered"/>
                                                 </HorizontalStackLayout>
                                             </Grid>
@@ -263,11 +263,11 @@
                                             <Grid ColumnDefinitions="*, Auto, Auto">
                                                 <Label x:Name="LblAttr5" Text="Attr5" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" FontAttributes="Bold" VerticalOptions="Center"/>
                                                 <HorizontalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center" Margin="0,0,5,0">
-                                                    <Label Text="Ver" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                                    <Label Text="Mostrar nombre" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
                                                     <CheckBox x:Name="ChkShowL5" IsChecked="False" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4" CheckedChanged="OnGeneradorNombreTriggered"/>
                                                 </HorizontalStackLayout>
                                                 <HorizontalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
-                                                    <Label Text="Izq" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                                    <Label Text="A la izquierda" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
                                                     <CheckBox x:Name="ChkPosL5" IsChecked="True" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4" CheckedChanged="OnGeneradorNombreTriggered"/>
                                                 </HorizontalStackLayout>
                                             </Grid>
@@ -281,11 +281,11 @@
                                             <Grid ColumnDefinitions="*, Auto, Auto">
                                                 <Label x:Name="LblAttr6" Text="Attr6" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="11" FontAttributes="Bold" VerticalOptions="Center"/>
                                                 <HorizontalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center" Margin="0,0,5,0">
-                                                    <Label Text="Ver" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                                    <Label Text="Mostrar nombre" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
                                                     <CheckBox x:Name="ChkShowL6" IsChecked="False" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4" CheckedChanged="OnGeneradorNombreTriggered"/>
                                                 </HorizontalStackLayout>
                                                 <HorizontalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
-                                                    <Label Text="Izq" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                                    <Label Text="A la izquierda" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
                                                     <CheckBox x:Name="ChkPosL6" IsChecked="True" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4" CheckedChanged="OnGeneradorNombreTriggered"/>
                                                 </HorizontalStackLayout>
                                             </Grid>
@@ -347,26 +347,33 @@
                                 </Grid.ColumnDefinitions>
 
                                 <VerticalStackLayout Grid.Column="0" Spacing="4" x:Name="ContenedorCantidadInicial" IsVisible="False">
-                                    <Label x:Name="LblCantidadInicial" Text="Cant. Paquetes" FontSize="12" TextColor="{AppThemeBinding Light=#606A72, Dark=#A0AAB2}"/>
+                                    <Label x:Name="LblCantidadInicial" Text="Cantidad Ingresada" FontSize="12" TextColor="{AppThemeBinding Light=#606A72, Dark=#A0AAB2}"/>
                                     <Border x:Name="BorderCantidadInicial" StrokeShape="RoundRectangle 8" Padding="8,0" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}">
-                                        <Entry x:Name="TxtCantidadInicial" Keyboard="Numeric" Placeholder="0" TextChanged="OnCalculoGananciaTriggered"/>
+                                        <Entry x:Name="TxtCantidadInicial" Keyboard="Numeric" Placeholder="Ej: 1.5" TextChanged="OnCalculoGananciaTriggered"/>
                                     </Border>
                                 </VerticalStackLayout>
 
                                 <VerticalStackLayout Grid.Column="0" Spacing="4" x:Name="ContenedorFactor" IsVisible="False">
-                                    <Label x:Name="LblConversionTitle" Text="Unds. / Paquete" FontSize="12" TextColor="{AppThemeBinding Light=#606A72, Dark=#A0AAB2}"/>
+                                    <Label x:Name="LblConversionTitle" Text="Factor de Conversión" FontSize="12" TextColor="{AppThemeBinding Light=#606A72, Dark=#A0AAB2}"/>
                                     <Border StrokeShape="RoundRectangle 8" Padding="8,0" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}">
-                                        <Entry x:Name="TxtConversionFactor" Keyboard="Numeric" Placeholder="0" TextChanged="OnCalculoGananciaTriggered"/>
+                                        <Entry x:Name="TxtConversionFactor" Keyboard="Numeric" Placeholder="Ej: 50" TextChanged="OnCalculoGananciaTriggered"/>
                                     </Border>
                                 </VerticalStackLayout>
 
                                 <VerticalStackLayout Grid.Column="0" Spacing="4" x:Name="ContenedorStock">
-                                    <Label Text="Stock Total *" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1C262E, Dark=#FFFFFF}"/>
+                                    <Label Text="Stock Total (Calculado) *" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1C262E, Dark=#FFFFFF}"/>
                                     <Border StrokeShape="RoundRectangle 8" Padding="8,0" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#2A363F}">
-                                        <Entry x:Name="TxtStock" Keyboard="Numeric" Placeholder="0" FontAttributes="Bold"/>
+                                        <Entry x:Name="TxtStock" Keyboard="Numeric" Placeholder="0.00" FontAttributes="Bold"/>
                                     </Border>
                                 </VerticalStackLayout>
                             </Grid>
+
+                            <HorizontalStackLayout x:Name="SecBotonesFracciones" Spacing="8" Margin="0,5,0,0" IsVisible="False">
+                                <Label Text="Accesos rápidos:" FontSize="11" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                <Button Text="+ 1/4" BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B3B2B}" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" HeightRequest="32" Padding="10,0" FontSize="11" CornerRadius="6" Clicked="OnAddQuarterClicked"/>
+                                <Button Text="+ 1/2" BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B3B2B}" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" HeightRequest="32" Padding="10,0" FontSize="11" CornerRadius="6" Clicked="OnAddHalfClicked"/>
+                                <Button Text="+ 3/4" BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B3B2B}" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" HeightRequest="32" Padding="10,0" FontSize="11" CornerRadius="6" Clicked="OnAddThreeQuartersClicked"/>
+                            </HorizontalStackLayout>
 
                             <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#E0E8F0, Dark=#33414D}" Margin="0,4"/>
 
@@ -632,42 +639,90 @@
                         <Label Text="Atributos Dinámicos (Ej. RAM, Color)" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" FontAttributes="Bold"/>
 
                         <Grid ColumnDefinitions="*, *" RowDefinitions="Auto, Auto, Auto" ColumnSpacing="10" RowSpacing="8">
-                            <Border Grid.Row="0" Grid.Column="0" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0">
-                                <Grid ColumnDefinitions="Auto, *">
-                                    <Label Grid.Column="0" Text="1." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
-                                    <Entry Grid.Column="1" x:Name="TxtQCL1" Placeholder="Atributo 1" TextChanged="OnQCLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                            <Border Grid.Row="0" Grid.Column="1" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0">
-                                <Grid ColumnDefinitions="Auto, *">
-                                    <Label Grid.Column="0" Text="2." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
-                                    <Entry Grid.Column="1" x:Name="TxtQCL2" Placeholder="Atributo 2" TextChanged="OnQCLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                            <Border Grid.Row="1" Grid.Column="0" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0">
-                                <Grid ColumnDefinitions="Auto, *">
-                                    <Label Grid.Column="0" Text="3." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
-                                    <Entry Grid.Column="1" x:Name="TxtQCL3" Placeholder="Atributo 3" TextChanged="OnQCLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                            <Border Grid.Row="1" Grid.Column="1" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0">
-                                <Grid ColumnDefinitions="Auto, *">
-                                    <Label Grid.Column="0" Text="4." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
-                                    <Entry Grid.Column="1" x:Name="TxtQCL4" Placeholder="Atributo 4" TextChanged="OnQCLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                            <Border Grid.Row="2" Grid.Column="0" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0">
-                                <Grid ColumnDefinitions="Auto, *">
-                                    <Label Grid.Column="0" Text="5." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
-                                    <Entry Grid.Column="1" x:Name="TxtQCL5" Placeholder="Atributo 5" TextChanged="OnQCLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                            <Border Grid.Row="2" Grid.Column="1" HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0">
-                                <Grid ColumnDefinitions="Auto, *">
-                                    <Label Grid.Column="0" Text="6." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
-                                    <Entry Grid.Column="1" x:Name="TxtQCL6" Placeholder="Atributo 6" TextChanged="OnQCLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
-                                </Grid>
-                            </Border>
+
+                            <!-- QC Atributo 1 -->
+                            <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="2">
+                                <HorizontalStackLayout HorizontalOptions="End" Spacing="2" Margin="0,0,5,0">
+                                    <Label Text="Dato Único" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                    <CheckBox x:Name="ChkQCUniqueL1" IsChecked="False" IsEnabled="False" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4"/>
+                                </HorizontalStackLayout>
+                                <Border HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0">
+                                    <Grid ColumnDefinitions="Auto, *">
+                                        <Label Grid.Column="0" Text="1." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
+                                        <Entry Grid.Column="1" x:Name="TxtQCL1" Placeholder="Atributo 1" TextChanged="OnQCLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- QC Atributo 2 -->
+                            <VerticalStackLayout Grid.Row="1" Grid.Column="0" Spacing="2">
+                                <HorizontalStackLayout HorizontalOptions="End" Spacing="2" Margin="0,0,5,0">
+                                    <Label Text="Dato Único" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                    <CheckBox x:Name="ChkQCUniqueL2" IsChecked="False" IsEnabled="False" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4"/>
+                                </HorizontalStackLayout>
+                                <Border HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0">
+                                    <Grid ColumnDefinitions="Auto, *">
+                                        <Label Grid.Column="0" Text="2." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
+                                        <Entry Grid.Column="1" x:Name="TxtQCL2" Placeholder="Atributo 2" TextChanged="OnQCLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- QC Atributo 3 -->
+                            <VerticalStackLayout Grid.Row="2" Grid.Column="0" Spacing="2">
+                                <HorizontalStackLayout HorizontalOptions="End" Spacing="2" Margin="0,0,5,0">
+                                    <Label Text="Dato Único" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                    <CheckBox x:Name="ChkQCUniqueL3" IsChecked="False" IsEnabled="False" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4"/>
+                                </HorizontalStackLayout>
+                                <Border HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0">
+                                    <Grid ColumnDefinitions="Auto, *">
+                                        <Label Grid.Column="0" Text="3." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
+                                        <Entry Grid.Column="1" x:Name="TxtQCL3" Placeholder="Atributo 3" TextChanged="OnQCLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- QC Atributo 4 -->
+                            <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="2">
+                                <HorizontalStackLayout HorizontalOptions="End" Spacing="2" Margin="0,0,5,0">
+                                    <Label Text="Dato Único" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                    <CheckBox x:Name="ChkQCUniqueL4" IsChecked="False" IsEnabled="False" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4"/>
+                                </HorizontalStackLayout>
+                                <Border HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0">
+                                    <Grid ColumnDefinitions="Auto, *">
+                                        <Label Grid.Column="0" Text="4." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
+                                        <Entry Grid.Column="1" x:Name="TxtQCL4" Placeholder="Atributo 4" TextChanged="OnQCLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- QC Atributo 5 -->
+                            <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="2">
+                                <HorizontalStackLayout HorizontalOptions="End" Spacing="2" Margin="0,0,5,0">
+                                    <Label Text="Dato Único" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                    <CheckBox x:Name="ChkQCUniqueL5" IsChecked="False" IsEnabled="False" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4"/>
+                                </HorizontalStackLayout>
+                                <Border HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0">
+                                    <Grid ColumnDefinitions="Auto, *">
+                                        <Label Grid.Column="0" Text="5." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
+                                        <Entry Grid.Column="1" x:Name="TxtQCL5" Placeholder="Atributo 5" TextChanged="OnQCLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- QC Atributo 6 -->
+                            <VerticalStackLayout Grid.Row="2" Grid.Column="1" Spacing="2">
+                                <HorizontalStackLayout HorizontalOptions="End" Spacing="2" Margin="0,0,5,0">
+                                    <Label Text="Dato Único" FontSize="9" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
+                                    <CheckBox x:Name="ChkQCUniqueL6" IsChecked="False" IsEnabled="False" Color="#A2D149" Scale="0.65" Margin="-6,-4,-6,-4"/>
+                                </HorizontalStackLayout>
+                                <Border HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#232B35}" Padding="10,0">
+                                    <Grid ColumnDefinitions="Auto, *">
+                                        <Label Grid.Column="0" Text="6." TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="12" VerticalOptions="Center" Margin="0,0,6,0"/>
+                                        <Entry Grid.Column="1" x:Name="TxtQCL6" Placeholder="Atributo 6" TextChanged="OnQCLabelTextChanged" FontSize="12" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Fill" VerticalTextAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
                         </Grid>
 
                         <HorizontalStackLayout Spacing="5" Margin="0,5,0,0">
@@ -678,7 +733,7 @@
                         <Border HeightRequest="40" StrokeShape="RoundRectangle 8" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="12,0" VerticalOptions="Fill">
                             <Grid ColumnDefinitions="Auto, *" VerticalOptions="Center">
                                 <Label Grid.Column="0" Text="Fórmula:" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" Margin="0,0,8,0"/>
-                                <Entry Grid.Column="1" x:Name="TxtQCFormula" TextChanged="OnQCFormulaTextChanged" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" VerticalTextAlignment="Center" BackgroundColor="Transparent"/>
+                                <Entry x:Name="TxtQCFormula" Grid.Column="1" Focused="OnQCFormulaFocused" Unfocused="OnQCFormulaUnfocused" TextChanged="OnQCFormulaTextChanged" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" VerticalTextAlignment="Center" BackgroundColor="Transparent"/>
                             </Grid>
                         </Border>
 

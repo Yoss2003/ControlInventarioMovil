@@ -313,7 +313,6 @@ namespace ControlInventarioMovil.Views
             {
                 await DisplayAlertAsync("¡Éxito!", "Venta registrada correctamente.", "Perfecto");
 
-                // 🧹 LIMPIEZA TOTAL PARA LA SIGUIENTE VENTA
                 foreach (var a in _allArticles) a.QuantityInCart = 0;
                 pickerPaymentType.SelectedIndex = 0;
                 pickerSubWallet.SelectedIndex = -1;

@@ -57,20 +57,13 @@ public partial class LoginPage : ContentPage
                     CompanyId = _selectedCompany.Id
                 };
 
-                var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true };
-                using var client = new HttpClient(handler);
-                string jsonContent = JsonConvert.SerializeObject(loginData);
-                var httpContent = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+                var (statusCode, isSuccess, resString) = await _apiService.LoginAsync(loginData);
 
-                var response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/Login", httpContent);
-                string resString = await response.Content.ReadAsStringAsync();
-
-                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                if (statusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
                     if (resString.Contains("accountPending"))
                     {
                         MainThread.BeginInvokeOnMainThread(() => LoadingOverlay.IsVisible = false);
-
                         var errorObj = JsonConvert.DeserializeObject<dynamic>(resString);
                         await DisplayAlertAsync("Acceso Denegado", (string)errorObj!.mensaje, "Entendido");
                         return;
@@ -98,16 +91,23 @@ public partial class LoginPage : ContentPage
                         LoadingOverlay.IsVisible = true;
                         lblLoadingText.Text = "Verificando código...";
 
-                        var loginDataWith2FA = new { Username = txtUsername.Text.Trim(), Password = txtPassword.Text.Trim(), TwoFactorCode = tokenIngresado.Trim() };
-                        string jsonContent2FA = JsonConvert.SerializeObject(loginDataWith2FA);
-                        var httpContent2FA = new StringContent(jsonContent2FA, System.Text.Encoding.UTF8, "application/json");
+                        // Se inyecta nuevamente el CompanyId para evitar errores de contexto
+                        var loginDataWith2FA = new
+                        {
+                            Username = txtUsername.Text.Trim(),
+                            Password = txtPassword.Text.Trim(),
+                            TwoFactorCode = tokenIngresado.Trim(),
+                            CompanyId = _selectedCompany.Id
+                        };
 
-                        response = await client.PostAsync($"{ApiService.BaseApiUrl}/Users/Login", httpContent2FA);
-                        resString = await response.Content.ReadAsStringAsync();
+                        var result2FA = await _apiService.LoginAsync(loginDataWith2FA);
+                        statusCode = result2FA.StatusCode;
+                        isSuccess = result2FA.IsSuccess;
+                        resString = result2FA.Content;
                     }
                 }
 
-                if (response.IsSuccessStatusCode)
+                if (isSuccess)
                 {
                     if (resString.Contains("requirePasswordChange"))
                     {
@@ -138,6 +138,15 @@ public partial class LoginPage : ContentPage
                     {
                         UserSession.CurrentUser = user;
                         Preferences.Set("SelectedCompanyId", _selectedCompany.Id);
+
+                        Preferences.Set("UserId", user.Id);
+
+                        string nombreCompleto = user.Username ?? "Usuario Móvil";
+                        if (user.Employee != null)
+                        {
+                            nombreCompleto = $"{user.Employee.FirstName} {user.Employee.LastName}".Trim();
+                        }
+                        Preferences.Set("UserName", nombreCompleto);
 
                         try
                         {
@@ -234,12 +243,12 @@ public partial class LoginPage : ContentPage
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
                         LoadingOverlay.IsVisible = false;
-                        if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                        if (statusCode == System.Net.HttpStatusCode.InternalServerError)
                         {
                             await DisplayAlertAsync("Error 500 del Servidor", "El servidor de Somee está explotando por dentro. Revisa los logs de tu API.", "OK");
                             return;
                         }
-                        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        if (statusCode == System.Net.HttpStatusCode.NotFound)
                         {
                             await DisplayAlertAsync("Error 404", "No se encontró la ruta del Login en el servidor.", "OK");
                             return;
@@ -253,7 +262,7 @@ public partial class LoginPage : ContentPage
                         }
                         catch
                         {
-                            await DisplayAlertAsync("Respuesta Extraña del Servidor", $"Código: {response.StatusCode}. Respuesta: {resString}", "OK");
+                            await DisplayAlertAsync("Respuesta Extraña del Servidor", $"Código: {statusCode}. Respuesta: {resString}", "OK");
                         }
                     });
                 }
@@ -342,25 +351,16 @@ public partial class LoginPage : ContentPage
     {
         try
         {
-            var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true };
-            using var client = new HttpClient(handler);
-            var response = await client.GetAsync($"{ApiService.BaseApiUrl}/Companies/Active");
+            _empresasDisponibles = await _apiService.GetActiveCompaniesAsync();
 
-            if (response.IsSuccessStatusCode)
+            if (_empresasDisponibles.Any())
             {
-                var content = await response.Content.ReadAsStringAsync();
-                _empresasDisponibles = JsonConvert.DeserializeObject<List<CompanyPublicDTO>>(content) ?? new List<CompanyPublicDTO>();
-
-                if (_empresasDisponibles.Any())
-                {
-                    // 🚀 SELECCIONA AUTOMÁTICAMENTE LA PRIMERA EMPRESA DE LA LISTA
-                    _currentCompanyIndex = 0;
-                    ActualizarVistaEmpresa();
-                }
-                else
-                {
-                    LblCompanyName.Text = "Sin sucursales";
-                }
+                _currentCompanyIndex = 0;
+                ActualizarVistaEmpresa();
+            }
+            else
+            {
+                LblCompanyName.Text = "Sin sucursales";
             }
         }
         catch (Exception ex)
