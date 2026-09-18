@@ -16,14 +16,14 @@ namespace ControlInventarioMovil.Views
         private readonly ApiService _apiService;
         private ObservableCollection<CategoriaPadreUI> _categoriasPadre = [];
         private Category? _categoriaEnEdicion = null;
-        private List<int> _unidadesSeleccionadasTemporales = [];
+        private readonly List<int> _unidadesSeleccionadasTemporales = [];
         private Category? _categoriaUnidadesActual = null;
         private bool _isSystemEdit = false;
 
         // 🚀 VARIABLE DE BACKUP 
         private string _formulaBackupCat = "";
 
-        public class SelectableUnit : INotifyPropertyChanged
+        public partial class SelectableUnit : INotifyPropertyChanged
         {
             public MeasurementUnit Unit { get; set; } = null!;
             private bool _isSelected;
@@ -220,7 +220,7 @@ namespace ControlInventarioMovil.Views
                 var todosLosArticulos = await _apiService.GetArticlesAsync();
                 var articulosVinculados = todosLosArticulos?.Where(a => a.CategoryId == subcategoria.Id && a.ActionId != 6).ToList();
 
-                if (articulosVinculados != null && articulosVinculados.Any())
+                if (articulosVinculados != null && articulosVinculados.Count != 0)
                 {
                     OverlayCarga.IsVisible = false;
                     string nombresArticulos = string.Join("\n• ", articulosVinculados.Select(a => a.Name).Take(3));
@@ -375,7 +375,7 @@ namespace ControlInventarioMovil.Views
             else if (_categoriaEnEdicion.TrackingMode == TrackingMode.Standard.ToString())
             {
                 PkrTrackingMode.SelectedIndex = 2;
-                SecAtributos.IsVisible = false;
+                SecAtributos.IsVisible = true;
                 SecNamingMethod.IsVisible = true;
             }
             else if (_categoriaEnEdicion.TrackingMode == TrackingMode.Bulk.ToString())
@@ -549,7 +549,7 @@ namespace ControlInventarioMovil.Views
                     IsReturnable = esRetornable ? 1 : 0,
                     CreationDate = _categoriaEnEdicion != null ? _categoriaEnEdicion.CreationDate : DateTime.Now,
                     CreationUser = _categoriaEnEdicion != null ? _categoriaEnEdicion.CreationUser : "Admin",
-                    SelectedUnitIds = new List<int>(_unidadesSeleccionadasTemporales),
+                    SelectedUnitIds = [.. _unidadesSeleccionadasTemporales],
                     Label1 = TxtLabel1.Text,
                     IsUnique1 = ChkUniqueL1.IsChecked,
 
@@ -590,7 +590,7 @@ namespace ControlInventarioMovil.Views
                 if (exito)
                 {
                     OnCerrarFormClicked(null, null);
-                    if (lblCarga != null) lblCarga.Text = "Refrescando datos...";
+                    lblCarga?.Text = "Refrescando datos...";
                     if (OverlayCarga != null) { OverlayCarga.Opacity = 1; OverlayCarga.IsVisible = true; }
 
                     await CargarCategoriasPadre();
@@ -602,7 +602,7 @@ namespace ControlInventarioMovil.Views
             }
             catch (Exception ex)
             {
-                if (OverlayCarga != null) OverlayCarga.IsVisible = false;
+                OverlayCarga?.IsVisible = false;
                 await DisplayAlertAsync("Error Crítico", $"El formulario falló: {ex.Message}", "OK");
             }
         }
@@ -695,7 +695,16 @@ namespace ControlInventarioMovil.Views
             SwModoLibre.IsToggled = false;
         }
 
-        private async void OnVolverClicked(object sender, EventArgs e) => await Shell.Current.GoToAsync("..");
+        private async void OnVolverClicked(object sender, EventArgs e)
+        {
+            try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+            if (sender is View btn) btn.IsEnabled = false;
+            await Task.Delay(50);
+
+            await Shell.Current.GoToAsync("..");
+
+            if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
+        }
 
         private void OnTrackingModeChanged(object sender, EventArgs e)
         {
@@ -732,6 +741,15 @@ namespace ControlInventarioMovil.Views
             else
             {
                 BtnConfigurarUnidades.IsEnabled = true;
+                SecAtributos.IsVisible = false;
+            }
+
+            if (seleccion == "Serializado" || seleccion == "Estándar")
+            {
+                SecAtributos.IsVisible = true;
+            }
+            else
+            {
                 SecAtributos.IsVisible = false;
             }
 
@@ -932,8 +950,7 @@ namespace ControlInventarioMovil.Views
 
         private async void OnConfirmarUnidadesClicked(object sender, EventArgs e)
         {
-            var listaRender = CvUnidades.ItemsSource as List<SelectableUnit>;
-            if (listaRender != null)
+            if (CvUnidades.ItemsSource is List<SelectableUnit> listaRender)
             {
                 _unidadesSeleccionadasTemporales.Clear();
                 foreach (var item in listaRender.Where(x => x.IsSelected))
@@ -944,7 +961,7 @@ namespace ControlInventarioMovil.Views
 
             if (_categoriaUnidadesActual != null)
             {
-                _categoriaUnidadesActual.SelectedUnitIds = new List<int>(_unidadesSeleccionadasTemporales);
+                _categoriaUnidadesActual.SelectedUnitIds = [.. _unidadesSeleccionadasTemporales];
                 bool exito = await _apiService.UpdateCategoryAsync(_categoriaUnidadesActual);
 
                 if (exito)
@@ -973,7 +990,7 @@ namespace ControlInventarioMovil.Views
 
             if (_categoriaUnidadesActual != null)
             {
-                _categoriaUnidadesActual.SelectedUnitIds ??= new List<int>();
+                _categoriaUnidadesActual.SelectedUnitIds ??= [];
 
                 if (e.Value)
                 {
@@ -1031,12 +1048,10 @@ namespace ControlInventarioMovil.Views
         private string AutoCorregirFormulaCat(string input)
         {
             if (string.IsNullOrWhiteSpace(_formulaBackupCat)) return "";
-
-            var expectedTags = Regex.Matches(_formulaBackupCat, @"\[.*?\]").Cast<Match>().Select(m => m.Value).ToList();
-
-            string pattern = @"[A-Za-zÀ-ÿ0-9\[\]:.]+";
-            string[] separators = Regex.Split(input ?? "", pattern);
-
+            
+            var expectedTags = TagsRegex().Matches(_formulaBackupCat).Cast<Match>().Select(m => m.Value).ToList();
+            string[] separators = FormulaWordRegex().Split(input ?? "");
+            
             string result = "";
             for (int i = 0; i < expectedTags.Count; i++)
             {
@@ -1044,13 +1059,13 @@ namespace ControlInventarioMovil.Views
                 if (i < separators.Length && i > 0) sep = separators[i];
                 else if (i > 0) sep = " + ";
                 else if (separators.Length > 0) sep = separators[0];
-
-                if (i > 0 && !Regex.IsMatch(sep, @"[+\-\|\/,]")) sep = " + ";
-
+                
+                if (i > 0 && !OperadorRegex().IsMatch(sep)) sep = " + ";
+                
                 result += sep + expectedTags[i];
             }
-
-            result = Regex.Replace(result, @"^[\s+|/,-]+|[\s+|/,-]+$", "");
+            
+            result = TrimTagsRegex().Replace(result, "");
             return result.Trim();
         }
 
@@ -1125,19 +1140,18 @@ namespace ControlInventarioMovil.Views
                                                       .Replace($"[{baseTag}:Izq]", "")
                                                       .Replace($"[{baseTag}:Der]", "").Trim();
 
-                nuevaFormula = Regex.Replace(nuevaFormula, @"\s+", " ");
-                nuevaFormula = Regex.Replace(nuevaFormula, @"([-|/,+])\s*(?=[-|/,+])", "");
-                nuevaFormula = Regex.Replace(nuevaFormula, @"^[\s-|/,+]+|[\s-|/,+]+$", "");
+                nuevaFormula = EspaciosRegex().Replace(nuevaFormula, " ");
+                nuevaFormula = DobleOperadorMathRegex().Replace(nuevaFormula, "");
+                nuevaFormula = TrimOperadorMathRegex().Replace(nuevaFormula, "");
 
                 if (string.IsNullOrWhiteSpace(nuevaFormula)) return;
-
                 _formulaBackupCat = nuevaFormula;
             }
             else
             {
-                if (_formulaBackupCat.Length > 0 && !Regex.IsMatch(_formulaBackupCat, @"[+\-\|\/,]\s*$"))
+                if (_formulaBackupCat.Length > 0 && !TerminaConOperadorRegex().IsMatch(_formulaBackupCat))
                     _formulaBackupCat += " + ";
-                else if (_formulaBackupCat.Length > 0 && !_formulaBackupCat.EndsWith(" "))
+                else if (_formulaBackupCat.Length > 0 && !_formulaBackupCat.EndsWith(' '))
                     _formulaBackupCat += " ";
 
                 _formulaBackupCat += $"[{baseTag}]";
@@ -1149,11 +1163,35 @@ namespace ControlInventarioMovil.Views
             ActualizarColoresBotonesNaming();
             TxtNamingCustom.Unfocus();
         }
+
+        [GeneratedRegex(@"\[.*?\]")]
+        private static partial Regex TagsRegex();
+
+        [GeneratedRegex(@"[A-Za-zÀ-ÿ0-9\[\]:.]+")]
+        private static partial Regex FormulaWordRegex();
+
+        [GeneratedRegex(@"[+\-\|\/,]")]
+        private static partial Regex OperadorRegex();
+
+        [GeneratedRegex(@"^[\s+|/,-]+|[\s+|/,-]+$")]
+        private static partial Regex TrimTagsRegex();
+
+        [GeneratedRegex(@"\s+")]
+        private static partial Regex EspaciosRegex();
+
+        [GeneratedRegex(@"([-|/,+])\s*(?=[-|/,+])")]
+        private static partial Regex DobleOperadorMathRegex();
+
+        [GeneratedRegex(@"^[\s-|/,+]+|[\s-|/,+]+$")]
+        private static partial Regex TrimOperadorMathRegex();
+
+        [GeneratedRegex(@"[+\-\|\/,]\s*$")]
+        private static partial Regex TerminaConOperadorRegex();
     }
 
-    public class CategoriaPadreUI : Category, INotifyPropertyChanged
+    public partial class CategoriaPadreUI : Category, INotifyPropertyChanged
     {
-        public ObservableCollection<Category> Subcategorias { get; set; } = new ObservableCollection<Category>();
+        public ObservableCollection<Category> Subcategorias { get; set; } = [];
         public event PropertyChangedEventHandler? PropertyChanged;
         public bool TieneHijas => Subcategorias != null && Subcategorias.Count > 0;
         private bool _isExpanded;

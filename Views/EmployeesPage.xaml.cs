@@ -8,8 +8,8 @@ namespace ControlInventarioMovil.Views
     public partial class EmployeesPage : ContentPage
     {
         private readonly ApiService _apiService;
-        private List<Employee> _allEmployees = new();
-        public ObservableCollection<Employee> FilteredEmployees { get; set; } = new();
+        private List<Employee> _allEmployees = [];
+        public ObservableCollection<Employee> FilteredEmployees { get; set; } = [];
 
         public EmployeesPage()
         {
@@ -29,7 +29,7 @@ namespace ControlInventarioMovil.Views
             refreshEmployees.IsRefreshing = true;
             var lista = await _apiService.GetEmployeesAsync();
 
-            _allEmployees = lista.Where(e => e.IsActive).OrderBy(e => e.FirstName).ToList();
+            _allEmployees = [.. lista.Where(e => e.IsActive).OrderBy(e => e.FirstName)];
             
             FilterEmployees();
             refreshEmployees.IsRefreshing = false;
@@ -47,8 +47,8 @@ namespace ControlInventarioMovil.Views
 
             var filtrados = string.IsNullOrEmpty(query)
                 ? _allEmployees
-                : _allEmployees.Where(e => (e.FirstName != null && e.FirstName.ToLower().Contains(query)) ||
-                                           (e.LastName != null && e.LastName.ToLower().Contains(query)) ||
+                : _allEmployees.Where(e => (e.FirstName != null && e.FirstName.Contains(query, StringComparison.CurrentCultureIgnoreCase)) ||
+                                           (e.LastName != null && e.LastName.Contains(query, StringComparison.CurrentCultureIgnoreCase)) ||
                                            (e.DNI != null && e.DNI.Contains(query)));
 
             foreach (var e in filtrados) FilteredEmployees.Add(e);
@@ -61,22 +61,32 @@ namespace ControlInventarioMovil.Views
 
         private async void OnAddEmployeeClicked(object sender, EventArgs e)
         {
+            try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+            if (sender is View btn) btn.IsEnabled = false;
+            await Task.Delay(50);
+
             if (!SecurityHelper.HasPermission("CREATE_EMPLOYEES"))
             {
                 await DisplayAlertAsync("Denegado", "No tienes autorización para registrar nuevos empleados.", "OK");
+                if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
                 return;
             }
-
             await Navigation.PushAsync(new EmployeeFormPage(new Employee()));
+
+            if (sender is View btnRestaurarFinal) btnRestaurarFinal.IsEnabled = true;
         }
 
         private async void OnEditEmployeeClicked(object sender, EventArgs e)
         {
+            try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+            if (sender is View btn) btn.IsEnabled = false;
+            await Task.Delay(50);
+
             var button = sender as ImageButton;
             if (button?.CommandParameter is Employee empleadoSeleccionado)
-            {
                 await Navigation.PushAsync(new EmployeeFormPage(empleadoSeleccionado));
-            }
+
+            if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
         }
 
         private async void OnDeleteEmployeeClicked(object sender, EventArgs e)
@@ -115,7 +125,13 @@ namespace ControlInventarioMovil.Views
 
         private async void OnVolverClicked(object sender, EventArgs e)
         {
+            try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+            if (sender is View btn) btn.IsEnabled = false;
+            await Task.Delay(50);
+
             await Shell.Current.GoToAsync("..");
+
+            if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
         }
     }
 }

@@ -97,7 +97,7 @@ namespace ControlInventarioMovil.Views
         {
             try
             {
-                var listaCompartidos = await _apiService.GetSharedInventoriesAsync(_currentInventoryId);
+                var listaCompartidos = await _apiService.GetSharedInventoriesAsync(_currentInventoryId, ApiService.GetOptions());
                 cvSharedUsers.ItemsSource = listaCompartidos;
             }
             catch (Exception ex)

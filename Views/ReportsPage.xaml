@@ -1,0 +1,114 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
+             x:Class="ControlInventarioMovil.Views.ReportsPage"
+             BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}"
+             Shell.NavBarIsVisible="False"
+             Title="Reportes y Auditoría">
+
+    <Grid RowDefinitions="Auto, *">
+
+        <!-- ========================================== -->
+        <!-- 1. BARRA DE NAVEGACIÓN SUPERIOR            -->
+        <!-- ========================================== -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="15,20,15,10" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
+            <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" Padding="0" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVolverClicked"/>
+            <Label Grid.Column="1" Text="REPORTES Y AUDITORÍA" TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" VerticalOptions="Center" CharacterSpacing="0.5"/>
+            <BoxView Grid.Column="2" WidthRequest="30" BackgroundColor="Transparent"/>
+        </Grid>
+
+        <!-- ========================================== -->
+        <!-- 2. CONTENIDO PRINCIPAL SCROLLEABLE         -->
+        <!-- ========================================== -->
+        <ScrollView Grid.Row="1" Padding="15">
+            <VerticalStackLayout Spacing="20" Padding="0,0,0,20">
+
+                <!-- Encabezado Estilizado -->
+                <VerticalStackLayout Spacing="4" Margin="5,0,0,0">
+                    <Label Text="PANEL DE REPORTES" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontSize="12" FontAttributes="Bold" />
+                    <Label Text="Generación Operativa e Interna" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="20" FontAttributes="Bold" />
+                    <Label Text="Exporta métricas de impacto, trazabilidad de personal y auditoría de cambios." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="13" />
+                </VerticalStackLayout>
+
+                <!-- Tarjeta 1: Parámetros del Reporte -->
+                <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=Transparent}" StrokeThickness="{AppThemeBinding Light=1, Dark=0}" Padding="18">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12"/>
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Offset="0,2" Radius="4" Opacity="0.08"/>
+                    </Border.Shadow>
+
+                    <VerticalStackLayout Spacing="16">
+                        <Label Text="Parámetros del Reporte" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="15"/>
+                        <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+
+                        <!-- Selector de Categoría -->
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Categoría de Información" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" FontAttributes="Bold"/>
+                            <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                <Picker x:Name="PickerTipoReporte" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" TitleColor="Gray" BackgroundColor="Transparent" VerticalOptions="Center">
+                                    <Picker.Items>
+                                        <x:String>Movimientos e Inventario General</x:String>
+                                        <x:String>Compras e Historial por Proveedor</x:String>
+                                        <x:String>Actividad y Operaciones por Trabajador</x:String>
+                                        <x:String>Impacto de Beneficios a Clientes</x:String>
+                                        <x:String>Log de Cambios y Auditoría Interna</x:String>
+                                    </Picker.Items>
+                                </Picker>
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Rango de Fechas -->
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <VerticalStackLayout Grid.Column="0" Spacing="6">
+                                <Label Text="Desde:" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" FontAttributes="Bold"/>
+                                <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                    <DatePicker x:Name="DateInicio" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Center"/>
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                <Label Text="Hasta:" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" FontAttributes="Bold"/>
+                                <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                                    <DatePicker x:Name="DateFin" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Center"/>
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Tarjeta 2: Alcance del Archivo -->
+                <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#222B34}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=Transparent}" StrokeThickness="{AppThemeBinding Light=1, Dark=0}" Padding="18">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12"/>
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Offset="0,2" Radius="4" Opacity="0.08"/>
+                    </Border.Shadow>
+
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Alcance del Archivo" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="14"/>
+                        <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>
+                        <Label Text="El reporte recopilará de forma estructurada los datos de la base local y del servidor según los filtros seleccionados, empaquetándolos en una hoja de cálculo profesional lista para auditoría o envío directo." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" LineHeight="1.2"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Botón Principal de Acción -->
+                <Button x:Name="BtnGenerarExcel" Text="Generar y Exportar a Excel (.xlsx)" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" FontSize="14" CornerRadius="8" HeightRequest="50" Clicked="OnExportarExcelClicked" helpers:EfectosVisualesHelper.Animar="True" Margin="0,10,0,10"/>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- ========================================== -->
+        <!-- 3. OVERLAY DE CARGA                        -->
+        <!-- ========================================== -->
+        <Grid x:Name="OverlayCargando" Grid.RowSpan="2" BackgroundColor="#B3000000" IsVisible="False" ZIndex="100">
+            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="15">
+                <ActivityIndicator IsRunning="True" Color="#A2D149" WidthRequest="50" HeightRequest="50" />
+                <Label x:Name="LblOverlayTexto" Text="Generando reporte..." TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" />
+            </VerticalStackLayout>
+        </Grid>
+
+    </Grid>
+</ContentPage>

@@ -58,6 +58,7 @@ namespace ControlInventarioMovil.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
+            string dbPath = Path.Combine(FileSystem.AppDataDirectory, "ControlInventario.db3");
             optionsBuilder.UseSqlite($"Filename={_dbPath}");
         }
     }

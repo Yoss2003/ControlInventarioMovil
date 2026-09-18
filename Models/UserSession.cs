@@ -11,6 +11,7 @@ namespace ControlInventario.Models
         public static string? PreloadedBarcode { get; set; } = null;
         public static ExchangeRate? TodayExchangeRateUSD { get; set; }
         public static ExchangeRate? TodayExchangeRateEUR { get; set; }
+        public static Dictionary<string, string> UnidadesMedidaCache { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public static bool IsAdmin => CurrentUser?.Role?.Name.ToLower() == "admin";
     }
 }

@@ -1,6 +1,8 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Helpers;
 using ControlInventarioMovil.Services;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
@@ -9,9 +11,9 @@ namespace ControlInventarioMovil.Views
     public partial class ConfiguracionPage : ContentPage
     {
         private readonly ApiService _apiService;
-        private Profile _currentProfile = new Profile();
+        private Profile _currentProfile = new();
 
-        public System.Collections.ObjectModel.ObservableCollection<PermissionToggleUI> ListaPermisosDinamicos { get; set; } = new();
+        public System.Collections.ObjectModel.ObservableCollection<PermissionToggleUI> ListaPermisosDinamicos { get; set; } = [];
 
         public ConfiguracionPage()
         {
@@ -89,6 +91,14 @@ namespace ControlInventarioMovil.Views
                 PkrMeasurementUnit.Items.Add("Kilogramos (KGS)");
                 PkrMeasurementUnit.Items.Add("Litros (LTS)");
 
+                // 1. Mostrar y cargar QRs si es SuperAdmin o Propietario
+                int rolId = UserSession.CurrentUser.RoleId;
+                if (rolId == 1 || rolId == 2)
+                {
+                    bloqueBilleteras.IsVisible = true;
+                    txtQrUniversal.Text = CifradoHelper.Desencriptar(_currentProfile.QrBilletera ?? "");
+                }
+
                 // Renderizar Tasas de Cambio en los labels informativos
                 if (UserSession.TodayExchangeRateUSD != null)
                     LblTcDolar.Text = $"S/. {UserSession.TodayExchangeRateUSD.SellPrice:F3}";
@@ -141,7 +151,7 @@ namespace ControlInventarioMovil.Views
                 }
 
                 var rolesDisponibles = await _apiService.GetRolesAsync();
-                if (rolesDisponibles != null && rolesDisponibles.Any())
+                if (rolesDisponibles != null && rolesDisponibles.Count != 0)
                 {
                     PkrRolesPermisos.SelectedIndexChanged -= OnRolPermisosChanged;
 
@@ -182,10 +192,7 @@ namespace ControlInventarioMovil.Views
                     foreach (var rp in rolSeleccionado.RolePermissions)
                     {
                         var uiMatch = ListaPermisosDinamicos.FirstOrDefault(p => p.PermissionId == rp.PermissionId);
-                        if (uiMatch != null)
-                        {
-                            uiMatch.HasPermission = true;
-                        }
+                        uiMatch?.HasPermission = true;
                     }
                 }
             }
@@ -210,7 +217,7 @@ namespace ControlInventarioMovil.Views
             string emailSmtp = TxtSmtpEmail.Text?.Trim() ?? "";
             if (!string.IsNullOrEmpty(emailSmtp))
             {
-                var emailRegex = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$");
+                var emailRegex = ValidarEmail();
                 if (!emailRegex.IsMatch(emailSmtp))
                 {
                     await DisplayAlertAsync("Seguridad SMTP", "El formato del correo emisor no es válido.", "OK");
@@ -228,10 +235,12 @@ namespace ControlInventarioMovil.Views
                 Preferences.Default.Set("UI_ShowThumbnails", SwShowThumbnails.IsToggled);
                 Preferences.Default.Set("UI_CompactView", SwCompactView.IsToggled);
 
-                if (Application.Current != null)
+                if (bloqueBilleteras.IsVisible)
                 {
-                    Application.Current.UserAppTheme = SwDarkMode.IsToggled ? AppTheme.Dark : AppTheme.Light;
+                    Preferences.Default.Set("Config_QrYape", txtQrUniversal.Text?.Trim() ?? "");
                 }
+
+                Application.Current?.UserAppTheme = SwDarkMode.IsToggled ? AppTheme.Dark : AppTheme.Light;
 
                 // 2. Mapeo al Modelo
                 _currentProfile.ApplyLateFee = SwApplyLateFee.IsToggled;
@@ -252,6 +261,12 @@ namespace ControlInventarioMovil.Views
                     _currentProfile.SmtpEmail = null;
                     _currentProfile.SmtpPassword = null;
                     _currentProfile.SmtpApproverEmail = null;
+                }
+
+                if (bloqueBilleteras.IsVisible)
+                {
+                    string textoLimpio = txtQrUniversal.Text?.Trim() ?? "";
+                    _currentProfile.QrBilletera = CifradoHelper.Encriptar(textoLimpio);
                 }
 
                 _currentProfile.UseBarcodes = SwUseBarcodes.IsToggled;
@@ -287,19 +302,17 @@ namespace ControlInventarioMovil.Views
 
                     try
                     {
-                        using (var localContext = new Data.LocalDbContext())
+                        using var localContext = new Data.LocalDbContext();
+                        var perfilLocal = localContext.Profiles.FirstOrDefault(p => p.Id == _currentProfile.Id);
+                        if (perfilLocal != null)
                         {
-                            var perfilLocal = localContext.Profiles.FirstOrDefault(p => p.Id == _currentProfile.Id);
-                            if (perfilLocal != null)
-                            {
-                                localContext.Entry(perfilLocal).CurrentValues.SetValues(_currentProfile);
-                            }
-                            else
-                            {
-                                localContext.Profiles.Add(_currentProfile);
-                            }
-                            localContext.SaveChanges();
+                            localContext.Entry(perfilLocal).CurrentValues.SetValues(_currentProfile);
                         }
+                        else
+                        {
+                            localContext.Profiles.Add(_currentProfile);
+                        }
+                        localContext.SaveChanges();
                     }
                     catch (Exception ex)
                     {
@@ -325,7 +338,16 @@ namespace ControlInventarioMovil.Views
             }
         }
 
-        private async void OnVolverClicked(object sender, EventArgs e) => await Shell.Current.GoToAsync("..");
+        private async void OnVolverClicked(object sender, EventArgs e)
+        {
+            try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+            if (sender is View btn) btn.IsEnabled = false;
+            await Task.Delay(50);
+
+            await Shell.Current.GoToAsync("..");
+
+            if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
+        }
 
         private async void OnGoogle2FAToggled(object? sender, ToggledEventArgs e)
         {
@@ -479,28 +501,31 @@ namespace ControlInventarioMovil.Views
                 BtnProbarSmtp.Text = "PROBAR CONEXIÓN Y ENVIAR CORREO";
             }
         }
+
+        [GeneratedRegex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$")]
+        private static partial Regex ValidarEmail();
     }
-}
 
-public class PermissionToggleUI : System.ComponentModel.INotifyPropertyChanged
-{
-    public int PermissionId { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string SystemCode { get; set; } = string.Empty;
-
-    private bool _hasPermission;
-    public bool HasPermission
+    public partial class PermissionToggleUI : INotifyPropertyChanged
     {
-        get => _hasPermission;
-        set
+        public int PermissionId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string SystemCode { get; set; } = string.Empty;
+
+        private bool _hasPermission;
+        public bool HasPermission
         {
-            if (_hasPermission != value)
+            get => _hasPermission;
+            set
             {
-                _hasPermission = value;
-                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(HasPermission)));
+                if (_hasPermission != value)
+                {
+                    _hasPermission = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasPermission)));
+                }
             }
         }
-    }
 
-    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
+    }
 }

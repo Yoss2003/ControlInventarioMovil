@@ -85,7 +85,7 @@
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="15"/>
                         </Border.StrokeShape>
-                        <Label Text="3 Reportes" TextColor="{AppThemeBinding Light=#4F7942, Dark=#A2D149}" FontAttributes="Bold" FontSize="11"/>
+                        <Label x:Name="LblBadgeReportes" Text="..." TextColor="{AppThemeBinding Light=#4F7942, Dark=#A2D149}" FontAttributes="Bold" FontSize="11"/>
                     </Border>
                 </VerticalStackLayout>
 
@@ -174,10 +174,6 @@
                         StrokeThickness="0" 
                         TranslationY="-5">
 
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnTestKardexTapped" />
-                    </Border.GestureRecognizers>
-                    
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="60"/>
                     </Border.StrokeShape>
