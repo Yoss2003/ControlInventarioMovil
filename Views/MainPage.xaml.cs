@@ -4,6 +4,7 @@ using ControlInventarioMovil.Services;
 using ControlInventarioMovil.Views.Controls;
 using ControlInventarioMovil.Helpers;
 using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 
 namespace ControlInventarioMovil.Views
 {
@@ -32,15 +33,15 @@ namespace ControlInventarioMovil.Views
         private CancellationTokenSource? _cts;
         private CancellationTokenSource? _radarCts;
         private IDispatcherTimer? _inactivityTimer;
-        private List<Grid> _botonesOrbitales;
-        private List<Label> _textosOrbitales;
-        private List<Inventory> _almacenesDisponibles = new();
+        private readonly List<Grid> _botonesOrbitales;
+        private readonly List<Label> _textosOrbitales;
+        private List<Inventory> _almacenesDisponibles = [];
 
         public MainPage()
         {
             InitializeComponent();
-            _botonesOrbitales = new List<Grid> { OrbitaRegistros, OrbitaInventario, OrbitaReportes, OrbitaConfig };
-            _textosOrbitales = new List<Label> { TxtRegistros, TxtInventario, TxtReportes, TxtConfig };
+            _botonesOrbitales = [OrbitaRegistros, OrbitaInventario, OrbitaReportes, OrbitaConfig];
+            _textosOrbitales = [TxtRegistros, TxtInventario, TxtReportes, TxtConfig];
             ConfigurarEventosDeToque();
 
             _anguloAcumuladoRad = _pasoActual * (Math.PI / 2);
@@ -80,15 +81,16 @@ namespace ControlInventarioMovil.Views
             if (_radarCts == null || _radarCts.IsCancellationRequested)
             {
                 _radarCts = new CancellationTokenSource();
+                _ = AnimateAroEnergiaInfiniteSmooth(_radarCts.Token);
             }
 
-            // 3. FORMATEO DE BIENVENIDA AL USUARIO (🚨 CORREGIDO EN LÍNEA CON .Employee 🚨)
+            // 3. FORMATEO DE BIENVENIDA AL USUARIO 
             string firstName = UserSession.CurrentUser.Employee?.FirstName?.Trim() ?? "";
             string lastName = UserSession.CurrentUser.Employee?.LastName?.Trim() ?? "";
             string userRole = UserSession.CurrentUser.Role?.Name?.Trim() ?? "Usuario";
 
             string apellido = "";
-            string nombre = "";
+            string nombre = UserSession.CurrentUser.Username ?? "Móvil";
 
             if (!string.IsNullOrEmpty(firstName))
             {
@@ -129,6 +131,8 @@ namespace ControlInventarioMovil.Views
             // 5. REFRESH DE INTERFAZ Y PROCESAMIENTO DE STOCK TOTAL
             await CargarAmbientesDeTrabajoAsync();
             await ActualizarStockCircularAsync();
+            await CalcularAlertasGlobalesAsync();
+            await SincronizarUnidadesMedidaAsync();
 
             _ = Task.Run(async () =>
             {
@@ -165,7 +169,6 @@ namespace ControlInventarioMovil.Views
 
         private async Task EntregarCódigoAlFooterAsync(string codigo)
         {
-            // 'MiFooterComponente' debe ser el x:Name de tu FooterView en el XAML de MainPage
             if (!string.IsNullOrWhiteSpace(codigo))
             {
                 await FooterView.ProcesarLógicaAvanzadaEscanerAsync(codigo);
@@ -195,6 +198,7 @@ namespace ControlInventarioMovil.Views
             this.AbortAnimation("GiroOrbital");
             this.CancelAnimations();
 
+            AroEnergia.CancelAnimations();
             foreach (var boton in _botonesOrbitales) boton.CancelAnimations();
         }
 
@@ -211,7 +215,7 @@ namespace ControlInventarioMovil.Views
                 {
                     PkrAmbienteTrabajo.Items.Clear();
 
-                    _almacenesDisponibles = lista.Where(i => i.Id != 0 && i.IsActive).ToList();
+                    _almacenesDisponibles = [.. lista.Where(i => i.Id != 0 && i.IsActive)];
 
                     _almacenesDisponibles.ForEach(inv =>
                         PkrAmbienteTrabajo.Items.Add(string.IsNullOrWhiteSpace(inv.Alias) ? inv.InventoryName : inv.Alias));
@@ -221,7 +225,7 @@ namespace ControlInventarioMovil.Views
                         int index = _almacenesDisponibles.FindIndex(i => i.Id == UserSession.CurrentInventory.Id);
                         if (index >= 0) PkrAmbienteTrabajo.SelectedIndex = index;
                     }
-                    else if (_almacenesDisponibles.Any())
+                    else if (_almacenesDisponibles.Count != 0)
                     {
                         PkrAmbienteTrabajo.SelectedIndex = 0;
                         UserSession.CurrentInventory = _almacenesDisponibles.First();
@@ -246,8 +250,7 @@ namespace ControlInventarioMovil.Views
             if (PkrAmbienteTrabajo.SelectedIndex == -1) return;
 
             UserSession.CurrentInventory = _almacenesDisponibles[PkrAmbienteTrabajo.SelectedIndex];
-
-            string nombreVisual = string.IsNullOrWhiteSpace(UserSession.CurrentInventory.Alias)
+            _ = string.IsNullOrWhiteSpace(UserSession.CurrentInventory.Alias)
                 ? UserSession.CurrentInventory.InventoryName
                 : UserSession.CurrentInventory.Alias;
 
@@ -379,7 +382,7 @@ namespace ControlInventarioMovil.Views
             {
                 0 => "RegistrosPage",
                 1 => "InventoryPage",
-                2 => "ReportesPage",
+                2 => "ReportsPage",
                 3 => "ConfiguracionPage",
                 _ => ""
             };
@@ -520,7 +523,7 @@ namespace ControlInventarioMovil.Views
                     double tiempoPasadoMs = radarStopwatch.Elapsed.TotalMilliseconds;
                     double progreso = (tiempoPasadoMs % VelocidadRadarLineaMs) / VelocidadRadarLineaMs;
                     AroEnergia.Rotation = progreso * 360;
-                    await Task.Delay(16);
+                    await Task.Delay(16, token);
                 }
             }
             catch (Exception) { }
@@ -552,28 +555,16 @@ namespace ControlInventarioMovil.Views
                     double diferenciaRad = Math.Abs(anguloBotonCalculadoRad - (-Math.PI / 2));
                     if (diferenciaRad > Math.PI) diferenciaRad = 2 * Math.PI - diferenciaRad;
 
+                    // 🚀 SOLUCIÓN AL BUG DE DESAPARICIÓN: Asignación directa, sin usar ScaleToAsync
                     if (diferenciaRad < umbralZenitRad)
                     {
-                        if (_botonesOrbitales[i].Scale != EscalaZoomZenit)
-                        {
-                            if (this.Window != null)
-                                _ = _botonesOrbitales[i].ScaleToAsync(EscalaZoomZenit, 100, Easing.Linear);
-                            else
-                                _botonesOrbitales[i].Scale = EscalaZoomZenit;
-                        }
-
+                        _botonesOrbitales[i].Scale = EscalaZoomZenit;
                         double opacidadCalculada = 1.0 - (diferenciaRad / umbralZenitRad);
                         _textosOrbitales[i].Opacity = Math.Clamp(Math.Pow(opacidadCalculada, 2), 0, 1);
                     }
                     else
                     {
-                        if (_botonesOrbitales[i].Scale != 1.0)
-                        {
-                            if (this.Window != null)
-                                _ = _botonesOrbitales[i].ScaleToAsync(1.0, 100, Easing.Linear);
-                            else
-                                _botonesOrbitales[i].Scale = 1.0;
-                        }
+                        _botonesOrbitales[i].Scale = 1.0;
                         _textosOrbitales[i].Opacity = 0;
                     }
                 }
@@ -656,10 +647,12 @@ namespace ControlInventarioMovil.Views
 
                 if (listaArticulos != null)
                 {
+                    bool isOffline = Connectivity.Current.NetworkAccess != NetworkAccess.Internet;
+
                     totalSKUsDisponibles = listaArticulos.Count(a =>
                         a.InventoryId == idInventarioSeleccionado &&
-                        a.CompanyId == idEmpresa &&
-                        a.Stock > 0);
+                        a.Stock > 0 &&
+                        (isOffline || a.CompanyId == idEmpresa));
                 }
 
                 // 4. Reflejamos el número real en la pantalla
@@ -718,9 +711,75 @@ namespace ControlInventarioMovil.Views
             await Shell.Current.GoToAsync("ShareInventoryPage");
         }
 
-        private async void OnTestKardexTapped(object sender, TappedEventArgs e)
+        private async Task SincronizarUnidadesMedidaAsync()
         {
-            await Navigation.PushAsync(new KardexArticuloPage());
+            try
+            {
+                using var context = new ControlInventarioMovil.Data.LocalDbContext();
+                var unidadesLocales = await context.MeasurementUnits.ToListAsync();
+
+                UserSession.UnidadesMedidaCache.Clear();
+                foreach (var u in unidadesLocales)
+                {
+                    UserSession.UnidadesMedidaCache[u.UnitName] = u.Abbreviation;
+                }
+
+                if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+                {
+                    var unidadesNube = await _apiService.GetMeasurementUnitsAsync();
+                    if (unidadesNube != null && unidadesNube.Count != 0)
+                    {
+                        UserSession.UnidadesMedidaCache.Clear();
+                        foreach (var u in unidadesNube)
+                        {
+                            UserSession.UnidadesMedidaCache[u.UnitName] = u.Abbreviation;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error al cargar unidades: {ex.Message}");
+            }
+        }
+
+        private async Task CalcularAlertasGlobalesAsync()
+        {
+            try
+            {
+                // Leemos el dato si ya se calculó en el AnalyticsPage recientemente
+                int alertasAlmacenadas = Preferences.Default.Get("AlertasGlobalesNegocio", -1);
+
+                if (alertasAlmacenadas >= 0)
+                {
+                    LblBadgeReportes.Text = alertasAlmacenadas == 1 ? "1 Reporte" : $"{alertasAlmacenadas} Reportes";
+                }
+                else
+                {
+                    // Si nunca ha entrado al AnalyticsPage, hacemos un cálculo ultra rápido en segundo plano
+                    int idInventario = UserSession.CurrentInventory?.Id ?? 1;
+                    var listaArticulos = await _apiService.GetArticlesAsync();
+
+                    if (listaArticulos != null)
+                    {
+                        var activos = listaArticulos.Where(a => a.InventoryId == idInventario && a.IsActive).ToList();
+                        int restock = activos.Count(a => a.Stock <= 5);
+                        int precios = activos.Count(a => a.AcquisitionPrice > 0 && a.SalePrice > 0 && ((a.SalePrice - a.AcquisitionPrice) / a.AcquisitionPrice) < 0.15m);
+
+                        int totalFast = restock + precios;
+                        LblBadgeReportes.Text = totalFast == 1 ? "1 Reporte" : $"{totalFast} Reportes";
+                    }
+                }
+
+                // Efecto visual: Si hay alertas, lo ponemos rojo; si no, verde.
+                if (LblBadgeReportes.Parent is Border bordePadre)
+                {
+                    bool hayAlertas = LblBadgeReportes.Text != "0 Reportes";
+                    bordePadre.BackgroundColor = hayAlertas ? Color.FromArgb("#FCE8E6") : (Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#1E3A1E") : Color.FromArgb("#D4E6D1"));
+                    LblBadgeReportes.TextColor = hayAlertas ? Color.FromArgb("#D32F2F") : (Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#A2D149") : Color.FromArgb("#4F7942"));
+                }
+            }
+            catch { }
         }
     }
 }

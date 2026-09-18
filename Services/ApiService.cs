@@ -1,7 +1,10 @@
 ﻿using ControlInventario.Models;
 using ControlInventario.Shared.Models;
+using ControlInventario.Shared.Models.Interfaces;
 using ControlInventarioMovil.Data;
+using ControlInventarioMovil.Helper;
 using ControlInventarioMovil.Modelo.API;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -9,17 +12,14 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace ControlInventarioMovil.Services
 {
     public class ApiService
     {
         private readonly HttpClient _httpClient;
-        public static string BaseApiUrl = "http://db-inventario-api.somee.com/api";
-        private static List<Brand>? _cacheMarcas = null;
-        private static List<Currency>? _cacheMonedas = null;
-        private static List<Parameters>? _cacheParametros = null;
+        public static readonly string BaseApiUrl = "http://db-inventario-api.somee.com/api";
+        private readonly static List<Parameters>? _cacheParametros = null;
 
         public ApiService()
         {
@@ -46,12 +46,11 @@ namespace ControlInventarioMovil.Services
         }
 
         #region AUTENTICACIÓN Y USUARIOS
-        public async Task<(HttpStatusCode StatusCode, bool IsSuccess, string Content)> LoginAsync(object loginData)
+        public static async Task<(HttpStatusCode StatusCode, bool IsSuccess, string Content)> LoginAsync(object loginData)
         {
-            var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true };
-            using var client = new HttpClient(handler);
+            using var client = new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true });
 
-            string jsonContent = JsonConvert.SerializeObject(loginData);
+            string jsonContent = System.Text.Json.JsonSerializer.Serialize(loginData);
             var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
             var response = await client.PostAsync($"{BaseApiUrl}/Users/Login", httpContent);
@@ -60,57 +59,29 @@ namespace ControlInventarioMovil.Services
             return (response.StatusCode, response.IsSuccessStatusCode, resString);
         }
 
-        public async Task<User?> LoginAsync(string username, string password)
-        {
-            try
-            {
-                var loginData = new { Username = username, Password = password };
-                var httpContent = new StringContent(JsonConvert.SerializeObject(loginData), Encoding.UTF8, "application/json");
-
-                var response = await _httpClient.PostAsync($"{BaseApiUrl}/Users/Login", httpContent);
-                string rawResponse = await response.Content.ReadAsStringAsync();
-
-                if (response.IsSuccessStatusCode)
-                {
-                    if (rawResponse.Contains("requirePasswordChange"))
-                    {
-                        var dynamicResult = JsonConvert.DeserializeObject<dynamic>(rawResponse);
-                        var userString = JsonConvert.SerializeObject(dynamicResult?.user);
-                        return JsonConvert.DeserializeObject<User>(userString);
-                    }
-                    return JsonConvert.DeserializeObject<User>(rawResponse);
-                }
-
-                if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.BadRequest)
-                {
-                    var errorJson = JsonConvert.DeserializeObject<dynamic>(rawResponse);
-                    string mensajeReal = errorJson?.mensaje ?? "Credenciales incorrectas.";
-                    throw new UnauthorizedAccessException($"Somee rechazó el acceso: {mensajeReal}");
-                }
-
-                throw new Exception($"Error del Servidor ({response.StatusCode}): {rawResponse}");
-            }
-            catch (HttpRequestException) { throw new Exception("El servidor de Somee se encuentra fuera de servicio o sin internet."); }
-            catch (TaskCanceledException) { throw new Exception("Tiempo de espera agotado. Somee tardó demasiado."); }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[LOGIN CRASH]: {ex.Message}");
-                throw new Exception(ex.Message);
-            }
-        }
-
         public async Task<List<User>?> GetUsersAsync()
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    return await context.Users.Include(u => u.Role).Include(u => u.Employee).ToListAsync();
+                }
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Users");
                 if (response.IsSuccessStatusCode)
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<List<User>>(json);
+                    return await response.Content.ReadFromJsonAsync<List<User>>();
                 }
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERR] GetUsers: {ex.Message}"); }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.Users.Include(u => u.Role).Include(u => u.Employee).ToListAsync();
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERR] GetUsers: {ex.Message}"); }
+
             return null;
         }
 
@@ -118,16 +89,14 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
-                HttpResponseMessage response;
-                if (user.Id == 0)
-                    response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Users", user);
-                else
-                    response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Users/{user.Id}", user);
+                var response = user.Id == 0
+                    ? await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Users", user)
+                    : await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Users/{user.Id}", user);
 
                 if (response.IsSuccessStatusCode) return true;
 
                 string errorDetail = await response.Content.ReadAsStringAsync();
-                Debug.WriteLine($"[API RECHAZADA] Código: {response.StatusCode} | Detalle: {errorDetail}");
+                Debug.WriteLine($"[API_RECHAZO] SaveUser (Code: {response.StatusCode}): {errorDetail}");
                 return false;
             }
             catch (Exception ex)
@@ -141,12 +110,14 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
-                var json = JsonConvert.SerializeObject(updatedUser);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PutAsync($"{BaseApiUrl}/Users/{updatedUser.Id}", content);
+                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Users/{updatedUser.Id}", updatedUser);
                 return response.IsSuccessStatusCode;
             }
-            catch (Exception ex) { Console.WriteLine($"Error crítico: {ex.Message}"); return false; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[EXCEPCIÓN CRÍTICA] UpdateUserAsync: {ex.Message}");
+                return false;
+            }
         }
 
         public async Task<string?> UploadPhotoAsync(int userId, string croppedFilePath)
@@ -158,20 +129,27 @@ namespace ControlInventarioMovil.Services
                 byte[] imageBytes = await File.ReadAllBytesAsync(croppedFilePath);
                 string base64String = Convert.ToBase64String(imageBytes);
 
-                var payload = new { Base64Image = base64String };
-                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Users/{userId}/UpdatePhoto", payload);
+                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Users/{userId}/UpdatePhoto", new { Base64Image = base64String });
 
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
-                    var result = JsonConvert.DeserializeObject<dynamic>(json);
-                    return result?.url ?? result?.Url;
+                    var result = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(json);
+
+                    if (result.TryGetProperty("url", out var urlElement) || result.TryGetProperty("Url", out urlElement))
+                    {
+                        return urlElement.GetString();
+                    }
                 }
 
                 string error = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"[API_PHOTO_ERROR]: {error}");
+                Debug.WriteLine($"[API_PHOTO_ERROR]: {error}");
             }
-            catch (Exception ex) { Console.WriteLine($"Error crítico subiendo foto: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[EXCEPCIÓN CRÍTICA] UploadPhotoAsync: {ex.Message}");
+            }
+
             return null;
         }
         #endregion
@@ -181,14 +159,27 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    return await context.Profiles.FirstOrDefaultAsync(p => p.Username == username);
+                }
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Profiles/user/{username}");
                 if (response.IsSuccessStatusCode)
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<Profile>(json);
+                    return await response.Content.ReadFromJsonAsync<Profile>();
                 }
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetUserProfileConfigAsync: {ex.Message}"); }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.Profiles.FirstOrDefaultAsync(p => p.Username == username);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] GetUserProfileConfigAsync: {ex.Message}");
+            }
             return null;
         }
 
@@ -196,20 +187,42 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
-                string json = JsonConvert.SerializeObject(profileConfig);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
                 HttpResponseMessage response = profileConfig.Id > 0
-                    ? await _httpClient.PutAsync($"{BaseApiUrl}/Profiles/{profileConfig.Id}", content)
-                    : await _httpClient.PostAsync($"{BaseApiUrl}/Profiles", content);
+                    ? await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Profiles/{profileConfig.Id}", profileConfig)
+                    : await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Profiles", profileConfig);
 
-                if (response.IsSuccessStatusCode) return true;
+                if (response.IsSuccessStatusCode)
+                {
+                    using var context = new LocalDbContext();
+                    var localProfile = await context.Profiles.FirstOrDefaultAsync(p => p.Id == profileConfig.Id || p.Username == profileConfig.Username);
+
+                    if (localProfile != null)
+                        context.Entry(localProfile).CurrentValues.SetValues(profileConfig);
+                    else
+                        await context.Profiles.AddAsync(profileConfig);
+
+                    await context.SaveChangesAsync();
+                    return true;
+                }
 
                 string errorDetallado = await response.Content.ReadAsStringAsync();
                 Debug.WriteLine($"[DEBUG_PERFIL_RECHAZO]: {response.StatusCode} - {errorDetallado}");
+
                 MainThread.BeginInvokeOnMainThread(async () => {
                     await Shell.Current.DisplayAlertAsync("Error de Servidor", $"Código: {response.StatusCode}\nDetalle: {errorDetallado}", "OK");
                 });
+                return false;
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                var localProfile = await context.Profiles.FirstOrDefaultAsync(p => p.Id == profileConfig.Id || p.Username == profileConfig.Username);
+                if (localProfile != null)
+                {
+                    context.Entry(localProfile).CurrentValues.SetValues(profileConfig);
+                    await context.SaveChangesAsync();
+                    return true;
+                }
                 return false;
             }
             catch (Exception ex)
@@ -225,17 +238,25 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                    return null;
+
                 var response = await _httpClient.PostAsync($"{BaseApiUrl}/Users/{userId}/generate-2fa", null);
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
-                    var data = JsonConvert.DeserializeObject<dynamic>(json);
-                    string secret = (string?)data?.secret ?? string.Empty;
-                    string qrUri = (string?)data?.qrUri ?? string.Empty;
+                    using var document = JsonDocument.Parse(json);
+
+                    string secret = document.RootElement.TryGetProperty("secret", out var secretElement) ? (secretElement.GetString() ?? "") : "";
+                    string qrUri = document.RootElement.TryGetProperty("qrUri", out var qrElement) ? (qrElement.GetString() ?? "") : "";
+
                     return (secret, qrUri);
                 }
             }
-            catch (Exception ex) { Console.WriteLine($"[2FA_ERR] Generate: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[2FA_ERR] Generate: {ex.Message}");
+            }
             return null;
         }
 
@@ -243,20 +264,32 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+
                 var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Users/{userId}/enable-2fa", code);
                 return response.IsSuccessStatusCode;
             }
-            catch (Exception ex) { Console.WriteLine($"[2FA_ERR] Enable: {ex.Message}"); return false; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[2FA_ERR] Enable: {ex.Message}");
+                return false;
+            }
         }
 
         public async Task<bool> Disable2FAAsync(int userId)
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+
                 var response = await _httpClient.PostAsync($"{BaseApiUrl}/Users/{userId}/disable-2fa", null);
                 return response.IsSuccessStatusCode;
             }
-            catch (Exception ex) { Console.WriteLine($"[2FA_ERR] Disable: {ex.Message}"); return false; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[2FA_ERR] Disable: {ex.Message}");
+                return false;
+            }
         }
         #endregion
 
@@ -265,142 +298,228 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    return await context.Roles.ToListAsync();
+                }
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Roles");
                 if (response.IsSuccessStatusCode)
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<List<Role>>(json) ?? new List<Role>();
+                    return await response.Content.ReadFromJsonAsync<List<Role>>() ?? [];
                 }
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetRoles: {ex.Message}"); }
-            return new List<Role>();
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.Roles.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] GetRoles: {ex.Message}");
+            }
+            return [];
         }
 
         public async Task<bool> CreateRoleAsync(Role newRole)
         {
             try
             {
-                var json = JsonConvert.SerializeObject(newRole);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"{BaseApiUrl}/Roles", content);
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+
+                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Roles", newRole);
                 return response.IsSuccessStatusCode;
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] CreateRole: {ex.Message}"); return false; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] CreateRole: {ex.Message}");
+                return false;
+            }
         }
 
         public async Task<bool> UpdateRoleAsync(Role role)
         {
             try
             {
-                var json = JsonConvert.SerializeObject(role);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PutAsync($"{BaseApiUrl}/Roles/{role.Id}", content);
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+
+                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Roles/{role.Id}", role);
                 return response.IsSuccessStatusCode;
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] UpdateRole: {ex.Message}"); return false; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] UpdateRole: {ex.Message}");
+                return false;
+            }
         }
 
         public async Task<List<Permission>> GetPermissionsAsync()
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    return await context.Permissions.ToListAsync();
+                }
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Permissions");
                 if (response.IsSuccessStatusCode)
                 {
-                    return await response.Content.ReadFromJsonAsync<List<Permission>>() ?? new List<Permission>();
+                    return await response.Content.ReadFromJsonAsync<List<Permission>>() ?? [];
                 }
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetPermissions: {ex.Message}"); }
-            return new List<Permission>();
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.Permissions.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] GetPermissions: {ex.Message}");
+            }
+            return [];
         }
 
         public async Task<bool> UpdateRolePermissionsAsync(int roleId, List<int> permissionIds)
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+
                 var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Roles/{roleId}/permissions", permissionIds);
                 return response.IsSuccessStatusCode;
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] UpdateRolePermissions: {ex.Message}"); return false; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] UpdateRolePermissions: {ex.Message}");
+                return false;
+            }
         }
         #endregion
 
         #region INVENTARIOS Y ALMACENES
+        public static JsonSerializerOptions GetOptions()
+        {
+            return new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        }
+
         public async Task<ObservableCollection<Inventory>> GetInventoriesAsync()
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    var locales = await context.Inventories.Where(i => i.IsActive).ToListAsync();
+                    return new ObservableCollection<Inventory>(locales);
+                }
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Inventories");
                 if (response.IsSuccessStatusCode)
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<ObservableCollection<Inventory>>(json) ?? new ObservableCollection<Inventory>();
+                    var lista = await response.Content.ReadFromJsonAsync<ObservableCollection<Inventory>>(GetOptions());
+                    return lista ?? [];
                 }
             }
-            catch (Exception ex) { Console.WriteLine($"Error: {ex.Message}"); }
-            return new ObservableCollection<Inventory>();
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                var locales = await context.Inventories.Where(i => i.IsActive).ToListAsync();
+                return new ObservableCollection<Inventory>(locales);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] GetInventories: {ex.Message}");
+            }
+            return [];
         }
 
         public async Task<bool> CreateInventoryAsync(Inventory newInventory)
         {
             try
             {
-                var settings = new JsonSerializerSettings { ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver() };
-                var json = JsonConvert.SerializeObject(newInventory, settings);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"{BaseApiUrl}/Inventories", content);
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+
+                var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Inventories", newInventory, options);
+
                 return response.IsSuccessStatusCode;
             }
-            catch (Exception ex) { Console.WriteLine($"Error al crear: {ex.Message}"); return false; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] CreateInventory: {ex.Message}");
+                return false;
+            }
         }
 
-        public async Task<List<SharedInventoryDTO>> GetSharedInventoriesAsync(int inventoryId)
+        public async Task<List<SharedInventoryDTO>> GetSharedInventoriesAsync(int inventoryId, JsonSerializerOptions options)
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return [];
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/SharedInventories/inventory/{inventoryId}");
                 if (response.IsSuccessStatusCode)
                 {
-                    var content = await response.Content.ReadAsStringAsync();
-                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    return System.Text.Json.JsonSerializer.Deserialize<List<SharedInventoryDTO>>(content, options) ?? new List<SharedInventoryDTO>();
+                    return await response.Content.ReadFromJsonAsync<List<SharedInventoryDTO>>(options) ?? [];
                 }
             }
-            catch (Exception ex) { Debug.WriteLine($"Error: {ex.Message}"); }
-            return new List<SharedInventoryDTO>();
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] GetSharedInventories: {ex.Message}");
+            }
+            return [];
         }
 
         public async Task<bool> ShareInventoryAsync(object shareRequest)
         {
             try
             {
-                var json = JsonConvert.SerializeObject(shareRequest);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"{BaseApiUrl}/Inventories/Share", content);
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+
+                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Inventories/Share", shareRequest);
                 return response.IsSuccessStatusCode;
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] ShareInventory: {ex.Message}");
+                return false;
+            }
         }
 
         public async Task<bool> RevokeAccessAsync(int sharedInventoryId)
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+
                 var response = await _httpClient.DeleteAsync($"{BaseApiUrl}/Inventories/Revoke/{sharedInventoryId}");
                 return response.IsSuccessStatusCode;
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] RevokeAccess: {ex.Message}");
+                return false;
+            }
         }
 
         public async Task<bool> UpdateSharedAccessAsync(int sharedInventoryId, int newAccessLevel)
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+
                 var content = new StringContent(newAccessLevel.ToString(), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PutAsync($"{BaseApiUrl}/Inventories/Shared/{sharedInventoryId}", content);
                 return response.IsSuccessStatusCode;
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] UpdateSharedAccess: {ex.Message}");
+                return false;
+            }
         }
         #endregion
 
@@ -410,23 +529,46 @@ namespace ControlInventarioMovil.Services
             if (_cacheParametros != null && _cacheParametros.Count > 0) return _cacheParametros;
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    return await context.Parameters.ToListAsync();
+                }
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Parameters");
                 if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadFromJsonAsync<List<Parameters>>() ?? new List<Parameters>();
+                {
+                    return await response.Content.ReadFromJsonAsync<List<Parameters>>() ?? [];
+                }
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetParameters: {ex.Message}"); }
-            return new List<Parameters>();
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.Parameters.ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] GetParameters: {ex.Message}");
+            }
+            return [];
         }
 
         public async Task<Parameters?> CreateParameterAsync(Parameters newParameter)
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return null;
+
                 var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Parameters", newParameter);
                 if (response.IsSuccessStatusCode)
+                {
                     return await response.Content.ReadFromJsonAsync<Parameters>();
+                }
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] CreateParameter: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] CreateParameter: {ex.Message}");
+            }
             return null;
         }
 
@@ -434,12 +576,32 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
-                var json = JsonConvert.SerializeObject(param);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PutAsync($"{BaseApiUrl}/Parameters/{param.Id}", content);
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+
+                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Parameters/{param.Id}", param);
                 return response.IsSuccessStatusCode;
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] UpdateParameter: {ex.Message}"); return false; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] UpdateParameter: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteParameterAsync(int id)
+        {
+            try
+            {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+
+                var response = await _httpClient.DeleteAsync($"{BaseApiUrl}/Parameters/{id}");
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] DeleteParameter: {ex.Message}");
+                return false;
+            }
         }
         #endregion
 
@@ -448,129 +610,166 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
+                using var context = new LocalDbContext();
+
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    return await context.Categories.Where(c => c.IsActive).ToListAsync();
+                }
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Categories");
                 if (response.IsSuccessStatusCode)
                 {
-                    var opcionesJson = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var opcionesJson = GetOptions();
                     opcionesJson.Converters.Add(new IntToBoolConverter());
                     opcionesJson.Converters.Add(new TrackingModeJsonConverter());
 
-                    return await response.Content.ReadFromJsonAsync<List<Category>>(opcionesJson) ?? new List<Category>();
-                }
-                string errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"[API_CRITICAL_FAIL] Error {response.StatusCode}: {errorContent}");
-            }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetCategories: {ex.Message}"); }
-            return new List<Category>();
-        }
+                    var listaNube = await response.Content.ReadFromJsonAsync<List<Category>>(opcionesJson) ?? [];
+                    var pendientesLocales = await context.Categories.Where(c => c.IsActive && c.IsSynced == false).ToListAsync();
+                    var pendientesReales = pendientesLocales
+                        .Where(p => !listaNube.Any(n => n.Name.Equals(p.Name, StringComparison.OrdinalIgnoreCase)))
+                        .ToList();
 
-        public async Task<bool> CreateCategoryAsync(Category newCategory)
-        {
-            try
+                    return [.. listaNube, .. pendientesReales];
+                }
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
             {
-                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Categories", newCategory);
-                if (!response.IsSuccessStatusCode)
-                {
-                    string errorDetallado = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[API_ERROR_400] Detalles: {errorDetallado}");
-                }
-                return response.IsSuccessStatusCode;
+                using var context = new LocalDbContext();
+                return await context.Categories.Where(c => c.IsActive).ToListAsync();
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] CreateCategory: {ex.Message}"); return false; }
-        }
-
-        public async Task<bool> UpdateCategoryAsync(Category updatedCategory)
-        {
-            try
+            catch (Exception ex)
             {
-                updatedCategory.ModificationDate = DateTime.Now;
-                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Categories/{updatedCategory.Id}", updatedCategory);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    string errorDetallado = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[API_ERROR_PUT] Detalles: {errorDetallado}");
-                }
-                return response.IsSuccessStatusCode;
+                Debug.WriteLine($"[API_ERROR] GetCategories: {ex.Message}");
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] UpdateCategory: {ex.Message}"); return false; }
+            return [];
         }
+
+        public async Task<bool> CreateCategoryAsync(Category newCategory) =>
+            await PostOfflineFirstAsync(newCategory, "Categories");
+
+        public async Task<bool> UpdateCategoryAsync(Category updatedCategory) =>
+            await PutOfflineFirstAsync(updatedCategory.Id, updatedCategory, "Categories");
 
         public async Task<bool> DeleteCategoryAsync(int id)
         {
             try
             {
-                var response = await _httpClient.DeleteAsync($"{BaseApiUrl}/Categories/{id}");
-                if (!response.IsSuccessStatusCode)
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
                 {
-                    string errorContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[API_ERROR_DELETE]: {errorContent}");
+                    using var context = new LocalDbContext();
+                    var category = await context.Categories.FindAsync(id);
+                    if (category != null)
+                    {
+                        category.IsActive = false;
+                        context.Categories.Update(category);
+                        await context.SaveChangesAsync();
+                    }
+                    return true;
                 }
+
+                var response = await _httpClient.DeleteAsync($"{BaseApiUrl}/Categories/{id}");
                 return response.IsSuccessStatusCode;
             }
-            catch (Exception ex) { Console.WriteLine($"[EXCEPTION_DELETE_CATEGORY]: {ex.Message}"); return false; }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                var category = await context.Categories.FindAsync(id);
+                if (category != null)
+                {
+                    category.IsActive = false;
+                    context.Categories.Update(category);
+                    await context.SaveChangesAsync();
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[EXCEPTION_DELETE_CATEGORY]: {ex.Message}");
+                return false;
+            }
         }
         #endregion
 
         #region MARCAS
         public async Task<List<Brand>> GetBrandsAsync()
         {
-            if (_cacheMarcas != null && _cacheMarcas.Count > 0) return _cacheMarcas;
             try
             {
+                using var context = new LocalDbContext();
+
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    return await context.Brands.Where(b => b.IsActive).ToListAsync();
+                }
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Brands");
                 if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadFromJsonAsync<List<Brand>>() ?? new List<Brand>();
+                {
+                    var listaNube = await response.Content.ReadFromJsonAsync<List<Brand>>(GetOptions()) ?? [];
+                    var pendientesLocales = await context.Brands.Where(b => b.IsActive && b.IsSynced == false).ToListAsync();
+
+                    return [.. listaNube, .. pendientesLocales];
+                }
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetBrands: {ex.Message}"); }
-            return new List<Brand>();
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.Brands.Where(b => b.IsActive).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] GetBrands: {ex.Message}");
+            }
+            return [];
         }
 
         public async Task<Brand?> CreateBrandAsync(Brand newBrand)
         {
-            try
-            {
-                string jsonRequest = System.Text.Json.JsonSerializer.Serialize(newBrand);
-                var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"{BaseApiUrl}/Brands", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    _cacheMarcas = null;
-                    string jsonResponse = await response.Content.ReadAsStringAsync();
-                    return System.Text.Json.JsonSerializer.Deserialize<Brand>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                }
-
-                string errorDetallado = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"[API_ERROR_POST] Brand: {errorDetallado}");
-            }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] CreateBrand: {ex.Message}"); }
-            return null;
+            bool success = await PostOfflineFirstAsync(newBrand, "Brands");
+            return success ? newBrand : null;
         }
 
-        public async Task<bool> UpdateBrandAsync(Brand updatedBrand)
-        {
-            try
-            {
-                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Brands/{updatedBrand.Id}", updatedBrand);
-                if (!response.IsSuccessStatusCode)
-                {
-                    string errorDetallado = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[API_ERROR_PUT] Brand: {errorDetallado}");
-                }
-                return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] UpdateBrand: {ex.Message}"); return false; }
-        }
+        public async Task<bool> UpdateBrandAsync(Brand updatedBrand) =>
+            await PutOfflineFirstAsync(updatedBrand.Id, updatedBrand, "Brands");
 
         public async Task<bool> DeleteBrandAsync(int id)
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    var brand = await context.Brands.FindAsync(id);
+                    if (brand != null)
+                    {
+                        brand.IsActive = false;
+                        context.Brands.Update(brand);
+                        await context.SaveChangesAsync();
+                    }
+                    return true;
+                }
+
                 var response = await _httpClient.DeleteAsync($"{BaseApiUrl}/Brands/{id}");
                 return response.IsSuccessStatusCode;
             }
-            catch (Exception ex) { Console.WriteLine($"[API_DELETE_BRAND_ERROR]: {ex.Message}"); return false; }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                var brand = await context.Brands.FindAsync(id);
+                if (brand != null)
+                {
+                    brand.IsActive = false;
+                    context.Brands.Update(brand);
+                    await context.SaveChangesAsync();
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_DELETE_BRAND_ERROR]: {ex.Message}");
+                return false;
+            }
         }
         #endregion
 
@@ -579,160 +778,158 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
+                using var context = new LocalDbContext();
+
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    return await context.Articles.Where(a => a.IsActive).ToListAsync();
+                }
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Articles");
                 if (response.IsSuccessStatusCode)
                 {
-                    string jsonResponse = await response.Content.ReadAsStringAsync();
-                    var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    return System.Text.Json.JsonSerializer.Deserialize<List<Article>>(jsonResponse, options);
-                }
+                    var listaNube = await response.Content.ReadFromJsonAsync<List<Article>>(GetOptions()) ?? [];
+                    var pendientesLocales = await context.Articles.Where(a => a.IsActive && a.IsSynced == false).ToListAsync();
 
-                string errorDetallado = await response.Content.ReadAsStringAsync();
-                Debug.WriteLine($"[API_ERROR_FETCH] Detalles: {errorDetallado}");
-                return null;
-            }
-            catch (Exception ex) { Console.WriteLine($"[API_CRITICAL_EX] GetArticles: {ex.Message}"); return null; }
-        }
-
-        public async Task<bool> CreateArticleAsync(Article newArticle)
-        {
-            try
-            {
-                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Articles", newArticle);
-                if (!response.IsSuccessStatusCode)
-                {
-                    string errorDetallado = await response.Content.ReadAsStringAsync();
-                    Debug.WriteLine($"[API_ERROR_500] Detalles: {errorDetallado}");
-                }
-                return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex) { Console.WriteLine($"[API_CRITICAL_EX] CreateArticle: {ex.Message}"); return false; }
-        }
-
-        public async Task<bool> UpdateArticleAsync(int id, Article updatedArticle)
-        {
-            try
-            {
-                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Articles/{id}", updatedArticle);
-                if (!response.IsSuccessStatusCode)
-                {
-                    string errorDetallado = await response.Content.ReadAsStringAsync();
-                    Debug.WriteLine($"[API_ERROR_PUT] Detalles: {errorDetallado}");
-                }
-                return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex) { Console.WriteLine($"[API_CRITICAL_EX] UpdateArticle: {ex.Message}"); return false; }
-        }
-
-        public async Task<bool> SyncArticleWithCloudAsync(Article article)
-        {
-            try
-            {
-                var json = JsonConvert.SerializeObject(article);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"{BaseApiUrl}/Articles", content);
-                return response.IsSuccessStatusCode;
-            }
-            catch { return false; }
-        }
-
-        public async Task<List<Article>> GetArticlesFromCloudAsync()
-        {
-            try
-            {
-                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Articles");
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<List<Article>>(json) ?? new List<Article>();
+                    return [.. listaNube, .. pendientesLocales];
                 }
             }
-            catch { }
-            return new List<Article>();
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.Articles.Where(a => a.IsActive).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_CRITICAL_EX] GetArticles: {ex.Message}");
+            }
+            return null;
         }
+
+        public async Task<bool> CreateArticleAsync(Article newArticle) =>
+            await PostOfflineFirstAsync(newArticle, "Articles");
+
+        public async Task<bool> UpdateArticleAsync(int id, Article updatedArticle) =>
+            await PutOfflineFirstAsync(id, updatedArticle, "Articles");
 
         public async Task<Article?> GetArticleByBarcodeAsync(string barcode)
-        {
-            try
-            {
-                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Articles/barcode/{barcode}");
-                if (response.IsSuccessStatusCode)
-                {
-                    string jsonString = await response.Content.ReadAsStringAsync();
-                    return System.Text.Json.JsonSerializer.Deserialize<Article>(jsonString, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                }
-                return null;
-            }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetArticleByBarcodeAsync: {ex.Message}"); return null; }
-        }
-
-        public async Task<int> GetArticleCountByInventoryAsync(int inventoryId)
-        {
-            try
-            {
-                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Articles/count/inventory/{inventoryId}");
-                if (response.IsSuccessStatusCode)
-                {
-                    string jsonString = await response.Content.ReadAsStringAsync();
-                    if (int.TryParse(jsonString, out int total)) return total;
-                }
-            }
-            catch (Exception ex) { Debug.WriteLine($"[API_ERROR] GetArticleCountByInventoryAsync: {ex.Message}"); }
-            return 0;
-        }
-
-        public async Task<bool> AddArticleDetailAsync(ArticleDetails detail)
         {
             try
             {
                 if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
                 {
                     using var context = new LocalDbContext();
-                    context.ArticleDetails.Add(detail);
-                    await context.SaveChangesAsync();
-                    return true;
+                    return await context.Articles.FirstOrDefaultAsync(a => a.Barcode == barcode && a.IsActive);
                 }
 
-                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Articles/AddDetail", detail);
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Articles/barcode/{barcode}");
                 if (response.IsSuccessStatusCode)
                 {
-                    string jsonResponse = await response.Content.ReadAsStringAsync();
-                    using (var doc = JsonDocument.Parse(jsonResponse))
-                    {
-                        if (doc.RootElement.TryGetProperty("newId", out var newIdElement))
-                            detail.Id = newIdElement.GetInt32();
-                    }
-
-                    using var context = new LocalDbContext();
-                    context.ArticleDetails.Add(detail);
-                    await context.SaveChangesAsync();
-                    return true;
+                    return await response.Content.ReadFromJsonAsync<Article>(GetOptions());
                 }
-
-                string errorDetallado = await response.Content.ReadAsStringAsync();
-                Debug.WriteLine($"[API_ERROR_POST_DETAIL] {errorDetallado}");
-                return false;
             }
-            catch (Exception ex) { Console.WriteLine($"[API_CRITICAL_EX] AddArticleDetail: {ex.Message}"); return false; }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.Articles.FirstOrDefaultAsync(a => a.Barcode == barcode && a.IsActive);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_ERROR] GetArticleByBarcodeAsync: {ex.Message}");
+            }
+            return null;
         }
 
-        public async Task<bool> UpdateArticleDetailAsync(int id, ArticleDetails detail)
+        public async Task<List<ArticleDetails>?> GetArticleDetailsAsync(int articleId)
         {
             try
             {
-                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return true;
-                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Articles/UpdateDetail/{id}", detail);
-                return response.IsSuccessStatusCode;
+                using var context = new LocalDbContext();
+
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    return await context.ArticleDetails.Where(d => d.ArticleId == articleId && d.IsActive).ToListAsync();
+                }
+
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Articles/GetDetails/{articleId}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var listaNube = await response.Content.ReadFromJsonAsync<List<ArticleDetails>>(GetOptions()) ?? [];
+                    var locales = await context.ArticleDetails.Where(d => d.ArticleId == articleId && d.IsActive && d.IsSynced == false).ToListAsync();
+
+                    return [.. listaNube, .. locales];
+                }
             }
-            catch { return false; }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.ArticleDetails.Where(d => d.ArticleId == articleId && d.IsActive).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_CRITICAL_EX] GetArticleDetailsAsync: {ex.Message}");
+            }
+            return null;
         }
+
+        public async Task<bool> AddArticleDetailAsync(ArticleDetails detail) =>
+            await PostOfflineFirstAsync(detail, "Articles/AddDetail");
+
+        public async Task<bool> UpdateArticleDetailAsync(int id, ArticleDetails detail) =>
+            await PutOfflineFirstAsync(id, detail, "Articles/UpdateDetail");
 
         public async Task<bool> DeleteArticleDetailAsync(int id)
         {
             try
             {
-                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return true;
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    var localDetail = await context.ArticleDetails.FindAsync(id);
+                    if (localDetail != null)
+                    {
+                        localDetail.IsActive = false;
+                        context.ArticleDetails.Update(localDetail);
+                        await context.SaveChangesAsync();
+                    }
+                    return true;
+                }
+
                 var response = await _httpClient.DeleteAsync($"{BaseApiUrl}/Articles/DeleteDetail/{id}");
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                var localDetail = await context.ArticleDetails.FindAsync(id);
+                if (localDetail != null)
+                {
+                    localDetail.IsActive = false;
+                    context.ArticleDetails.Update(localDetail);
+                    await context.SaveChangesAsync();
+                }
+                return true;
+            }
+            catch { return false; }
+        }
+
+        public async Task<bool> SyncArticleWithCloudAsync(Article article)
+        {
+            try
+            {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Articles", article, GetOptions());
+                return response.IsSuccessStatusCode;
+            }
+            catch { return false; }
+        }
+
+        public async Task<bool> SyncDetailWithCloudAsync(ArticleDetails detail)
+        {
+            try
+            {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Articles/AddDetail", detail, GetOptions());
                 return response.IsSuccessStatusCode;
             }
             catch { return false; }
@@ -740,70 +937,168 @@ namespace ControlInventarioMovil.Services
         #endregion
 
         #region CATÁLOGOS SECUNDARIOS Y TERCEROS
+
+        // ================= CATÁLOGOS DE LECTURA (Soporte Offline Puro) =================
         public async Task<List<Currency>> GetCurrenciesAsync()
         {
-            if (_cacheMonedas != null && _cacheMonedas.Count > 0) return _cacheMonedas;
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    return await context.Currencies.ToListAsync();
+                }
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Currencies");
                 if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadFromJsonAsync<List<Currency>>() ?? new List<Currency>();
+                    return await response.Content.ReadFromJsonAsync<List<Currency>>() ?? [];
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] Currencies: {ex.Message}"); }
-            return new List<Currency>();
-        }
-
-        public async Task<ExchangeRate?> GetTodayExchangeRateAsync(string currency = "USD")
-        {
-            try
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
             {
-                var response = await _httpClient.GetAsync($"{BaseApiUrl}/ExchangeRates/today/{currency}");
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<ExchangeRate>(json);
-                }
+                using var context = new LocalDbContext();
+                return await context.Currencies.ToListAsync();
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] {ex.Message}"); }
-            return null;
+            catch (Exception ex) { Debug.WriteLine($"[API_ERROR] Currencies: {ex.Message}"); }
+            return [];
         }
 
         public async Task<List<MeasurementUnit>> GetMeasurementUnitsAsync()
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    return await context.MeasurementUnits.ToListAsync();
+                }
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/MeasurementUnits");
                 if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadFromJsonAsync<List<MeasurementUnit>>() ?? new List<MeasurementUnit>();
+                    return await response.Content.ReadFromJsonAsync<List<MeasurementUnit>>() ?? [];
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetMeasurementUnits: {ex.Message}"); }
-            return new List<MeasurementUnit>();
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.MeasurementUnits.ToListAsync();
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERROR] GetMeasurementUnits: {ex.Message}"); }
+            return [];
         }
 
+        public async Task<List<Employee>> GetEmployeesAsync()
+        {
+            try
+            {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    return await context.Employees.ToListAsync();
+                }
+
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Employees");
+                if (response.IsSuccessStatusCode)
+                    return await response.Content.ReadFromJsonAsync<List<Employee>>() ?? [];
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.Employees.ToListAsync();
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERROR] GetEmployees: {ex.Message}"); }
+            return [];
+        }
+
+        public async Task<bool> UpdateEmployeeAsync(int id, Employee empleado)
+        {
+            try
+            {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Employees/{id}", empleado);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERR] UpdateEmployee: {ex.Message}"); return false; }
+        }
+
+        // ================= TERCEROS: PROVEEDORES (Motor Anti-Duplicidad) =================
         public async Task<List<Supplier>> GetSuppliersAsync()
         {
             try
             {
+                using var context = new LocalDbContext();
+
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                    return await context.Supplier.Where(s => s.IsActive).ToListAsync();
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Suppliers");
                 if (response.IsSuccessStatusCode)
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<List<Supplier>>(json) ?? new List<Supplier>();
+                    var listaNube = await response.Content.ReadFromJsonAsync<List<Supplier>>(GetOptions()) ?? [];
+                    var pendientesLocales = await context.Supplier.Where(s => s.IsActive && s.IsSynced == false).ToListAsync();
+
+                    return [.. listaNube, .. pendientesLocales];
                 }
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetSuppliers: {ex.Message}"); }
-            return new List<Supplier>();
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.Supplier.Where(s => s.IsActive).ToListAsync();
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERROR] GetSuppliers: {ex.Message}"); }
+            return [];
         }
 
-        public async Task<Supplier?> CreateSupplierAsync(Supplier newSupplier)
+        public async Task<bool> CreateSupplierAsync(Supplier newSupplier) =>
+            await PostOfflineFirstAsync(newSupplier, "Suppliers");
+
+        public async Task<bool> UpdateSupplierAsync(int id, Supplier supplier) =>
+            await PutOfflineFirstAsync(id, supplier, "Suppliers");
+
+        // ================= TERCEROS: CLIENTES (Motor Anti-Duplicidad) =================
+        public async Task<List<Customer>> GetCustomersAsync()
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Suppliers", newSupplier);
+                using var context = new LocalDbContext();
+
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                    return await context.Customer.Where(c => c.IsActive).ToListAsync();
+
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Customers");
                 if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadFromJsonAsync<Supplier>();
+                {
+                    var listaNube = await response.Content.ReadFromJsonAsync<List<Customer>>(GetOptions()) ?? [];
+                    var pendientesLocales = await context.Customer.Where(c => c.IsActive && c.IsSynced == false).ToListAsync();
+
+                    return [.. listaNube, .. pendientesLocales];
+                }
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] CreateSupplier: {ex.Message}"); }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.Customer.Where(c => c.IsActive).ToListAsync();
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERR] GetCustomers: {ex.Message}"); }
+            return [];
+        }
+
+        public async Task<bool> SaveCustomerAsync(Customer cliente) =>
+            await PostOfflineFirstAsync(cliente, "Customers");
+
+        public async Task<bool> UpdateCustomerAsync(int id, Customer cliente) =>
+            await PutOfflineFirstAsync(id, cliente, "Customers");
+
+        // ================= APIS EXTERNAS (SUNAT, RENIEC Y CAMBIO) =================
+        public async Task<ExchangeRate?> GetTodayExchangeRateAsync(string currency = "USD")
+        {
+            try
+            {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return null;
+
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/ExchangeRates/today/{currency}");
+                if (response.IsSuccessStatusCode)
+                    return await response.Content.ReadFromJsonAsync<ExchangeRate>();
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERROR] {ex.Message}"); }
             return null;
         }
 
@@ -811,146 +1106,101 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return null;
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Suppliers/ruc/{ruc}");
                 if (response.IsSuccessStatusCode)
-                {
-                    string jsonResponse = await response.Content.ReadAsStringAsync();
-                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    return System.Text.Json.JsonSerializer.Deserialize<Supplier>(jsonResponse, options);
-                }
+                    return await response.Content.ReadFromJsonAsync<Supplier>(GetOptions());
             }
-            catch (Exception ex) { Console.WriteLine($"[API_CRITICAL_EX] ConsultarRuc: {ex.Message}"); }
+            catch (Exception ex) { Debug.WriteLine($"[API_CRITICAL_EX] ConsultarRuc: {ex.Message}"); }
             return null;
-        }
-
-        public async Task<bool> UpdateSupplierAsync(int id, Supplier supplier)
-        {
-            try
-            {
-                string jsonRequest = System.Text.Json.JsonSerializer.Serialize(supplier);
-                var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PutAsync($"{BaseApiUrl}/Suppliers/{id}", content);
-                return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex) { Console.WriteLine($"[API_CRITICAL_EX] UpdateSupplierAsync: {ex.Message}"); return false; }
-        }
-
-        public async Task<List<Customer>> GetCustomersAsync()
-        {
-            try
-            {
-                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Customers");
-                if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadFromJsonAsync<List<Customer>>() ?? new List<Customer>();
-            }
-            catch (Exception ex) { Debug.WriteLine($"[API_ERR] GetCustomers: {ex.Message}"); }
-            return new List<Customer>();
-        }
-
-        public async Task<bool> SaveCustomerAsync(Customer cliente)
-        {
-            try
-            {
-                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Customers", cliente);
-                return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex) { Debug.WriteLine($"[API_ERR] SaveCustomer: {ex.Message}"); return false; }
-        }
-
-        public async Task<bool> UpdateCustomerAsync(int id, Customer cliente)
-        {
-            try
-            {
-                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Customers/{id}", cliente);
-                return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex) { Debug.WriteLine($"[API_ERR] UpdateCustomer: {ex.Message}"); return false; }
         }
 
         public async Task<RequestReniec?> ConsultarDniAsync(string dni)
         {
             try
             {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return null;
+
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Customers/dni/{dni}");
                 if (response.IsSuccessStatusCode)
-                {
-                    string jsonResponse = await response.Content.ReadAsStringAsync();
-                    var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    return System.Text.Json.JsonSerializer.Deserialize<RequestReniec>(jsonResponse, options);
-                }
+                    return await response.Content.ReadFromJsonAsync<RequestReniec>(GetOptions());
             }
-            catch (Exception ex) { Console.WriteLine($"[API_CRITICAL_EX] ConsultarDni: {ex.Message}"); }
+            catch (Exception ex) { Debug.WriteLine($"[API_CRITICAL_EX] ConsultarDni: {ex.Message}"); }
             return null;
         }
 
-        public async Task<List<Employee>> GetEmployeesAsync()
+        // ================= UTILIDADES Y EMPRESAS =================
+        public static async Task<List<CompanyPublicDTO>> GetActiveCompaniesAsync()
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{BaseApiUrl}/Employees");
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                    return await GetLocalCompaniesAsDTO();
+
+                var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true };
+                using var client = new HttpClient(handler);
+                var response = await client.GetAsync($"{BaseApiUrl}/Companies/Active");
+
                 if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadFromJsonAsync<List<Employee>>() ?? new List<Employee>();
+                    return await response.Content.ReadFromJsonAsync<List<CompanyPublicDTO>>() ?? [];
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] GetEmployees: {ex.Message}"); }
-            return new List<Employee>();
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_FALLA_COMPANIES] Red caída. Intentando SQLite local... {ex.Message}");
+                return await GetLocalCompaniesAsDTO();
+            }
+            return [];
         }
 
-        public async Task<bool> SaveEmployeeAsync(Employee empleado)
+        private static async Task<List<CompanyPublicDTO>> GetLocalCompaniesAsDTO()
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Employees", empleado);
-                return response.IsSuccessStatusCode;
+                using var context = new LocalDbContext();
+                var companiesLocales = await context.Companies.Where(c => c.IsActive).ToListAsync();
+
+                var json = System.Text.Json.JsonSerializer.Serialize(companiesLocales);
+                return System.Text.Json.JsonSerializer.Deserialize<List<CompanyPublicDTO>>(json, GetOptions()) ?? [];
             }
-            catch (Exception ex) { Debug.WriteLine($"[API_ERR] SaveEmployee: {ex.Message}"); return false; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[SQLITE_ERROR_COMPANIES] {ex.Message}");
+                return [];
+            }
         }
 
-        public async Task<bool> UpdateEmployeeAsync(int id, Employee empleado)
+        public async Task<List<T>?> GetCatalogAsync<T>(string endpoint) where T : class
         {
             try
             {
-                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Employees/{id}", empleado);
-                return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex) { Debug.WriteLine($"[API_ERR] UpdateEmployee: {ex.Message}"); return false; }
-        }
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    return await context.Set<T>().ToListAsync();
+                }
 
-        public async Task<List<CompanyPublicDTO>> GetActiveCompaniesAsync()
-        {
-            var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true };
-            using var client = new HttpClient(handler);
-            var response = await client.GetAsync($"{BaseApiUrl}/Companies/Active");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                return JsonConvert.DeserializeObject<List<CompanyPublicDTO>>(content) ?? new List<CompanyPublicDTO>();
-            }
-            return new List<CompanyPublicDTO>();
-        }
-
-        public async Task<List<T>?> GetCatalogAsync<T>(string endpoint)
-        {
-            try
-            {
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/{endpoint}");
                 if (response.IsSuccessStatusCode)
                 {
-                    var jsonResponse = await response.Content.ReadAsStringAsync();
-                    var options = new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true,
-                        ReferenceHandler = ReferenceHandler.IgnoreCycles
-                    };
+                    var options = GetOptions();
                     options.Converters.Add(new IntToBoolConverter());
                     options.Converters.Add(new TrackingModeJsonConverter());
 
-                    return System.Text.Json.JsonSerializer.Deserialize<List<T>>(jsonResponse, options);
+                    return await response.Content.ReadFromJsonAsync<List<T>>(options);
                 }
-                string errorDetalle = await response.Content.ReadAsStringAsync();
-                Debug.WriteLine($"[API_RECHAZO] {endpoint} falló. Código: {response.StatusCode} | Detalle: {errorDetalle}");
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                try
+                {
+                    using var context = new LocalDbContext();
+                    return await context.Set<T>().ToListAsync();
+                }
+                catch { return null; }
             }
             catch (Exception ex) { Debug.WriteLine($"[API_EXCEPCION] En endpoint {endpoint}: {ex.Message}"); }
+
             return null;
         }
         #endregion
@@ -960,18 +1210,9 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
-                int companyId = 0;
-
-                if (UserSession.CurrentInventory != null && UserSession.CurrentInventory.CompanyId > 0)
-                {
-                    companyId = UserSession.CurrentInventory.CompanyId;
-                }
-                else
-                {
-                    companyId = Preferences.Get("SelectedCompanyId", 0);
-                    if (companyId == 0) companyId = Preferences.Get("CurrentCompanyId", 0);
-                    if (companyId == 0) companyId = Preferences.Get("CompanyId", 1);
-                }
+                int companyId = UserSession.CurrentInventory?.CompanyId > 0
+                    ? UserSession.CurrentInventory.CompanyId
+                    : Preferences.Get("SelectedCompanyId", Preferences.Get("CurrentCompanyId", Preferences.Get("CompanyId", 1)));
 
                 nuevaVenta.CompanyId = companyId;
 
@@ -983,21 +1224,11 @@ namespace ControlInventarioMovil.Services
                     }
                 }
 
-                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Sales", nuevaVenta);
-                if (response.IsSuccessStatusCode) return true;
-
-                string errorDetallado = await response.Content.ReadAsStringAsync();
-                Debug.WriteLine($"[API_ERROR_SALE] Error: {errorDetallado}");
-
-                MainThread.BeginInvokeOnMainThread(async () => {
-                    await Shell.Current.DisplayAlertAsync("Rechazo de Servidor (Somee)", errorDetallado, "OK");
-                });
-
-                return false;
+                return await PostOfflineFirstAsync(nuevaVenta, "Sales");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[API_CRITICAL_EX] SaveSale: {ex.Message}");
+                Debug.WriteLine($"[API_CRITICAL_EX] SaveSale: {ex.Message}");
                 return false;
             }
         }
@@ -1006,80 +1237,151 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
+                using var context = new LocalDbContext();
+
+                // 1. MODO OFFLINE PURO
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    return await context.Movements.ToListAsync();
+                }
+
+                // 2. MODO ONLINE CON ANTI-DUPLICIDAD
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Movements");
                 if (response.IsSuccessStatusCode)
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<List<Movement>>(json) ?? new List<Movement>();
+                    var listaNube = await response.Content.ReadFromJsonAsync<List<Movement>>(GetOptions()) ?? [];
+
+                    var pendientesLocales = await context.Movements.Where(m => m.IsSynced == false).ToListAsync();
+
+                    return [.. listaNube, .. pendientesLocales];
                 }
-                string errorDetail = await response.Content.ReadAsStringAsync();
-                Debug.WriteLine($"[API_RECHAZO_MOVEMENTS] Código {response.StatusCode}: {errorDetail}");
             }
-            catch (Exception ex) { Debug.WriteLine($"[API_CRITICAL_EX] GetMovements: {ex.ToString()}"); }
-            return new List<Movement>();
-        }
-
-        public async Task<List<HistoryLog>> GetHistoryLogsAsync()
-        {
-            try
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
             {
-                var response = await _httpClient.GetAsync($"{BaseApiUrl}/HistoryLogs");
-                if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadFromJsonAsync<List<HistoryLog>>() ?? new List<HistoryLog>();
+                using var context = new LocalDbContext();
+                return await context.Movements.ToListAsync();
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERR] GetHistoryLogs: {ex.Message}"); }
-            return new List<HistoryLog>();
-        }
-
-        public async Task<List<ActionItem>> GetActionsAsync()
-        {
-            try
+            catch (Exception ex)
             {
-                var response = await _httpClient.GetAsync($"{BaseApiUrl}/ActionItems");
-                if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadFromJsonAsync<List<ActionItem>>() ?? new List<ActionItem>();
+                Debug.WriteLine($"[API_CRITICAL_EX] GetMovements: {ex.Message}");
             }
-            catch (Exception ex) { Console.WriteLine($"[API_ERROR] Actions: {ex.Message}"); }
-            return new List<ActionItem>();
+            return [];
         }
 
         public async Task<bool> CreateMovementAsync(Movement movement)
         {
             try
             {
-                // Inyectamos la empresa activa
-                int companyId = Preferences.Get("SelectedCompanyId", 0);
-                if (companyId == 0) companyId = Preferences.Get("CurrentCompanyId", 0);
-                if (companyId == 0) companyId = Preferences.Get("CompanyId", 1);
-
+                int companyId = Preferences.Get("SelectedCompanyId", Preferences.Get("CurrentCompanyId", Preferences.Get("CompanyId", 1)));
                 movement.CompanyId = companyId;
 
-                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Movements", movement);
-                return response.IsSuccessStatusCode;
+                return await PostOfflineFirstAsync(movement, "Movements");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[API_CRITICAL_EX] CreateMovement: {ex.Message}");
+                Debug.WriteLine($"[API_CRITICAL_EX] CreateMovement: {ex.Message}");
                 return false;
             }
         }
 
-        public async Task<bool> CreateHistoryLogAsync(HistoryLog historyLog)
+        public async Task<List<HistoryLog>> GetHistoryLogsAsync()
         {
             try
             {
-                int companyId = Preferences.Get("SelectedCompanyId", 0);
-                if (companyId == 0) companyId = Preferences.Get("CurrentCompanyId", 0);
-                if (companyId == 0) companyId = Preferences.Get("CompanyId", 1);
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    return await context.HistoryLogs.ToListAsync();
+                }
 
-                historyLog.CompanyId = companyId;
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/HistoryLogs");
+                if (response.IsSuccessStatusCode)
+                    return await response.Content.ReadFromJsonAsync<List<HistoryLog>>(GetOptions()) ?? [];
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.HistoryLogs.ToListAsync();
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERR] GetHistoryLogs: {ex.Message}"); }
+            return [];
+        }
 
-                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/HistoryLogs", historyLog);
-                return response.IsSuccessStatusCode;
+        public async Task<List<ActionItem>> GetActionsAsync()
+        {
+            try
+            {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    return await context.ActionItems.ToListAsync();
+                }
+
+                var response = await _httpClient.GetAsync($"{BaseApiUrl}/ActionItems");
+                if (response.IsSuccessStatusCode)
+                    return await response.Content.ReadFromJsonAsync<List<ActionItem>>(GetOptions()) ?? [];
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                return await context.ActionItems.ToListAsync();
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERROR] Actions: {ex.Message}"); }
+            return [];
+        }
+        #endregion
+
+        #region SINCRONIZACIÓN OFFLINE-FIRST
+
+        public async Task<bool> PostOfflineFirstAsync<T>(T entity, string endpoint) where T : class, ISyncable
+        {
+            try
+            {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    return await SyncedOffHelper.SaveLocallyAsync(entity);
+                }
+
+                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/{endpoint}", entity);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errorDetallado = await response.Content.ReadAsStringAsync();
+                    Debug.WriteLine($"[SOMEE RECHAZA PUSH] Endpoint: {endpoint} | Código: {response.StatusCode} | Detalle: {errorDetallado}");
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                return await SyncedOffHelper.SaveLocallyAsync(entity);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[API_CRITICAL_EX] CreateHistoryLog: {ex.Message}");
+                Debug.WriteLine($"[CRITICAL_POST_ERROR] {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> PutOfflineFirstAsync<T>(int id, T entity, string endpoint) where T : class, ISyncable
+        {
+            try
+            {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    return await SyncedOffHelper.UpdateLocallyAsync(entity);
+                }
+
+                var response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/{endpoint}/{id}", entity);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                return await SyncedOffHelper.UpdateLocallyAsync(entity);
+            }
+            catch
+            {
                 return false;
             }
         }
@@ -1087,7 +1389,7 @@ namespace ControlInventarioMovil.Services
     }
 
     #region CONVERTIDORES E INTERCEPTORES
-    public class CompanyHeaderHandler : DelegatingHandler
+    public partial class CompanyHeaderHandler : DelegatingHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -1095,10 +1397,15 @@ namespace ControlInventarioMovil.Services
             if (companyId == 0) companyId = Preferences.Get("CurrentCompanyId", 0);
             if (companyId == 0) companyId = Preferences.Get("CompanyId", 1);
 
-            Debug.WriteLine($"[API_INTERCEPTOR] Inyectando Empresa ID: {companyId} a la ruta: {request.RequestUri}");
+            string userName = Preferences.Get("UserName", "Usuario Sistema");
+
+            Debug.WriteLine($"[API_INTERCEPTOR] Inyectando Empresa ID: {companyId} y Usuario: {userName} a la ruta: {request.RequestUri}");
 
             request.Headers.Remove("X-Company-Id");
             request.Headers.TryAddWithoutValidation("X-Company-Id", companyId.ToString());
+
+            request.Headers.Remove("X-User-Name");
+            request.Headers.TryAddWithoutValidation("X-User-Name", userName);
 
             return await base.SendAsync(request, cancellationToken);
         }

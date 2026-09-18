@@ -6,6 +6,7 @@ using ControlInventarioMovil.Services;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace ControlInventarioMovil.Views
 {
@@ -64,25 +65,32 @@ namespace ControlInventarioMovil.Views
         private ArticleUI? _articuloParaMultiplesSeries;
         private ArticleType _currentTab = ArticleType.Standard;
 
+        private ArticleUI? _articuloARetirar = null;
+        private string? _rutaFotoRetiro = null;
+
         public InventoryPage()
         {
             InitializeComponent();
             _apiService = new ApiService();
         }
 
-        protected override async void OnAppearing()
+        protected override void OnAppearing()
         {
             base.OnAppearing();
-            await SincronizarListadoArticulosAsync();
 
-            if (UserSession.CurrentProfile != null)
+            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(250), async () =>
             {
-                LblNombreAlmacen.Text = UserSession.CurrentProfile.LanguageId == 2 ? "ACTIVE WAREHOUSE" : "ALMACÉN ACTIVO";
-                bool modoCompacto = Preferences.Default.Get("UI_CompactView", false);
-                ContenedorLista.Padding = modoCompacto ? new Thickness(5, 4) : new Thickness(15, 12);
-            }
+                await SincronizarListadoArticulosAsync();
 
-            BtnNuevoArticulo.IsVisible = SecurityHelper.HasPermission("CREATE_ARTICLES");
+                if (UserSession.CurrentProfile != null)
+                {
+                    LblNombreAlmacen.Text = UserSession.CurrentProfile.LanguageId == 2 ? "ACTIVE WAREHOUSE" : "ALMACÉN ACTIVO";
+                    bool modoCompacto = Preferences.Default.Get("UI_CompactView", false);
+                    ContenedorLista.Padding = modoCompacto ? new Thickness(5, 4) : new Thickness(15, 12);
+                }
+
+                BtnNuevoArticulo.IsVisible = SecurityHelper.HasPermission("CREATE_ARTICLES");
+            });
         }
 
         private async Task SincronizarListadoArticulosAsync()
@@ -120,13 +128,13 @@ namespace ControlInventarioMovil.Views
                     Debug.WriteLine($"[ERROR_LOCAL_DB] {dbEx.Message}");
                 }
 
-                List<Article> articulosNube = new List<Article>();
+                List<Article> articulosNube = [];
                 try
                 {
                     var resultApi = await _apiService.GetArticlesAsync();
                     if (resultApi != null)
                     {
-                        articulosNube = resultApi.Where(a => a.InventoryId == almacenActivo.Id).ToList();
+                        articulosNube = [.. resultApi.Where(a => a.InventoryId == almacenActivo.Id)];
                     }
                 }
                 catch (Exception apiEx)
@@ -180,7 +188,7 @@ namespace ControlInventarioMovil.Views
 
                 foreach (var ui in _allArticlesCached.Where(x => x.Type == ArticleType.Serialized))
                 {
-                    var detallesReales = detallesAgrupados.GetValueOrDefault(ui.Id) ?? new List<ArticleDetails>();
+                    var detallesReales = detallesAgrupados.GetValueOrDefault(ui.Id) ?? [];
 
                     if (detallesReales.Count == 0 && ui.Stock > 0)
                     {
@@ -226,7 +234,7 @@ namespace ControlInventarioMovil.Views
                 }
 
                 int pendingCloneStock = Preferences.Default.Get("PendingCloneStock", 0);
-                if (pendingCloneStock > 0 && _allArticlesCached.Any())
+                if (pendingCloneStock > 0 && _allArticlesCached.Count != 0)
                 {
                     var articuloRecienCreado = _allArticlesCached.OrderByDescending(a => a.Id).FirstOrDefault();
                     if (articuloRecienCreado != null)
@@ -245,7 +253,7 @@ namespace ControlInventarioMovil.Views
                                 ActCargando.IsVisible = true;
                                 articuloRecienCreado.Stock += pendingCloneStock;
                                 articuloRecienCreado.PendingStock = 0;
-                                var articuloUpdate = ClonarAArticleBase(articuloRecienCreado);
+                                var articuloUpdate = InventoryPage.ClonarAArticleBase(articuloRecienCreado);
                                 await _apiService.UpdateArticleAsync(articuloUpdate.Id, articuloUpdate);
                                 await SincronizarListadoArticulosAsync();
                             }
@@ -291,7 +299,7 @@ namespace ControlInventarioMovil.Views
         {
             var filtrados = _allArticlesCached
                 .Where(a => a.Type == _currentTab)
-                .Where(a => _mostrarStockCero ? a.Stock == 0 : a.Stock > 0)
+                .Where(a => _mostrarStockCero ? a.Stock == 0 : a.Stock >= 0)
                 .ToList();
 
             if (filtrados.Count > 0)
@@ -317,11 +325,17 @@ namespace ControlInventarioMovil.Views
 
         private async void OnAgregarArticuloClicked(object sender, EventArgs e)
         {
+            try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+            if (sender is View btn) btn.IsEnabled = false;
+            await Task.Delay(50);
+
             UserSession.CurrentArticleToEdit = null;
             await Shell.Current.GoToAsync(nameof(ArticleFormPage), false);
+
+            if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
         }
 
-        private Article ClonarAArticleBase(Article a)
+        private static Article ClonarAArticleBase(Article a)
         {
             return new Article
             {
@@ -369,13 +383,18 @@ namespace ControlInventarioMovil.Views
 
         private async void OnEditarArticuloClicked(object sender, EventArgs e)
         {
+            try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+            if (sender is View btn) btn.IsEnabled = false;
+            await Task.Delay(50);
+
             var button = sender as ImageButton;
-            var articuloSeleccionado = button?.CommandParameter as Article;
-            if (articuloSeleccionado != null)
+            if (button?.CommandParameter is Article articuloSeleccionado)
             {
-                UserSession.CurrentArticleToEdit = ClonarAArticleBase(articuloSeleccionado);
+                UserSession.CurrentArticleToEdit = InventoryPage.ClonarAArticleBase(articuloSeleccionado);
                 await Shell.Current.GoToAsync(nameof(ArticleFormPage), false);
             }
+
+            if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
         }
 
         private async void OnEliminarStockClicked(object sender, EventArgs e)
@@ -385,51 +404,180 @@ namespace ControlInventarioMovil.Views
                 await DisplayAlertAsync("Acceso Denegado", "Tu rol no tiene permisos para eliminar registros o vaciar stock.", "Entendido");
                 return;
             }
+
             var button = sender as ImageButton;
-            if (button?.CommandParameter is not Article article) return;
-            string opcion = await DisplayActionSheetAsync($"Gestionar Stock: {article.Name}", "Cancelar", null, "Eliminar cierta cantidad de stock", "Eliminar TODO el stock (Vaciar artículo)");
-            if (opcion == "Eliminar cierta cantidad de stock")
+            if (button?.CommandParameter is not ArticleUI ui) return;
+
+            if (ui.IsSerialized)
             {
-                string cantidadStr = await DisplayPromptAsync("Retirar Stock", $"¿Cuántas unidades deseas retirar? (Stock actual: {article.Stock})", "Aceptar", "Cancelar", placeholder: "Ej: 5", keyboard: Keyboard.Numeric);
-                if (string.IsNullOrWhiteSpace(cantidadStr)) return;
-                if (int.TryParse(cantidadStr, out int cantidadARetirar) && cantidadARetirar > 0)
+                await DisplayAlertAsync("Aviso", "Para artículos serializados, debes abrir el acordeón y eliminar físicamente cada Número de Serie o IMEI individualmente.", "Entendido");
+                return;
+            }
+
+            _articuloARetirar = ui;
+            _rutaFotoRetiro = null;
+            LblOverlayEliminarNombre.Text = ui.Name;
+            LblOverlayStockActual.Text = $"Stock Actual: {ui.Stock}";
+            PkrTipoRetiro.SelectedIndex = 0;
+            TxtCantidadRetiro.Text = "";
+            TxtMotivoRetiro.Text = "";
+            LblFotoRetiroEstado.Text = "(Opcional) Sin foto";
+            LblFotoRetiroEstado.TextColor = Colors.Gray;
+
+            OverlayEliminarStock.IsVisible = true;
+            await OverlayEliminarStock.FadeToAsync(1, 200);
+        }
+
+        private void OnTipoRetiroChanged(object sender, EventArgs e)
+        {
+            ContenedorCantidadRetiro.IsVisible = PkrTipoRetiro.SelectedIndex == 0;
+        }
+
+        private async void OnTomarFotoRetiroClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                if (MediaPicker.Default.IsCaptureSupported)
                 {
-                    if (cantidadARetirar > article.Stock)
+                    var foto = await MediaPicker.Default.CapturePhotoAsync();
+                    if (foto != null)
                     {
-                        await DisplayAlertAsync("Cantidad inválida", $"No puedes retirar {cantidadARetirar} unidades porque el stock actual es de {article.Stock}.", "OK");
-                        return;
+                        _rutaFotoRetiro = foto.FullPath;
+                        LblFotoRetiroEstado.Text = "✅ Foto adjuntada";
+                        LblFotoRetiroEstado.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
                     }
-                    article.Stock -= cantidadARetirar;
-                    var articuloUpdate = ClonarAArticleBase(article);
-                    bool exito = await _apiService.UpdateArticleAsync(articuloUpdate.Id, articuloUpdate);
-                    if (exito)
-                    {
-                        await DisplayAlertAsync("Éxito", $"Se retiraron {cantidadARetirar} unidades. Nuevo stock: {article.Stock}", "OK");
-                        await SincronizarListadoArticulosAsync();
-                    }
-                    else await DisplayAlertAsync("Error", "No se pudo actualizar el stock en el servidor.", "OK");
                 }
             }
-            else if (opcion == "Eliminar TODO el stock (Vaciar artículo)")
+            catch (Exception ex)
             {
-                bool confirmar = await DisplayAlertAsync("Confirmar acción", $"¿Estás seguro de vaciar por completo el stock de '{article.Name}'? Esto colocará las existencias en 0.", "Sí, vaciar stock", "Cancelar");
-                if (confirmar)
-                {
-                    article.Stock = 0;
-                    var articuloUpdate = ClonarAArticleBase(article);
-                    bool exito = await _apiService.UpdateArticleAsync(articuloUpdate.Id, articuloUpdate);
-                    if (exito)
-                    {
-                        await DisplayAlertAsync("Éxito", "El stock de este artículo ha sido vaciado por completo.", "OK");
-                        await SincronizarListadoArticulosAsync();
-                    }
-                    else await DisplayAlertAsync("Error", "No se pudo vaciar el stock en el servidor.", "OK");
-                }
+                await DisplayAlertAsync("Error de Cámara", ex.Message, "OK");
             }
         }
 
-        private async void OnVolverClicked(object sender, EventArgs e) => await Shell.Current.GoToAsync("..");
+        private async void OnCancelarRetiroClicked(object? sender, EventArgs e)
+        {
+            await OverlayEliminarStock.FadeToAsync(0, 150);
+            OverlayEliminarStock.IsVisible = false;
+            _articuloARetirar = null;
+            _rutaFotoRetiro = null;
+        }
 
+        private async void OnConfirmarRetiroClicked(object sender, EventArgs e)
+        {
+            if (_articuloARetirar == null) return;
+
+            string motivo = TxtMotivoRetiro.Text?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(motivo) || motivo.Length < 5)
+            {
+                await DisplayAlertAsync("Validación", "Debes ingresar un motivo u observación válida (Mínimo 5 caracteres).", "Entendido");
+                return;
+            }
+
+            bool esVaciadoTotal = PkrTipoRetiro.SelectedIndex == 1;
+
+            decimal cantidadRetirada;
+            if (esVaciadoTotal)
+            {
+                cantidadRetirada = _articuloARetirar.Stock;
+            }
+            else
+            {
+                if (!decimal.TryParse(TxtCantidadRetiro.Text, out cantidadRetirada) || cantidadRetirada <= 0)
+                {
+                    await DisplayAlertAsync("Validación", "Ingresa una cantidad válida mayor a 0.", "OK");
+                    return;
+                }
+
+                if (cantidadRetirada > _articuloARetirar.Stock)
+                {
+                    await DisplayAlertAsync("Validación", $"No puedes retirar {cantidadRetirada} porque el stock máximo es {_articuloARetirar.Stock}.", "OK");
+                    return;
+                }
+            }
+
+            OverlayCargando.IsVisible = true;
+            ActCargando.IsRunning = true;
+
+            // 🚀 LÓGICA DE NEGOCIO Y GUARDADO OFFLINE-FIRST
+            _articuloARetirar.Stock -= cantidadRetirada;
+
+            if (_articuloARetirar.Stock <= 0)
+            {
+                _articuloARetirar.Stock = 0;
+                _articuloARetirar.IsActive = false; // Baja Lógica
+            }
+
+            var articuloUpdate = InventoryPage.ClonarAArticleBase(_articuloARetirar);
+            int empleadoIdReal = Preferences.Get("UserId", 1);
+            string nombreEmpleado = Preferences.Get("UserName", "Usuario Móvil");
+
+            string detalleTipo = esVaciadoTotal ? "Vaciado Total" : "Retiro Parcial";
+
+            var movimientoRetiro = new Movement
+            {
+                ArticleId = articuloUpdate.Id,
+                EmployeeId = empleadoIdReal,
+                ActionId = 2, // Código para "Salida" o "Merma"
+                MovementDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                Observation = $"{detalleTipo}: {motivo} (Por {nombreEmpleado})",
+                Amount = cantidadRetirada,
+                SalePrice = 0,
+                PaymentMethod = "N/A",
+                Recipient = "Ajuste de Almacén",
+                PhotoPath = _rutaFotoRetiro, // Se guarda la ruta local de la foto
+                IsSynced = false
+            };
+
+            try
+            {
+                // 🚀 1. GUARDADO LOCAL (SQLite)
+                using var context = new LocalDbContext();
+                articuloUpdate.IsSynced = false;
+                context.Articles.Update(articuloUpdate);
+                context.Add(movimientoRetiro);
+                await context.SaveChangesAsync();
+
+                // 🚀 2. INTENTO A LA NUBE
+                bool exitoArticulo = await _apiService.UpdateArticleAsync(articuloUpdate.Id, articuloUpdate);
+                bool exitoMovimiento = await _apiService.CreateMovementAsync(movimientoRetiro);
+
+                if (exitoArticulo && exitoMovimiento)
+                {
+                    articuloUpdate.IsSynced = true;
+                    movimientoRetiro.IsSynced = true;
+                    context.Articles.Update(articuloUpdate);
+                    context.Movements.Update(movimientoRetiro);
+                    await context.SaveChangesAsync();
+                }
+
+                await DisplayAlertAsync("Éxito", $"Se retiraron {cantidadRetirada} unidades correctamente.", "OK");
+            }
+            catch (HttpRequestException)
+            {
+                await DisplayAlertAsync("Modo Offline", $"Se retiró el stock localmente.\nLa evidencia y el movimiento se sincronizarán al recuperar la conexión.", "Entendido");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlertAsync("Error", $"Falla al procesar: {ex.Message}", "OK");
+            }
+
+            ActCargando.IsRunning = false;
+            OverlayCargando.IsVisible = false;
+
+            OnCancelarRetiroClicked(null, EventArgs.Empty);
+            await SincronizarListadoArticulosAsync();
+        }
+
+        private async void OnVolverClicked(object sender, EventArgs e)
+        {
+            try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+            if (sender is View btn) btn.IsEnabled = false;
+            await Task.Delay(50);
+
+            await Shell.Current.GoToAsync("..");
+
+            if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
+        }
         protected override bool OnBackButtonPressed()
         {
             Dispatcher.Dispatch(async () =>
@@ -444,7 +592,16 @@ namespace ControlInventarioMovil.Views
             return true;
         }
 
-        private async void OnConfigCategoriesClicked(object sender, EventArgs e) => await Shell.Current.GoToAsync("CategoriasPage");
+        private async void OnConfigCategoriesClicked(object sender, EventArgs e)
+        {
+            try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+            if (sender is View btn) btn.IsEnabled = false;
+            await Task.Delay(50);
+
+            await Shell.Current.GoToAsync("CategoriasPage");
+
+            if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
+        }
 
         private void OnToggleStockCeroClicked(object sender, EventArgs e)
         {
@@ -532,7 +689,7 @@ namespace ControlInventarioMovil.Views
             {
                 if (OverlayVisorFoto.IsVisible) await ImgVisorAmpliado.FadeToAsync(0, 180, Easing.CubicOut);
                 articleUI.MainPhotoPath = nuevaRuta;
-                var articuloUpdate = ClonarAArticleBase(articleUI);
+                var articuloUpdate = InventoryPage.ClonarAArticleBase(articleUI);
                 bool exito = await _apiService.UpdateArticleAsync(articuloUpdate.Id, articuloUpdate);
                 if (exito)
                 {
@@ -689,9 +846,8 @@ namespace ControlInventarioMovil.Views
         private async void OnBotonInteligenteClicked(object sender, EventArgs e)
         {
             var btn = sender as ImageButton;
-            var ui = btn?.BindingContext as ArticleUI;
 
-            if (ui == null) return;
+            if (btn?.BindingContext is not ArticleUI ui) return;
 
             if (ui.PendingStock < 0)
             {
@@ -722,30 +878,37 @@ namespace ControlInventarioMovil.Views
                 ui.PendingStock = 0;
 
                 int empleadoIdReal = UserSession.CurrentUser?.Employee?.Id ?? 1;
-                string nombreEmpleado = $"{UserSession.CurrentUser?.Employee?.FirstName} {UserSession.CurrentUser?.Employee?.LastName}".Trim();
 
-                var articuloUpdate = ClonarAArticleBase(ui);
+                var articuloUpdate = InventoryPage.ClonarAArticleBase(ui);
                 articuloUpdate.CurrentEmployeeId = empleadoIdReal;
-                await _apiService.UpdateArticleAsync(articuloUpdate.Id, articuloUpdate);
 
-                var movimientoIngreso = new Movement
+                try
                 {
-                    ArticleId = ui.Id,
-                    EmployeeId = empleadoIdReal,
-                    ActionId = 1,
-                    MovementDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                    Observation = $"Ingreso manual de stock (+{cantidadAgregada:0.##}) por {nombreEmpleado}",
-                    Amount = cantidadAgregada,
-                    SalePrice = 0,
-                    PaymentMethod = "N/A",
-                    Recipient = "Almacén Local",
-                    CompanyId = UserSession.CurrentUser?.CompanyId ?? 1
-                };
+                    using var context = new LocalDbContext();
+                    articuloUpdate.IsSynced = false;
+                    context.Articles.Update(articuloUpdate);
+                    await context.SaveChangesAsync();
 
-                bool kardexOk = await _apiService.CreateMovementAsync(movimientoIngreso);
-                if (!kardexOk)
+                    bool exitoNube = await _apiService.UpdateArticleAsync(articuloUpdate.Id, articuloUpdate);
+
+                    if (exitoNube)
+                    {
+                        articuloUpdate.IsSynced = true;
+                        context.Articles.Update(articuloUpdate);
+                        await context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        await DisplayAlertAsync("Alerta de Servidor", "No se pudo actualizar el stock en la base de datos.", "Entendido");
+                    }
+                }
+                catch (HttpRequestException)
                 {
-                    await DisplayAlertAsync("Alerta de Servidor", "El stock se actualizó, pero la API rechazó guardar el registro en el Kárdex.", "Entendido");
+                    await DisplayAlertAsync("Modo Offline", $"Se agregaron +{cantidadAgregada} unidades localmente.", "OK");
+                }
+                catch (Exception ex)
+                {
+                    await DisplayAlertAsync("Error", $"Error al guardar: {ex.Message}", "OK");
                 }
 
                 ActCargando.IsVisible = false;
@@ -794,7 +957,7 @@ namespace ControlInventarioMovil.Views
                 if (string.IsNullOrWhiteSpace(valorUnicoResultado)) return;
             }
 
-            var clon = ClonarAArticleBase(articuloOriginal);
+            var clon = InventoryPage.ClonarAArticleBase(articuloOriginal);
             clon.Id = 0;
             clon.Barcode = string.Empty;
             clon.Stock = 0;
@@ -894,8 +1057,7 @@ namespace ControlInventarioMovil.Views
         {
             if (_articuloParaMultiplesSeries == null) return;
 
-            var items = BindableLayout.GetItemsSource(ContenedorSeriesDinamicas) as List<SerieIngresoItem>;
-            if (items == null || !items.Any()) return;
+            if (BindableLayout.GetItemsSource(ContenedorSeriesDinamicas) is not List<SerieIngresoItem> items || items.Count == 0) return;
 
             if (items.Any(x => string.IsNullOrWhiteSpace(x.SerialNumber)))
             {
@@ -946,7 +1108,7 @@ namespace ControlInventarioMovil.Views
                 int empleadoIdReal = Preferences.Get("UserId", 1);
                 string nombreEmpleado = Preferences.Get("UserName", "Usuario Móvil");
                 
-                var articuloUpdate = ClonarAArticleBase(_articuloParaMultiplesSeries);
+                var articuloUpdate = InventoryPage.ClonarAArticleBase(_articuloParaMultiplesSeries);
                 articuloUpdate.CurrentEmployeeId = empleadoIdReal;
                 await _apiService.UpdateArticleAsync(articuloUpdate.Id, articuloUpdate);
 
@@ -983,7 +1145,7 @@ namespace ControlInventarioMovil.Views
         {
             if (sender is Entry entry && !string.IsNullOrEmpty(e.NewTextValue))
             {
-                string textoLimpio = System.Text.RegularExpressions.Regex.Replace(e.NewTextValue, @"[^0-9.,]", "");
+                string textoLimpio = CaracteresNumericos().Replace(e.NewTextValue, "");
 
                 if (textoLimpio.Count(c => c == '.' || c == ',') > 1)
                 {
@@ -996,15 +1158,17 @@ namespace ControlInventarioMovil.Views
                 }
             }
         }
+
+        [GeneratedRegex(@"[^0-9.,]")]
+        private static partial Regex CaracteresNumericos();
     }
 
-    public class ArticleUI : Article, INotifyPropertyChanged
+    public partial class ArticleUI : Article
     {
-        public event PropertyChangedEventHandler? PropertyChanged;
-
         public ArticleType Type { get; set; } = ArticleType.Standard;
-        public List<ArticleSerialDto> Serials { get; set; } = new();
+        public List<ArticleSerialDto> Serials { get; set; } = [];
         public bool IsSerialized => Type == ArticleType.Serialized;
+
         private bool _isExpanded;
         public bool IsExpanded
         {
@@ -1014,8 +1178,8 @@ namespace ControlInventarioMovil.Views
                 if (_isExpanded != value)
                 {
                     _isExpanded = value;
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExpanded)));
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ExpansionIcon)));
+                    OnPropertyChanged(nameof(IsExpanded));
+                    OnPropertyChanged(nameof(ExpansionIcon));
                 }
             }
         }
@@ -1037,7 +1201,7 @@ namespace ControlInventarioMovil.Views
                 if (base.MainPhotoPath != value)
                 {
                     base.MainPhotoPath = value;
-                    PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(MainPhotoPath)));
+                    OnPropertyChanged(nameof(MainPhotoPath));
                 }
             }
         }
@@ -1062,7 +1226,7 @@ namespace ControlInventarioMovil.Views
         }
 
         public bool IsConversionVisible => (!string.IsNullOrWhiteSpace(SaleCurrency) && SaleCurrency.Trim() != "S/.");
-        public bool ShowThumbnail => Preferences.Default.Get("UI_ShowThumbnails", true);
+        public static bool ShowThumbnail => Preferences.Default.Get("UI_ShowThumbnails", true);
 
         public ArticleUI(Article a)
         {
@@ -1079,13 +1243,15 @@ namespace ControlInventarioMovil.Views
                 if (_pendingStock != value)
                 {
                     _pendingStock = value;
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PendingStock)));
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayStock)));
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ActionColor)));
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ActionIcon)));
+                    // ✅ Usamos el método heredado del padre
+                    OnPropertyChanged(nameof(PendingStock));
+                    OnPropertyChanged(nameof(DisplayStock));
+                    OnPropertyChanged(nameof(ActionColor));
+                    OnPropertyChanged(nameof(ActionIcon));
                 }
             }
         }
+
         public decimal DisplayStock
         {
             get => Stock + _pendingStock;
@@ -1099,7 +1265,23 @@ namespace ControlInventarioMovil.Views
                 }
             }
         }
+
         public Color ActionColor => PendingStock > 0 ? Color.FromArgb("#EFA72F") : Color.FromArgb("#A2D149");
         public string ActionIcon => PendingStock > 0 ? "save_icon.png" : "clone_icon.png";
+
+        public string MeasurementUnitShort
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(MeasurementUnit)) return "";
+
+                string unit = MeasurementUnit.Trim();
+
+                if (UserSession.UnidadesMedidaCache.TryGetValue(unit, out string? abbreviation))
+                    return abbreviation;
+
+                return unit.Length <= 3 ? unit.ToUpper() : unit[..3].ToUpper();
+            }
+        }
     }
 }

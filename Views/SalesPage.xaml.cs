@@ -1,16 +1,20 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Helpers;
 using ControlInventarioMovil.Services;
+using SkiaSharp;
 using System.Collections.ObjectModel;
-using System.Xml.Linq;
+using ZXing;
+using ZXing.Common;
+using ZXing.SkiaSharp;
 
 namespace ControlInventarioMovil.Views
 {
     public partial class SalesPage : ContentPage
     {
         private readonly ApiService _apiService;
-        private List<Article> _allArticles = new List<Article>();
-        public ObservableCollection<Article> FilteredArticles { get; set; } = new ObservableCollection<Article>();
+        private List<Article> _allArticles = [];
+        public ObservableCollection<Article> FilteredArticles { get; set; } = [];
 
         private int _currentSalesModeId = 5;
         private string _selectedSubWallet = "";
@@ -42,9 +46,7 @@ namespace ControlInventarioMovil.Views
             pickerSalesMode.SelectedIndex = -1;
 
             _currentSalesModeId = 5;
-            _selectedSubWallet = "";
-
-            
+            _selectedSubWallet = "";           
 
             if (opcionMadre == "Billetera digital") pickerSubWallet.IsVisible = true;
             else if (opcionMadre == "Venta a Cuotas") pickerSalesMode.IsVisible = true;
@@ -52,18 +54,18 @@ namespace ControlInventarioMovil.Views
             bool esCuotas = (opcionMadre == "Venta a Cuotas");
             pickerSalesMode?.IsVisible = esCuotas;
             btnSimularCuotas?.IsVisible = esCuotas;
-            gridNumCuotas?.IsVisible = esCuotas;
-            gridCuotaInicial?.IsVisible = esCuotas;
+            txtNumCuotas?.IsVisible = esCuotas;
+            txtCuotaInicial?.IsVisible = esCuotas;
 
             if (opcionMadre == "Efectivo")
             {
-                if (gridEfectivoInfo != null) gridEfectivoInfo.IsVisible = true;
+                gridEfectivoInfo?.IsVisible = true;
                 CalcularVueltoEnVivo();
             }
             else
             {
-                if (gridEfectivoInfo != null) gridEfectivoInfo.IsVisible = false;
-                if (btnCerrarVenta != null) btnCerrarVenta.IsEnabled = true;
+                gridEfectivoInfo?.IsVisible = false;
+                btnCerrarVenta?.IsEnabled = true;
             }
         }
 
@@ -89,27 +91,41 @@ namespace ControlInventarioMovil.Views
         {
             try
             {
+                loaderArticulos.IsVisible = true;
+                loaderArticulos.IsRunning = true;
+                listArticles.IsVisible = false;
+                gridArticles.IsVisible = false;
+
                 var articulosServidor = await _apiService.GetArticlesAsync();
-                if (articulosServidor != null) _allArticles = articulosServidor.ToList();
+                if (articulosServidor != null) _allArticles = [.. articulosServidor];
+
                 FilterArticles();
             }
             catch (Exception ex)
             {
                 await DisplayAlertAsync("Error", $"No se pudo conectar con el inventario: {ex.Message}", "OK");
             }
+            finally
+            {
+                loaderArticulos.IsRunning = false;
+                loaderArticulos.IsVisible = false;
+
+                if (thumbFondo.TranslationX == 0) listArticles.IsVisible = true;
+                else gridArticles.IsVisible = true;
+            }
         }
 
         private void FilterArticles()
         {
             var searchText = searchArticle.Text?.ToLower() ?? "";
-            var hideAgotados = switchHideAgotados.IsToggled;
+            var mostrarAgotados = switchMostrarAgotados.IsToggled;
 
             var query = _allArticles.Where(a =>
                 (string.IsNullOrEmpty(searchText) ||
-                 a.Name.ToLower().Contains(searchText) ||
-                 a.Model.ToLower().Contains(searchText) ||
-                 a.Code.ToLower().Contains(searchText)) &&
-                (!hideAgotados || a.Stock > 0)
+                 a.Name.Contains(searchText, StringComparison.CurrentCultureIgnoreCase) ||
+                 a.Model.Contains(searchText, StringComparison.CurrentCultureIgnoreCase) ||
+                 a.Code.Contains(searchText, StringComparison.CurrentCultureIgnoreCase)) &&
+                (mostrarAgotados || a.Stock > 0)
             ).ToList();
 
             FilteredArticles.Clear();
@@ -117,57 +133,88 @@ namespace ControlInventarioMovil.Views
         }
 
         private void OnSearchTextChanged(object sender, TextChangedEventArgs e) => FilterArticles();
-        private void OnHideAgotadosToggled(object sender, ToggledEventArgs e) => FilterArticles();
+        private void OnMostrarAgotadosToggled(object sender, ToggledEventArgs e) => FilterArticles();
 
         private void OnIncreaseQuantityClicked(object sender, EventArgs e)
         {
-            if (sender is Button boton && boton.BindingContext is Article articulo)
+            try
             {
-                int stockDisponible = (int)articulo.Stock;
-                if (articulo.QuantityInCart < stockDisponible)
+                if (sender is Button boton && boton.BindingContext is Article articulo)
                 {
-                    articulo.QuantityInCart++;
-                    UpdateCellLabel(sender, articulo.QuantityInCart);
-                    CalculateTotals();
+                    // Verificamos si Tracking es nulo antes de convertir a texto
+                    bool esBulk = articulo.Tracking.ToString() == "Bulk";
+                    decimal incremento = esBulk ? 0.5m : 1m;
+
+                    if (articulo.QuantityInCart + incremento <= articulo.Stock)
+                    {
+                        articulo.QuantityInCart += incremento;
+                        CalculateTotals();
+                    }
+                    else
+                    {
+                        DisplayAlertAsync("Límite", $"Solo quedan {articulo.Stock:0.##}", "OK");
+                    }
                 }
-                else DisplayAlertAsync("Límite de Stock", $"Solo quedan {stockDisponible} unidades disponibles.", "OK");
             }
+            catch (Exception ex) { DisplayAlertAsync("Error", ex.Message, "OK"); }
         }
 
         private void OnDecreaseQuantityClicked(object sender, EventArgs e)
         {
-            if (sender is Button boton && boton.BindingContext is Article articulo)
+            try
             {
-                if (articulo.QuantityInCart > 0)
+                if (sender is Button boton && boton.BindingContext is Article articulo)
                 {
-                    articulo.QuantityInCart--;
-                    UpdateCellLabel(sender, articulo.QuantityInCart);
+                    bool esBulk = articulo.Tracking.ToString() == "Bulk";
+                    decimal decremento = esBulk ? 0.5m : 1m;
+
+                    if (articulo.QuantityInCart - decremento >= 0)
+                    {
+                        articulo.QuantityInCart -= decremento;
+                    }
+                    else
+                    {
+                        articulo.QuantityInCart = 0;
+                    }
                     CalculateTotals();
                 }
             }
+            catch (Exception ex) { DisplayAlertAsync("Error", ex.Message, "OK"); }
         }
 
-        private void UpdateCellLabel(object sender, int cantidad)
+        private void OnQuantityTextChanged(object sender, TextChangedEventArgs e)
         {
-            if (sender is Button boton && boton.Parent is HorizontalStackLayout stack)
+            if (sender is Entry entry && entry.BindingContext is Article articulo)
             {
-                var labelNumero = stack.Children.OfType<Label>().FirstOrDefault();
-                if (labelNumero != null) labelNumero.Text = cantidad.ToString();
+                string textoLimpio = e.NewTextValue?.Replace(",", ".") ?? "0";
+                if (decimal.TryParse(textoLimpio, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal nuevaCantidad))
+                {
+                    if (nuevaCantidad > articulo.Stock)
+                    {
+                        DisplayAlertAsync("Stock Insuficiente", $"Solo tienes {articulo.Stock:0.##}", "OK");
+                        articulo.QuantityInCart = articulo.Stock;
+                        entry.Text = articulo.Stock.ToString("0.##");
+                    }
+                    else
+                    {
+                        articulo.QuantityInCart = nuevaCantidad;
+                    }
+
+                    CalculateTotals();
+
+                    _ = EfectosVisualesHelper.AnimarPulsoAsync(entry);
+                }
             }
         }
 
         private void CalculateTotals()
         {
-            int totalUnidades = _allArticles.Sum(a => a.QuantityInCart);
-            lblTotalItems.Text = $"{totalUnidades} artículos seleccionados";
+            decimal totalUnidades = _allArticles.Sum(a => a.QuantityInCart);
+            lblTotalItems.Text = $"{totalUnidades:0.##} unidades en carrito";
 
-            // 1. Asignamos la matemática pura
             _totalVentaActual = _allArticles.Sum(a => a.QuantityInCart * (a.SalePrice ?? 0m));
-
-            // 2. Mostramos visualmente respetando tu diseño (S/. 0.00)
             lblTotalAmount.Text = $"S/. {_totalVentaActual:F2}";
 
-            // 3. Disparamos la validación de vuelto (por si agregaron o quitaron productos)
             CalcularVueltoEnVivo();
         }
 
@@ -181,11 +228,9 @@ namespace ControlInventarioMovil.Views
 
         private void CalcularVueltoEnVivo()
         {
-            // 🚨 PROTECCIÓN FANTASMA: Evitamos que estalle al dibujar la pantalla
             if (btnCerrarVenta == null || txtMontoRecibido == null || lblVueltoValor == null)
                 return;
 
-            // Si el método no es Efectivo, no calculamos nada
             if (pickerPaymentType.SelectedItem?.ToString() != "Efectivo") return;
 
             if (_totalVentaActual == 0)
@@ -230,56 +275,113 @@ namespace ControlInventarioMovil.Views
         private async void OnCheckoutClicked(object sender, EventArgs e)
         {
             var productosEnCarrito = _allArticles.Where(a => a.QuantityInCart > 0).ToList();
-
-            if (!productosEnCarrito.Any())
-            {
-                await DisplayAlertAsync("Carrito vacío", "Selecciona al menos un producto.", "OK");
-                return;
-            }
-
-            if (pickerPaymentType.SelectedIndex == -1)
-            {
-                await DisplayAlertAsync("Método de Pago", "Selecciona un método de pago.", "OK");
-                return;
-            }
+            if (productosEnCarrito.Count == 0) { await DisplayAlertAsync("Carrito vacío", "Selecciona al menos un producto.", "OK"); return; }
+            if (pickerPaymentType.SelectedIndex == -1) { await DisplayAlertAsync("Método de Pago", "Selecciona un método de pago.", "OK"); return; }
 
             string metodoSeleccionado = pickerPaymentType.SelectedItem.ToString()!;
-            PaymentType tipoPago = PaymentType.Efectivo;
-            string textoConfirmacion = metodoSeleccionado;
 
             if (metodoSeleccionado == "Billetera digital")
             {
-                if (pickerSubWallet.SelectedIndex == -1)
-                {
-                    await DisplayAlertAsync("Requerido", "Especifica qué Billetera Digital usarás.", "OK");
-                    return;
-                }
-                textoConfirmacion = _selectedSubWallet;
+                // Ya no preguntamos cuál billetera, disparamos el QR directamente
+                MostrarModalQr(_totalVentaActual);
+            }
+            else
+            {
+                bool confirmar = await DisplayAlertAsync("Confirmar Venta", $"¿Realizar venta por S/. {_totalVentaActual:F2} vía {metodoSeleccionado}?", "Sí", "Cancelar");
+                if (confirmar) await ProcesarVentaFinalAsync();
+            }
+        }
 
+        private async void MostrarModalQr(decimal total)
+        {
+            // Jalamos el código único de la nube
+            string qrTextoBase = CifradoHelper.Desencriptar(UserSession.CurrentProfile?.QrBilletera ?? "");
+
+            if (string.IsNullOrWhiteSpace(qrTextoBase))
+            {
+                await DisplayAlertAsync("Falta Configuración", "El código QR universal no ha sido configurado por el Administrador.", "Entendido");
+                return;
+            }
+
+            // Un diseño neutral e integrador
+            lblQrTitle.Text = "Escanea para Pagar";
+            lblQrTitle.TextColor = Color.FromArgb("#00CED1"); // Un color neutro/tecnológico
+            lblQrAmount.Text = $"S/. {total:F2}";
+
+            // Inyectamos monto y mostramos
+            string qrFinalConMonto = SalesPage.InyectarMontoAlQR(qrTextoBase, total);
+            imgQrCode.Source = GenerarQrImagen(qrFinalConMonto);
+
+            await panelCobro.TranslateToAsync(0, panelCobro.Height + 50, 200, Easing.CubicIn);
+            panelCobro.IsVisible = false;
+            overlayQrFondo.IsVisible = true;
+            modalQr.IsVisible = true;
+
+            await Task.WhenAll(
+                overlayQrFondo.FadeToAsync(0.7, 300, Easing.CubicOut),
+                modalQr.TranslateToAsync(0, 0, 350, Easing.SpringOut)
+            );
+        }
+
+        private static ImageSource GenerarQrImagen(string contenido)
+        {
+            var writer = new BarcodeWriter
+            {
+                Format = BarcodeFormat.QR_CODE,
+                Options = new EncodingOptions
+                {
+                    Height = 250,
+                    Width = 250,
+                    Margin = 1
+                }
+            };
+
+            var bitmap = writer.Write(contenido);
+            var image = SKImage.FromBitmap(bitmap);
+            var data = image.Encode(SKEncodedImageFormat.Png, 100);
+            return ImageSource.FromStream(() => data.AsStream());
+        }
+
+        private async void OnConfirmQrPaymentClicked(object sender, EventArgs e)
+        {
+            // Ocultamos el QR
+            await OcultarModalQr();
+            // Ejecutamos el guardado en base de datos
+            await ProcesarVentaFinalAsync();
+        }
+
+        private async void OnCancelQrPaymentClicked(object sender, EventArgs e)
+        {
+            await OcultarModalQr();
+            btnAbrirPanel.IsVisible = true; // Mostramos el botoncito morado inferior
+        }
+
+        private async Task OcultarModalQr()
+        {
+            await Task.WhenAll(
+                overlayQrFondo.FadeToAsync(0, 200, Easing.CubicIn),
+                modalQr.TranslateToAsync(0, 600, 300, Easing.CubicIn)
+            );
+            overlayQrFondo.IsVisible = false;
+            modalQr.IsVisible = false;
+        }
+
+        private async Task ProcesarVentaFinalAsync()
+        {
+            // 1. Armamos el objeto Venta
+            string metodoSeleccionado = pickerPaymentType.SelectedItem?.ToString() ?? "";
+            PaymentType tipoPago = PaymentType.Efectivo;
+
+            if (metodoSeleccionado == "Billetera digital")
+            {
                 if (_selectedSubWallet == "Yape") tipoPago = PaymentType.Yape;
                 else if (_selectedSubWallet == "Plin") tipoPago = PaymentType.Plin;
                 else if (_selectedSubWallet == "Bim") tipoPago = PaymentType.Bim;
             }
-            else if (metodoSeleccionado == "Venta a Cuotas")
-            {
-                if (pickerSalesMode.SelectedIndex == -1)
-                {
-                    await DisplayAlertAsync("Requerido", "Especifica la Frecuencia de amortización.", "OK");
-                    return;
-                }
-                textoConfirmacion = $"Crédito ({pickerSalesMode.SelectedItem})";
-                tipoPago = PaymentType.Cuotas;
-            }
-            else
-            {
-                if (metodoSeleccionado == "Tarjeta") tipoPago = PaymentType.Tarjeta;
-                else if (metodoSeleccionado == "Transferencia") tipoPago = PaymentType.Transferencia;
-            }
+            else if (metodoSeleccionado == "Venta a Cuotas") tipoPago = PaymentType.Cuotas;
+            else if (metodoSeleccionado == "Tarjeta") tipoPago = PaymentType.Tarjeta;
+            else if (metodoSeleccionado == "Transferencia") tipoPago = PaymentType.Transferencia;
 
-            bool confirmar = await DisplayAlertAsync("Confirmar Venta", $"¿Realizar venta por S/. {_totalVentaActual:F2} vía {textoConfirmacion}?", "Sí, Confirmar", "Cancelar");
-            if (!confirmar) return;
-
-            // 🌟 EMPAQUETADO FINAL (Con campos mapeados)
             var nuevaVenta = new Sale
             {
                 UserId = UserSession.CurrentUser?.Id ?? 1,
@@ -289,13 +391,12 @@ namespace ControlInventarioMovil.Views
                 TotalAmount = _totalVentaActual,
                 AmountReceived = (tipoPago == PaymentType.Efectivo) ? _montoRecibidoActual : null,
                 ChangeGiven = (tipoPago == PaymentType.Efectivo) ? _vueltoActual : null,
-
-                // MAPEAMOS EL NOMBRE DEL CLIENTE (Si está vacío, enviamos null)
                 CustomerName = string.IsNullOrWhiteSpace(txtCustomerName.Text) ? null : txtCustomerName.Text.Trim(),
-
-                Notes = $"Venta móvil."
+                Notes = "Venta móvil.",
+                IsSynced = false // Por defecto arranca como no sincronizada
             };
 
+            var productosEnCarrito = _allArticles.Where(a => a.QuantityInCart > 0).ToList();
             foreach (var art in productosEnCarrito)
             {
                 nuevaVenta.SaleDetails.Add(new SaleDetail
@@ -307,11 +408,32 @@ namespace ControlInventarioMovil.Views
                 });
             }
 
-            bool exito = await _apiService.SaveSaleAsync(nuevaVenta);
-
-            if (exito)
+            try
             {
-                await DisplayAlertAsync("¡Éxito!", "Venta registrada correctamente.", "Perfecto");
+                // 2. GUARDADO OFFLINE-FIRST (SQLite Local)
+                using (var localDb = new ControlInventarioMovil.Data.LocalDbContext())
+                {
+                    localDb.Sales.Add(nuevaVenta);
+                    localDb.SaveChanges(); // Se guarda localmente y se genera el ID
+                }
+
+                // 3. INTENTAMOS SUBIR A SOMEE
+                bool exitoSubida = await _apiService.SaveSaleAsync(nuevaVenta);
+
+                if (exitoSubida)
+                {
+                    // Si Somee lo aceptó, marcamos IsSynced = true en local
+                    using var localDb = new ControlInventarioMovil.Data.LocalDbContext();
+                    var ventaLocal = localDb.Sales.Find(nuevaVenta.Id);
+                    if (ventaLocal != null)
+                    {
+                        ventaLocal.IsSynced = true;
+                        localDb.SaveChanges();
+                    }
+                }
+
+                // 4. LIMPIEZA VISUAL EXITOSA
+                await DisplayAlertAsync("¡Éxito!", "Venta registrada en el sistema.", "Perfecto");
 
                 foreach (var a in _allArticles) a.QuantityInCart = 0;
                 pickerPaymentType.SelectedIndex = 0;
@@ -326,11 +448,57 @@ namespace ControlInventarioMovil.Views
                 await LoadArticlesAsync();
                 CalculateTotals();
                 FilterArticles();
+
+                // Escondemos los modales
+                await OcultarModalQr();
+                btnAbrirPanel.IsVisible = true;
+                overlayOscuro.IsVisible = false;
+                panelCobro.IsVisible = false;
             }
-            else
+            catch (Exception ex)
             {
-                await DisplayAlertAsync("Error", "No se pudo registrar la venta.", "OK");
+                await DisplayAlertAsync("Error", $"Fallo al procesar: {ex.Message}", "OK");
             }
+        }
+
+        private static string InyectarMontoAlQR(string qrEstatico, decimal monto)
+        {
+            if (string.IsNullOrWhiteSpace(qrEstatico)) return qrEstatico;
+
+            int index6304 = qrEstatico.LastIndexOf("6304");
+            if (index6304 == -1) return qrEstatico;
+
+            string baseQr = qrEstatico[..index6304];
+
+            if (baseQr.Contains("010211"))
+            {
+                baseQr = baseQr.Replace("010211", "010212");
+            }
+
+            string strMonto = monto.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+            string tagMonto = $"54{strMonto.Length:00}{strMonto}";
+
+            string nuevoPayload = baseQr + tagMonto + "6304";
+            string nuevaFirmaCrc = SalesPage.CalcularCRC16(nuevoPayload);
+
+            return nuevoPayload + nuevaFirmaCrc;
+        }
+
+        private static string CalcularCRC16(string payload)
+        {
+            int crc = 0xFFFF;
+            for (int i = 0; i < payload.Length; i++)
+            {
+                crc ^= payload[i] << 8;
+                for (int j = 0; j < 8; j++)
+                {
+                    if ((crc & 0x8000) != 0)
+                        crc = (crc << 1) ^ 0x1021;
+                    else
+                        crc <<= 1;
+                }
+            }
+            return (crc & 0xFFFF).ToString("X4");
         }
 
         private async void OnSearchDocumentClicked(object sender, EventArgs e)
@@ -411,13 +579,23 @@ namespace ControlInventarioMovil.Views
         private async void OnAbrirPanelClicked(object sender, EventArgs e)
         {
             btnAbrirPanel.IsVisible = false;
+            overlayOscuro.IsVisible = true;
             panelCobro.IsVisible = true;
-            await panelCobro.TranslateToAsync(0, 0, 350, Easing.CubicOut);
+
+            await Task.WhenAll(
+                overlayOscuro.FadeToAsync(0.6, 300, Easing.CubicOut),
+                panelCobro.TranslateToAsync(0, 0, 350, Easing.CubicOut)
+            );
         }
 
         private async void OnCerrarPanelClicked(object sender, EventArgs e)
         {
-            await panelCobro.TranslateToAsync(0, panelCobro.Height + 50, 300, Easing.CubicIn);
+            await Task.WhenAll(
+                overlayOscuro.FadeToAsync(0, 300, Easing.CubicIn),
+                panelCobro.TranslateToAsync(0, panelCobro.Height + 50, 300, Easing.CubicIn)
+            );
+
+            overlayOscuro.IsVisible = false;
             panelCobro.IsVisible = false;
             btnAbrirPanel.IsVisible = true;
         }
@@ -430,7 +608,7 @@ namespace ControlInventarioMovil.Views
                 return;
             }
 
-            int numeroCuotas = 3;
+            int numeroCuotas;
             if (txtNumCuotas != null && int.TryParse(txtNumCuotas.Text, out int cuotasUser) && cuotasUser > 0)
             {
                 numeroCuotas = cuotasUser;
@@ -474,6 +652,46 @@ namespace ControlInventarioMovil.Views
             }
 
             await DisplayAlertAsync("Simulación de Crédito", detalleSimulacion, "Entendido");
+        }
+
+        private void OnIncreasePressed(object sender, EventArgs e)
+        {
+            if (sender is Button btn && btn.BindingContext is Article articulo)
+            {
+                // Le pasamos la lógica matemática al Helper
+                EfectosVisualesHelper.IniciarPresionContinua(() =>
+                {
+                    bool esBulk = articulo.Tracking.ToString() == "Bulk";
+                    decimal paso = esBulk ? 0.5m : 1m;
+
+                    if (articulo.QuantityInCart + paso <= articulo.Stock)
+                        articulo.QuantityInCart += paso;
+                    else
+                        EfectosVisualesHelper.DetenerPresionContinua(); // Tope máximo
+                });
+            }
+        }
+
+        private void OnDecreasePressed(object sender, EventArgs e)
+        {
+            if (sender is Button btn && btn.BindingContext is Article articulo)
+            {
+                EfectosVisualesHelper.IniciarPresionContinua(() =>
+                {
+                    bool esBulk = articulo.Tracking.ToString() == "Bulk";
+                    decimal paso = esBulk ? 0.5m : 1m;
+
+                    if (articulo.QuantityInCart - paso >= 0)
+                        articulo.QuantityInCart -= paso;
+                    else
+                        EfectosVisualesHelper.DetenerPresionContinua(); // Tope mínimo
+                });
+            }
+        }
+
+        private void OnButtonReleased(object sender, EventArgs e)
+        {
+            EfectosVisualesHelper.DetenerPresionContinua();
         }
     }
 }

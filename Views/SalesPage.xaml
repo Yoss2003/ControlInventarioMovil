@@ -7,8 +7,9 @@
              BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}"
              Shell.NavBarIsVisible="False"
              Title="">
-    
+
     <Grid>
+        <!-- ROWSPAN 3 PARA QUE EL OVERLAY CUBRA TODO EL GRID -->
         <Grid RowDefinitions="Auto, Auto, *" Margin="0">
 
             <Grid Grid.Row="0" Padding="15,10" ColumnDefinitions="Auto, *" VerticalOptions="Start">
@@ -20,10 +21,9 @@
                 <SearchBar Grid.Column="0" x:Name="searchArticle" Placeholder="Buscar artículo..." TextColor="{AppThemeBinding Light=Black, Dark=White}" PlaceholderColor="#80A0A0A0" HeightRequest="45" TextChanged="OnSearchTextChanged"/>
 
                 <HorizontalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="15">
-
                     <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
-                        <Switch x:Name="switchHideAgotados" IsToggled="False" Toggled="OnHideAgotadosToggled" OnColor="#8A2BE2" />
-                        <Label Text="Ocultar agotados" TextColor="{AppThemeBinding Light=#505050, Dark=#E0E0E0}" VerticalOptions="Center" FontSize="13"/>
+                        <Switch x:Name="switchMostrarAgotados" IsToggled="False" Toggled="OnMostrarAgotadosToggled" OnColor="#8A2BE2" />
+                        <Label Text="Mostrar agotados" TextColor="{AppThemeBinding Light=#505050, Dark=#E0E0E0}" VerticalOptions="Center" FontSize="13"/>
                     </HorizontalStackLayout>
 
                     <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
@@ -31,45 +31,25 @@
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="20" />
                             </Border.StrokeShape>
-
                             <Grid>
-                                <!-- El fondo morado (Thumb) -->
                                 <Border x:Name="thumbFondo" WidthRequest="52" HorizontalOptions="Start" BackgroundColor="#8A2BE2" StrokeThickness="0">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="17" />
                                     </Border.StrokeShape>
                                 </Border>
-
-                                <!-- Contenedor dividido en 2 partes iguales -->
-                                <Grid ColumnDefinitions="*, *" ColumnSpacing="0">
-
-                                    <!-- Icono Lista: Tamaño fijo y centrado absoluto -->
-                                    <ImageButton Grid.Column="0" 
-                             Source="icon_list.png" 
-                             Aspect="AspectFill" 
-                             HorizontalOptions="Center" 
-                             VerticalOptions="Center"
-                             BackgroundColor="Transparent" 
-                             Clicked="OnListModeClicked" />
-
-                                    <!-- Icono Cuadrícula: Tamaño fijo y centrado absoluto -->
-                                    <ImageButton Grid.Column="1" 
-                             Source="icon_grid.png" 
-                             Aspect="AspectFill" 
-                             HorizontalOptions="Center" 
-                             VerticalOptions="Center"
-                             BackgroundColor="Transparent" 
-                             Clicked="OnGridModeClicked" />
+                                <Grid ColumnDefinitions="*, *" ColumnSpacing="0" Margin="0,-6,0,0">
+                                    <Button Grid.Column="0" Text="≡" FontSize="24" FontAttributes="Bold" Padding="0" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=Black, Dark=White}" Clicked="OnListModeClicked" />
+                                    <Button Grid.Column="1" Text="⊞" FontSize="24" FontAttributes="Bold" Padding="0" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=Black, Dark=White}" Clicked="OnGridModeClicked" />
                                 </Grid>
                             </Grid>
                         </Border>
                     </HorizontalStackLayout>
-
                 </HorizontalStackLayout>
             </Grid>
 
+            <!-- VISTA DE LISTA -->
             <Grid Grid.Row="2">
-
+                <ActivityIndicator x:Name="loaderArticulos" IsRunning="False" IsVisible="False" Color="#8A2BE2" HorizontalOptions="Center" VerticalOptions="Center" WidthRequest="50" HeightRequest="50" ZIndex="10" />
                 <CollectionView x:Name="listArticles" Margin="10,0" IsVisible="True">
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
@@ -95,12 +75,12 @@
                                         <Label Text="{Binding Model, StringFormat='Modelo: {0}'}" TextColor="#A0A0A0" FontSize="13" />
                                         <HorizontalStackLayout Spacing="15" Margin="0,3,0,0">
                                             <Label Text="{Binding SalePrice, StringFormat='S/. {0:F2}'}" TextColor="#00CED1" FontAttributes="Bold" FontSize="15"/>
-                                            <Label Text="{Binding Stock, StringFormat='Stock: {0}'}" TextColor="{AppThemeBinding Light=Gray, Dark=#E0E0E0}" FontSize="13" VerticalOptions="Center"/>
+                                            <Label Text="{Binding Stock, StringFormat='Stock: {0:0.##}'}" TextColor="{AppThemeBinding Light=Gray, Dark=#E0E0E0}" FontSize="13" VerticalOptions="Center"/>
                                         </HorizontalStackLayout>
                                     </VerticalStackLayout>
 
                                     <HorizontalStackLayout Grid.Column="2" VerticalOptions="Center" Spacing="8" HorizontalOptions="End">
-                                        <Button Text="-" WidthRequest="38" HeightRequest="38" Padding="0" CornerRadius="19" FontSize="22" FontAttributes="Bold" BackgroundColor="#E0E0E0" TextColor="Black" Clicked="OnDecreaseQuantityClicked">
+                                        <Button Text="-" WidthRequest="38" HeightRequest="38" Padding="0" CornerRadius="19" FontSize="22" FontAttributes="Bold" BackgroundColor="#E0E0E0" TextColor="Black" Pressed="OnDecreasePressed" Released="OnButtonReleased">
                                             <Button.Triggers>
                                                 <DataTrigger TargetType="Button" Binding="{Binding Stock}" Value="0">
                                                     <Setter Property="IsEnabled" Value="False" />
@@ -108,9 +88,9 @@
                                             </Button.Triggers>
                                         </Button>
 
-                                        <Label Text="{Binding QuantityInCart}" FontAttributes="Bold" FontSize="16" VerticalOptions="Center" HorizontalOptions="Center" HorizontalTextAlignment="Center" WidthRequest="30" TextColor="{AppThemeBinding Light=Black, Dark=White}"/>
+                                        <Entry Text="{Binding QuantityInCart}" Keyboard="Numeric" FontAttributes="Bold" FontSize="16" VerticalOptions="Center" HorizontalOptions="Center" HorizontalTextAlignment="Center" WidthRequest="45" TextColor="{AppThemeBinding Light=Black, Dark=White}" TextChanged="OnQuantityTextChanged" BackgroundColor="Transparent"/>
 
-                                        <Button Text="+" WidthRequest="38"  HeightRequest="38" Padding="0" CornerRadius="19" FontSize="22" FontAttributes="Bold" BackgroundColor="#8A2BE2" TextColor="White" Clicked="OnIncreaseQuantityClicked">
+                                        <Button Text="+" WidthRequest="38" HeightRequest="38" Padding="0" CornerRadius="19" FontSize="22" FontAttributes="Bold" BackgroundColor="#8A2BE2" TextColor="White" Pressed="OnIncreasePressed" Released="OnButtonReleased">
                                             <Button.Triggers>
                                                 <DataTrigger TargetType="Button" Binding="{Binding Stock}" Value="0">
                                                     <Setter Property="IsEnabled" Value="False" />
@@ -124,9 +104,10 @@
                     </CollectionView.ItemTemplate>
                 </CollectionView>
 
+                <!-- VISTA DE CUADRÍCULA -->
                 <CollectionView x:Name="gridArticles" Margin="10,0" IsVisible="False">
                     <CollectionView.ItemsLayout>
-                        <GridItemsLayout Orientation="Vertical" Span="2" VerticalItemSpacing="10" HorizontalItemSpacing="10" />
+                        <GridItemsLayout Orientation="Vertical" Span="3" VerticalItemSpacing="10" HorizontalItemSpacing="10" />
                     </CollectionView.ItemsLayout>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:Article">
@@ -146,18 +127,20 @@
 
                                     <Label Text="{Binding Name}" TextColor="{AppThemeBinding Light=Black, Dark=White}" FontSize="14" FontAttributes="Bold" LineBreakMode="TailTruncation" MaxLines="2" HeightRequest="40" HorizontalOptions="Center" HorizontalTextAlignment="Center"/>
                                     <Label Text="{Binding SalePrice, StringFormat='S/. {0:F2}'}" TextColor="#00CED1" FontAttributes="Bold" FontSize="16" HorizontalOptions="Center"/>
-                                    <Label Text="{Binding Stock, StringFormat='Stock: {0}'}" TextColor="{AppThemeBinding Light=Gray, Dark=#E0E0E0}" FontSize="12" HorizontalOptions="Center"/>
+                                    <Label Text="{Binding Stock, StringFormat='Stock: {0:0.##}'}" TextColor="{AppThemeBinding Light=Gray, Dark=#E0E0E0}" FontSize="12" HorizontalOptions="Center"/>
 
-                                    <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="End" Spacing="8" Margin="0,10,0,0">
-                                        <Button Text="-" WidthRequest="38" HeightRequest="38" Padding="0" CornerRadius="19" FontSize="20" FontAttributes="Bold" BackgroundColor="#E0E0E0" TextColor="Black" Clicked="OnDecreaseQuantityClicked">
+                                    <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="End" Spacing="4" Margin="0,10,0,0">
+                                        <Button Text="-" WidthRequest="20" HeightRequest="20" MinimumWidthRequest="28" MinimumHeightRequest="28" Padding="0" CornerRadius="14" FontSize="16" FontAttributes="Bold" BackgroundColor="#E0E0E0" TextColor="Black" Pressed="OnDecreasePressed" Released="OnButtonReleased">
                                             <Button.Triggers>
                                                 <DataTrigger TargetType="Button" Binding="{Binding Stock}" Value="0">
                                                     <Setter Property="IsEnabled" Value="False" />
                                                 </DataTrigger>
                                             </Button.Triggers>
                                         </Button>
-                                        <Label Text="{Binding QuantityInCart}" FontAttributes="Bold" FontSize="16" VerticalOptions="Center" HorizontalOptions="Center" WidthRequest="25" HorizontalTextAlignment="Center"/>
-                                        <Button Text="+" WidthRequest="38" HeightRequest="38" Padding="0" CornerRadius="19" FontSize="20" FontAttributes="Bold" BackgroundColor="#8A2BE2" TextColor="White" Clicked="OnIncreaseQuantityClicked">
+
+                                        <Entry Text="{Binding QuantityInCart}" Keyboard="Numeric" FontAttributes="Bold" FontSize="14" VerticalOptions="Center" HorizontalOptions="Center" HorizontalTextAlignment="Center" WidthRequest="35" TextColor="{AppThemeBinding Light=Black, Dark=White}" TextChanged="OnQuantityTextChanged" BackgroundColor="Transparent"/>
+
+                                        <Button Text="+" WidthRequest="28" HeightRequest="28" MinimumWidthRequest="20" MinimumHeightRequest="20" Padding="0" CornerRadius="14" FontSize="16" FontAttributes="Bold" BackgroundColor="#8A2BE2" TextColor="White" Pressed="OnIncreasePressed" Released="OnButtonReleased">
                                             <Button.Triggers>
                                                 <DataTrigger TargetType="Button" Binding="{Binding Stock}" Value="0">
                                                     <Setter Property="IsEnabled" Value="False" />
@@ -170,10 +153,10 @@
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
-
             </Grid>
         </Grid>
-        
+
+        <!-- BOTÓN INFERIOR FLOTANTE -->
         <Button x:Name="btnAbrirPanel" 
                 Text="🛒 ABRIR PANEL DE COBRO" 
                 TextColor="White" FontAttributes="Bold" FontSize="14"
@@ -184,86 +167,127 @@
                 Shadow="{Shadow Brush=Black, Offset='0,5', Radius=10, Opacity=0.3}"
                 Clicked="OnAbrirPanelClicked" />
 
-        <Border x:Name="panelCobro" VerticalOptions="End" TranslationY="800" IsVisible="False" Padding="20,12" BackgroundColor="{AppThemeBinding Light=White, Dark=#171F24}" StrokeThickness="1" Stroke="#30808080">
+        <!-- CAPA OSCURA DEL OVERLAY -->
+        <BoxView x:Name="overlayOscuro" Color="Black" Opacity="0" IsVisible="False" InputTransparent="False" Grid.RowSpan="3">
+            <BoxView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnCerrarPanelClicked" />
+            </BoxView.GestureRecognizers>
+        </BoxView>
+
+        <!-- 🔥 TU NUEVO DISEÑO PARA EL PANEL DE COBRO (Totalmente Adaptado) -->
+        <Border x:Name="panelCobro" Grid.RowSpan="3" VerticalOptions="End" TranslationY="800" IsVisible="False" Padding="20,25,20,35" BackgroundColor="{AppThemeBinding Light=White, Dark=#171F24}" StrokeThickness="1" Stroke="#30808080">
             <Border.StrokeShape>
-                <RoundRectangle CornerRadius="24,24,0,0" />
+                <RoundRectangle CornerRadius="30,30,0,0" />
             </Border.StrokeShape>
 
-            <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto" RowSpacing="10">
+            <Grid RowDefinitions="Auto, Auto, Auto, Auto, Auto" RowSpacing="20">
 
-                <Button Grid.Row="0" Grid.ColumnSpan="2" Text="⏬ Ocultar Panel" HeightRequest="30" Padding="0" FontSize="13" FontAttributes="Bold" BackgroundColor="Transparent" TextColor="Gray" Clicked="OnCerrarPanelClicked" Margin="0,-5,0,0"/>
+                <!-- Botón de arrastrar para cerrar -->
+                <BoxView Grid.Row="0" WidthRequest="50" HeightRequest="5" CornerRadius="2" BackgroundColor="Gray" HorizontalOptions="Center" Margin="0,0,0,10">
+                    <BoxView.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnCerrarPanelClicked"/>
+                    </BoxView.GestureRecognizers>
+                </BoxView>
 
-                <Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto, Auto, Auto, Auto, Auto" ColumnSpacing="6" VerticalOptions="Center" HorizontalOptions="Start">
+                <!-- Selectores de Pago Expandidos -->
+                <VerticalStackLayout Grid.Row="1" Spacing="10">
+                    <Label Text="Método de Pago" TextColor="Gray" FontSize="12" FontAttributes="Bold" />
 
-                    <Picker Grid.Column="0" x:Name="pickerPaymentType" Title="Método" TitleColor="Gray" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="58" WidthRequest="180" VerticalOptions="Center" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}">
-                        <Picker.Items>
-                            <x:String>Efectivo</x:String>
-                            <x:String>Tarjeta</x:String>
-                            <x:String>Billetera digital</x:String>
-                            <x:String>Transferencia</x:String>
-                            <x:String>Venta a Cuotas</x:String>
-                        </Picker.Items>
-                    </Picker>
+                    <!-- Al usar Grid con *, la columna del medio se estira ocupando todo el ancho -->
+                    <Grid ColumnDefinitions="*, *, Auto, Auto" ColumnSpacing="8" HorizontalOptions="Fill">
 
-                    <Picker Grid.Column="1" x:Name="pickerSubWallet" Title="¿Cuál?" TitleColor="Gray" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="58" WidthRequest="125" IsVisible="False" VerticalOptions="Center" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}">
-                        <Picker.Items>
-                            <x:String>Yape</x:String>
-                            <x:String>Plin</x:String>
-                            <x:String>Bim</x:String>
-                        </Picker.Items>
-                    </Picker>
+                        <!-- NOTA: Los Pickers regresaron a Height=45 y tienen VerticalOptions="End" para alinearse por debajo con los Entrys -->
+                        <Picker Grid.Column="0" x:Name="pickerPaymentType" Title="Método..." TitleColor="Gray" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="70" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" VerticalOptions="End">
+                            <Picker.Items>
+                                <x:String>Efectivo</x:String>
+                                <x:String>Tarjeta</x:String>
+                                <x:String>Billetera digital</x:String>
+                                <x:String>Transferencia</x:String>
+                                <x:String>Venta a Cuotas</x:String>
+                            </Picker.Items>
+                        </Picker>
 
-                    <Picker Grid.Column="1" x:Name="pickerSalesMode" Title="Frecuencia" TitleColor="Gray" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="58" WidthRequest="140" IsVisible="False" VerticalOptions="Center" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}">
-                        <Picker.Items>
-                            <x:String>Diario</x:String>
-                            <x:String>Semanal</x:String>
-                            <x:String>Mensual</x:String>
-                        </Picker.Items>
-                    </Picker>
+                        <Picker Grid.Column="1" x:Name="pickerSubWallet" Title="¿Cuál?" TitleColor="Gray" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="70" IsVisible="False" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" VerticalOptions="End">
+                            <Picker.Items>
+                                <x:String>Yape</x:String>
+                                <x:String>Plin</x:String>
+                                <x:String>Bim</x:String>
+                            </Picker.Items>
+                        </Picker>
 
-                    <Border Grid.Column="2" x:Name="gridNumCuotas" HeightRequest="58" WidthRequest="95" StrokeShape="RoundRectangle 8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" Padding="8,4" IsVisible="False" VerticalOptions="Center">
-                        <VerticalStackLayout Spacing="0" VerticalOptions="Center">
-                            <Label Text="N° Cuotas" FontSize="10" TextColor="Gray" HorizontalOptions="Start"/>
-                            <Entry x:Name="txtNumCuotas" Keyboard="Numeric" Placeholder="0" FontSize="13" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="32" VerticalOptions="Center" Margin="0,-4,0,0"/>
+                        <Picker Grid.Column="1" x:Name="pickerSalesMode" Title="Frecuencia" TitleColor="Gray" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="70" IsVisible="False" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" VerticalOptions="End">
+                            <Picker.Items>
+                                <x:String>Diario</x:String>
+                                <x:String>Semanal</x:String>
+                                <x:String>Mensual</x:String>
+                            </Picker.Items>
+                        </Picker>
+
+                        <!-- TUS NUEVOS ENTRYS CON TÍTULOS EXTERNOS (El IsVisible está en el StackLayout) -->
+                        <VerticalStackLayout Grid.Column="2" Spacing="5" IsVisible="{Binding IsVisible, Source={x:Reference txtNumCuotas}}" VerticalOptions="End">
+                            <Label Text="N° Cuotas" TextColor="Gray" FontSize="11" FontAttributes="Bold" />
+                            <Border HeightRequest="45" WidthRequest="90" StrokeShape="RoundRectangle 8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" Padding="10,0">
+                                <Entry x:Name="txtNumCuotas" Keyboard="Numeric" Placeholder="Ej. 6" IsVisible="False" FontSize="13" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=Black, Dark=White}" VerticalOptions="Center" />
+                            </Border>
                         </VerticalStackLayout>
-                    </Border>
 
-                    <Border Grid.Column="3" x:Name="gridCuotaInicial" HeightRequest="58" WidthRequest="115" StrokeShape="RoundRectangle 8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" Padding="8,4" IsVisible="False" VerticalOptions="Center">
-                        <VerticalStackLayout Spacing="0" VerticalOptions="Center">
-                            <Label Text="Adelanto" FontSize="10" TextColor="Gray" HorizontalOptions="Start"/>
-                            <Entry x:Name="txtCuotaInicial" Keyboard="Numeric" Placeholder="0.00" FontSize="13" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=Black, Dark=White}" HeightRequest="32" VerticalOptions="Center" Margin="0,-4,0,0"/>
+                        <VerticalStackLayout Grid.Column="3" Spacing="5" IsVisible="{Binding IsVisible, Source={x:Reference txtCuotaInicial}}" VerticalOptions="End">
+                            <Label Text="Adelanto" TextColor="Gray" FontSize="11" FontAttributes="Bold" />
+                            <Border HeightRequest="45" WidthRequest="100" StrokeShape="RoundRectangle 8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" Padding="10,0">
+                                <Entry x:Name="txtCuotaInicial" Keyboard="Numeric" Placeholder="S/. 0.00" IsVisible="False" FontSize="13" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=Black, Dark=White}" VerticalOptions="Center" />
+                            </Border>
                         </VerticalStackLayout>
-                    </Border>
 
-                    <Button Grid.Column="4" x:Name="btnSimularCuotas" Text="ⓘ" FontSize="18" FontAttributes="Bold" WidthRequest="48" HeightRequest="58" MinimumWidthRequest="48" MinimumHeightRequest="58" Padding="0" BackgroundColor="#8A2BE2" TextColor="White" CornerRadius="8" IsVisible="False" VerticalOptions="Center" HorizontalOptions="Center" Clicked="OnSimularCuotasClicked"/>
+                    </Grid>
+                </VerticalStackLayout>
+
+                <!-- Datos del Cliente y Efectivo (Lado a lado) -->
+                <Grid Grid.Row="2" ColumnDefinitions="*, *" ColumnSpacing="15">
+
+                    <VerticalStackLayout Grid.Column="0" Spacing="10">
+                        <Label Text="Cliente (Opcional)" TextColor="Gray" FontSize="12" FontAttributes="Bold" />
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                            <Border Grid.Column="0" HeightRequest="45" StrokeShape="RoundRectangle 8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" Padding="10,0">
+                                <Entry x:Name="txtDocument" Placeholder="DNI / RUC" Keyboard="Numeric" MaxLength="11" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+                            </Border>
+
+                            <ImageButton Grid.Column="1" x:Name="btnSearchDoc" Source="search_icon.png" WidthRequest="45" HeightRequest="45" BackgroundColor="#8A2BE2" CornerRadius="8" Padding="12" Clicked="OnSearchDocumentClicked" helpers:EfectosVisualesHelper.Animar="True"/>
+                        </Grid>
+                        <Border HeightRequest="45" StrokeShape="RoundRectangle 8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" Padding="10,0">
+                            <Entry x:Name="txtCustomerName" Placeholder="Nombre..." BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Column="1" Spacing="10" x:Name="gridEfectivoInfo">
+                        <Label Text="Cálculo de Vuelto" TextColor="Gray" FontSize="12" FontAttributes="Bold" />
+                        <Border HeightRequest="45" StrokeShape="RoundRectangle 8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" Padding="10,0">
+                            <Entry x:Name="txtMontoRecibido" Keyboard="Numeric" Placeholder="Monto Recibido" HorizontalTextAlignment="End" TextChanged="OnMontoRecibidoTextChanged" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+                        </Border>
+                        <Grid ColumnDefinitions="*, Auto" Margin="0,15,0,0">
+                            <Label Grid.Column="0" Text="Vuelto:" TextColor="Gray" FontSize="16" VerticalOptions="Center"/>
+                            <Label Grid.Column="1" x:Name="lblVueltoValor" Text="0.00" TextColor="#4CAF50" FontAttributes="Bold" FontSize="22" VerticalOptions="Center" HorizontalOptions="End"/>
+                        </Grid>
+                    </VerticalStackLayout>
                 </Grid>
 
-                <Grid Grid.Row="2" Grid.Column="0" WidthRequest="500" HorizontalOptions="Start" VerticalOptions="Center" ColumnDefinitions="110, 45, *" ColumnSpacing="6">
-                    <Border Grid.Column="0" HeightRequest="38" StrokeShape="RoundRectangle 8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" Padding="8,0" VerticalOptions="Center">
-                        <Entry x:Name="txtDocument" Placeholder="DNI / RUC" Keyboard="Numeric" MaxLength="11" FontSize="13" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=Black, Dark=White}" VerticalOptions="Center" Margin="0"/>
-                    </Border>
-                    <ImageButton Grid.Column="1" x:Name="btnSearchDoc" Source="search_icon.png" Aspect="AspectFit" BackgroundColor="Transparent" CornerRadius="8" HeightRequest="38" WidthRequest="38" VerticalOptions="Center" Clicked="OnSearchDocumentClicked"/>
-                    <Border Grid.Column="2" HeightRequest="38" StrokeShape="RoundRectangle 8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" Padding="8,0" VerticalOptions="Center">
-                        <Entry x:Name="txtCustomerName" Placeholder="Cliente (Opcional)" ClearButtonVisibility="WhileEditing" FontSize="13" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=Black, Dark=White}" VerticalOptions="Center" VerticalTextAlignment="Center" Margin="0" />
-                    </Border>
+                <!-- Resumen Total y BOTÓN INFO GEOMETRY DASH -->
+                <Grid Grid.Row="3" ColumnDefinitions="*, Auto">
+                    <!-- El HeightRequest=30 asegura que el botón no empuje los elementos hacia arriba al aparecer -->
+                    <HorizontalStackLayout Grid.Column="0" Spacing="8" VerticalOptions="Center" HeightRequest="30">
+                        <Label x:Name="lblTotalItems" Text="0 unidades" TextColor="Gray" FontSize="13" VerticalOptions="Center"/>
+
+                        <!-- Botón Info (i) circular perfecto y pequeño -->
+                        <Button x:Name="btnSimularCuotas" Text="i" FontAttributes="Bold,Italic" FontFamily="monospace" FontSize="14" WidthRequest="24" HeightRequest="24" MinimumWidthRequest="24" MinimumHeightRequest="24" CornerRadius="12" Padding="0" BackgroundColor="#8A2BE2" TextColor="White" VerticalOptions="Center" Clicked="OnSimularCuotasClicked" IsVisible="False"/>
+                    </HorizontalStackLayout>
+
+                    <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
+                        <Label Text="Total:" TextColor="{AppThemeBinding Light=Black, Dark=White}" FontSize="18" VerticalOptions="Center"/>
+                        <Label x:Name="lblTotalAmount" Text="S/. 0.00" TextColor="#00CED1" FontAttributes="Bold" FontSize="26" VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
                 </Grid>
 
-                <Grid Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" x:Name="gridEfectivoInfo" ColumnDefinitions="Auto, 85" RowDefinitions="58, 38" RowSpacing="10" ColumnSpacing="5" IsVisible="True" VerticalOptions="Center">
-                    <Label Grid.Row="0" Grid.Column="0" Text="Recibido:" TextColor="Gray" FontSize="12" VerticalOptions="Center" HorizontalOptions="End"/>
-                    <Border Grid.Row="0" Grid.Column="1" HeightRequest="38" StrokeShape="RoundRectangle 8" StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#F0F4F8, Dark=#222E34}" Padding="8,0" VerticalOptions="Center">
-                        <Entry x:Name="txtMontoRecibido" Keyboard="Numeric" Placeholder="0.00" FontSize="14" HorizontalTextAlignment="End" TextChanged="OnMontoRecibidoTextChanged" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=Black, Dark=White}" VerticalOptions="Center" VerticalTextAlignment="Center" Margin="0" />
-                    </Border>
-                    <Label Grid.Row="1" Grid.Column="0" Text="Vuelto:" TextColor="Gray" FontSize="12" VerticalOptions="Center" HorizontalOptions="End"/>
-                    <Label Grid.Row="1" Grid.Column="1" x:Name="lblVueltoValor" Text="0.00" TextColor="#4CAF50" FontAttributes="Bold" FontSize="15" VerticalOptions="Center" HorizontalOptions="End"/>
-                </Grid>
-
-                <Label Grid.Row="3" Grid.Column="0" x:Name="lblTotalItems" Text="0 artículos seleccionados" TextColor="Gray" FontSize="12" VerticalOptions="Center" HorizontalOptions="Start"/>
-                <HorizontalStackLayout Grid.Row="3" Grid.Column="1" HorizontalOptions="End" VerticalOptions="Center" Spacing="5">
-                    <Label Text="Total:" TextColor="{AppThemeBinding Light=Black, Dark=White}" FontSize="14" VerticalOptions="Center"/>
-                    <Label x:Name="lblTotalAmount" Text="S/. 0.00" TextColor="#00CED1" FontAttributes="Bold" FontSize="20" VerticalOptions="Center"/>
-                </HorizontalStackLayout>
-
-                <Button Grid.Row="4" Grid.ColumnSpan="2" x:Name="btnCerrarVenta" Text="CERRAR VENTA" TextColor="White" FontAttributes="Bold" HeightRequest="48" CornerRadius="12" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnCheckoutClicked" Margin="0,5,0,0">
+                <!-- Botón de Pago -->
+                <Button Grid.Row="4" x:Name="btnCerrarVenta" Text="PROCESAR COBRO" TextColor="White" FontSize="18" FontAttributes="Bold" HeightRequest="60" CornerRadius="15" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnCheckoutClicked">
                     <Button.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                             <GradientStop Color="#8A2BE2" Offset="0.0" />
@@ -271,6 +295,42 @@
                         </LinearGradientBrush>
                     </Button.Background>
                 </Button>
+            </Grid>
+        </Border>
+        
+        <!-- 🔥 MODAL DEL CÓDIGO QR PARA BILLETERAS DIGITALES -->
+        <BoxView x:Name="overlayQrFondo" Color="Black" Opacity="0" IsVisible="False" InputTransparent="False" Grid.RowSpan="3" />
+
+        <Border x:Name="modalQr" Grid.RowSpan="3" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C262E}" WidthRequest="320" HeightRequest="530" HorizontalOptions="Center" VerticalOptions="Center" IsVisible="False" TranslationY="600" StrokeShape="RoundRectangle 20" StrokeThickness="0" Padding="15">
+            <Grid>
+                <!-- BOTÓN "X" PARA CERRAR -->
+                <Button Text="✕" FontSize="20" FontAttributes="Bold" TextColor="Gray" BackgroundColor="Transparent" WidthRequest="45" HeightRequest="45" Padding="0" Margin="0,-5,-5,0" HorizontalOptions="End" VerticalOptions="Start" ZIndex="10" Clicked="OnCancelQrPaymentClicked" />
+
+                <!-- CONTENIDO PRINCIPAL -->
+                <VerticalStackLayout Spacing="15" HorizontalOptions="Center" VerticalOptions="Center" Margin="0,20,0,0">
+
+                    <Label x:Name="lblQrTitle" Text="Escanea para Pagar" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+                    <Label x:Name="lblQrAmount" Text="S/. 0.00" FontSize="36" FontAttributes="Bold" TextColor="#00CED1" HorizontalOptions="Center" />
+
+                    <!-- El Código QR -->
+                    <Image x:Name="imgQrCode" WidthRequest="220" HeightRequest="220" HorizontalOptions="Center" />
+
+                    <!-- 🔥 LOGOS DE YAPE Y PLIN -->
+                    <HorizontalStackLayout Spacing="15" HorizontalOptions="Center" VerticalOptions="Center">
+                        <!-- Asegúrate de tener estas imágenes en tu carpeta Resources/Images (ej. yape_logo.png y plin_logo.png) -->
+                        <Border StrokeShape="RoundRectangle 8" BackgroundColor="#742384" HeightRequest="30" WidthRequest="70" Padding="0">
+                            <Label Text="yape" TextColor="White" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                        <Border StrokeShape="RoundRectangle 8" BackgroundColor="#00C8D3" HeightRequest="30" WidthRequest="70" Padding="0">
+                            <Label Text="plin" TextColor="White" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center"/>
+                        </Border>
+                    </HorizontalStackLayout>
+
+                    <Label Text="Compatible con Yape, Plin y otras billeteras digitales." FontSize="11" TextColor="Gray" HorizontalTextAlignment="Center" Margin="0,0,0,10" />
+
+                    <Button Text="✅ Confirmar Pago" BackgroundColor="#4CAF50" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnConfirmQrPaymentClicked" />
+
+                </VerticalStackLayout>
             </Grid>
         </Border>
     </Grid>

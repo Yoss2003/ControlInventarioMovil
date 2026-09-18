@@ -8,8 +8,8 @@ namespace ControlInventarioMovil.Views
     public partial class CustomersPage : ContentPage
     {
         private readonly ApiService _apiService;
-        private List<Customer> _allCustomers = new();
-        public ObservableCollection<Customer> FilteredCustomers { get; set; } = new();
+        private List<Customer> _allCustomers = [];
+        public ObservableCollection<Customer> FilteredCustomers { get; set; } = [];
 
         public CustomersPage()
         {
@@ -29,7 +29,7 @@ namespace ControlInventarioMovil.Views
             refreshCustomers.IsRefreshing = true;
             var lista = await _apiService.GetCustomersAsync();
 
-            _allCustomers = lista.Where(c => c.IsActive).OrderBy(c => c.Name).ToList();
+            _allCustomers = [.. lista.Where(c => c.IsActive).OrderBy(c => c.Name)];
 
             FilterCustomers();
             refreshCustomers.IsRefreshing = false;
@@ -47,7 +47,7 @@ namespace ControlInventarioMovil.Views
 
             var filtrados = string.IsNullOrEmpty(query)
                 ? _allCustomers
-                : _allCustomers.Where(c => c.Name.ToLower().Contains(query) ||
+                : _allCustomers.Where(c => c.Name.Contains(query, StringComparison.CurrentCultureIgnoreCase) ||
                                            (c.DocumentNumber != null && c.DocumentNumber.Contains(query)));
 
             foreach (var c in filtrados)
@@ -63,17 +63,25 @@ namespace ControlInventarioMovil.Views
 
         private async void OnAddCustomerClicked(object sender, EventArgs e)
         {
-            // Navegamos al formulario pasando un cliente vacío (Modo Creación)
+            try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+            if (sender is View btn) btn.IsEnabled = false;
+            await Task.Delay(50);
+
             await Navigation.PushAsync(new CustomerFormPage(new Customer()));
+
+            if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
         }
 
         private async void OnEditCustomerClicked(object sender, EventArgs e)
         {
-            if (sender is ImageButton btn && btn.CommandParameter is Customer clienteSeleccionado)
-            {
-                // Navegamos al formulario pasando el cliente seleccionado (Modo Edición)
+            try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+            if (sender is View btn) btn.IsEnabled = false;
+            await Task.Delay(50);
+
+            if (sender is ImageButton imgBtn && imgBtn.CommandParameter is Customer clienteSeleccionado)
                 await Navigation.PushAsync(new CustomerFormPage(clienteSeleccionado));
-            }
+
+            if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
         }
 
         private async void OnDeleteCustomerClicked(object sender, EventArgs e)

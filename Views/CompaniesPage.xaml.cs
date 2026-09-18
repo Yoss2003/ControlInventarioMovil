@@ -10,8 +10,7 @@ using ControlInventarioMovil.Helpers;
 [QueryProperty(nameof(TargetCompanyId), "TargetCompanyId")]
 public partial class CompaniesPage : ContentPage
 {
-
-    private ObservableCollection<Company> _empresas = new ObservableCollection<Company>();
+    private readonly ObservableCollection<Company> _empresas = [];
     private Border? _panelActivo;
 
     public int TargetCompanyId { get; set; } = -1;
@@ -41,7 +40,7 @@ public partial class CompaniesPage : ContentPage
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var empresasDescargadas = JsonConvert.DeserializeObject<List<Company>>(content) ?? new List<Company>();
+                var empresasDescargadas = JsonConvert.DeserializeObject<List<Company>>(content) ?? [];
 
                 if (TargetCompanyId > 0)
                 {
@@ -127,16 +126,16 @@ public partial class CompaniesPage : ContentPage
     private async void OnLogoTapped(object sender, TappedEventArgs e)
     {
         var elementoTocado = sender as Element;
-        var company = elementoTocado?.BindingContext as Company;
 
-        if (company != null && company.Id == 0)
+        if (elementoTocado?.BindingContext is Company company && company.Id == 0)
         {
+            try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+            await Task.Delay(50);
             await Navigation.PushAsync(new CompanyFormPage());
             return;
         }
 
-        var gridContenedor = elementoTocado?.Parent as Grid;
-        if (gridContenedor != null)
+        if (elementoTocado?.Parent is Grid gridContenedor)
         {
             var actionPanel = gridContenedor.FindByName<Border>("ActionPanel");
             if (actionPanel != null)
@@ -148,7 +147,6 @@ public partial class CompaniesPage : ContentPage
                         _panelActivo.InputTransparent = true;
                         _ = _panelActivo.FadeToAsync(0, 200, Easing.CubicIn);
                     }
-
                     actionPanel.InputTransparent = false;
                     await actionPanel.FadeToAsync(1, 250, Easing.CubicOut);
                     _panelActivo = actionPanel;
@@ -163,14 +161,29 @@ public partial class CompaniesPage : ContentPage
         }
     }
 
-    private async void OnVolverClicked(object sender, EventArgs e) => await Shell.Current.GoToAsync("..");
+    private async void OnVolverClicked(object sender, EventArgs e)
+    {
+        try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+        if (sender is View btn) btn.IsEnabled = false;
+        await Task.Delay(50);
+
+        await Shell.Current.GoToAsync("..");
+
+        if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
+    }
 
     private async void OnEditarEmpresaClicked(object sender, EventArgs e)
     {
-        if (sender is ImageButton btn && btn.CommandParameter is Company company)
+        try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+        if (sender is View btn) btn.IsEnabled = false;
+        await Task.Delay(50);
+
+        if (sender is ImageButton imgBtn && imgBtn.CommandParameter is Company company)
         {
             await Navigation.PushAsync(new CompanyFormPage(company));
         }
+
+        if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
     }
 
     private async void OnEliminarEmpresaClicked(object sender, EventArgs e)

@@ -1,6 +1,4 @@
-using System;
-using Microsoft.Maui.Controls;
-using ZXing.Net.Maui; // Para la cámara en vivo
+using ZXing.Net.Maui;
 
 namespace ControlInventarioMovil.Views.Controls
 {
@@ -33,76 +31,42 @@ namespace ControlInventarioMovil.Views.Controls
         // 2. 🌟 ESCANEO SEGURO MEDIANTE IMAGEN DE GALERÍA (Usa ZXing.Net Puro)
         private async void OnPickImageClicked(object sender, EventArgs e)
         {
-            if (_alreadyScanned) return;
-
             try
             {
-                var fotosSeleccionadas = await MediaPicker.Default.PickPhotosAsync();
+                var fotos = await MediaPicker.Default.PickPhotosAsync(new MediaPickerOptions { Title = "Selecciona el código de barras" });
+                var foto = fotos?.FirstOrDefault();
 
-                if (fotosSeleccionadas == null) return; 
-
-                var foto = System.Linq.Enumerable.FirstOrDefault(fotosSeleccionadas);
-
-                if (foto == null) return; // El usuario canceló la selección
-
-                _alreadyScanned = true; // Congelamos la UI durante el análisis
-
-                string? codigoDetectado = null;
-
-#if ANDROID
-                // Convertimos el archivo en un mapa de bits nativo de Android
-                using var bitmap = Android.Graphics.BitmapFactory.DecodeFile(foto.FullPath);
-                if (bitmap != null)
+                if (foto != null)
                 {
-                    int width = bitmap.Width;
-                    int height = bitmap.Height;
+                    using var stream = await foto.OpenReadAsync();
+                    var originalBitmap = SkiaSharp.SKBitmap.Decode(stream);
 
-                    // Extraemos los píxeles nativos del archivo
-                    int[] pixels = new int[width * height];
-                    bitmap.GetPixels(pixels, 0, width, 0, 0, width, height);
-
-                    // Transformamos la matriz de colores a formato nativo RGB para el lector
-                    byte[] rgbBytes = new byte[width * height * 3];
-                    int rgbIdx = 0;
-                    for (int i = 0; i < pixels.Length; i++)
+                    var bitmapParaEscanear = originalBitmap;
+                    if (originalBitmap.Width > 1200 || originalBitmap.Height > 1200)
                     {
-                        int c = pixels[i];
-                        rgbBytes[rgbIdx++] = (byte)((c >> 16) & 0xFF); // Rojo
-                        rgbBytes[rgbIdx++] = (byte)((c >> 8) & 0xFF);  // Verde
-                        rgbBytes[rgbIdx++] = (byte)(c & 0xFF);         // Azul
+                        float scale = 1000f / Math.Max(originalBitmap.Width, originalBitmap.Height);
+                        var nuevaInfo = new SkiaSharp.SKImageInfo((int)(originalBitmap.Width * scale), (int)(originalBitmap.Height * scale));
+                        bitmapParaEscanear = originalBitmap.Resize(nuevaInfo, new SkiaSharp.SKSamplingOptions(SkiaSharp.SKFilterMode.Linear));
                     }
 
-                    // 🦾 LECTOR DE C# PURO (Evita los PixelBufferHolder rotos de MAUI)
-                    var luminanceSource = new ZXing.RGBLuminanceSource(rgbBytes, width, height, ZXing.RGBLuminanceSource.BitmapFormat.RGB24);
-                    var binarizer = new ZXing.Common.HybridBinarizer(luminanceSource);
-                    var binaryBitmap = new ZXing.BinaryBitmap(binarizer);
-
-                    // MultiFormatReader viene del paquete ZXing.Net clásico
-                    var readerCore = new ZXing.MultiFormatReader();
-                    var resultado = readerCore.decode(binaryBitmap);
-
-                    if (resultado != null)
+                    var reader = new ZXing.SkiaSharp.BarcodeReader
                     {
-                        codigoDetectado = resultado.Text;
-                    }
-                }
-#endif
+                        AutoRotate = true,
+                        Options = new ZXing.Common.DecodingOptions { TryHarder = true }
+                    };
 
-                // Evaluamos si el motor clásico logró leer la foto
-                if (!string.IsNullOrWhiteSpace(codigoDetectado))
-                {
-                    FinalizarEscaneoYRegresar(codigoDetectado);
-                }
-                else
-                {
-                    _alreadyScanned = false; // Liberamos el botón por si quiere intentar con otra foto
-                    await DisplayAlertAsync("Escaneo de Foto", "No se localizó ningún código de barras legible. Asegúrate de que la foto no tenga reflejos y esté bien enfocada.", "OK");
+                    var result = reader.Decode(bitmapParaEscanear);
+
+                    if (result != null && !string.IsNullOrWhiteSpace(result.Text))
+                        await DisplayAlertAsync("Código Detectado", result.Text, "OK");
+
+                    else
+                        await DisplayAlertAsync("Aviso", "No se detectó un código claro en la imagen. Intenta recortarla para que el código ocupe más espacio.", "Entendido");
                 }
             }
             catch (Exception ex)
             {
-                _alreadyScanned = false;
-                await DisplayAlertAsync("Error de Procesamiento", $"Falla al analizar la imagen: {ex.Message}", "OK");
+                await DisplayAlertAsync("Error", $"No se pudo procesar: {ex.Message}", "OK");
             }
         }
 
@@ -112,7 +76,6 @@ namespace ControlInventarioMovil.Views.Controls
 
             Dispatcher.Dispatch(async () =>
             {
-                // Cierra la pantalla de la cámara y le inyecta el código al Footer inteligente de tu MainPage
                 await Shell.Current.GoToAsync($"..?scannedCode={codigo}", false);
             });
         }

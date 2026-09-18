@@ -5,6 +5,8 @@ using ControlInventarioMovil.Views;
 using Microsoft.Extensions.Logging;
 using Plugin.Maui.ImageCropper;
 using ZXing.Net.Maui.Controls;
+using SkiaSharp.Views.Maui.Controls.Hosting; 
+using LiveChartsCore.SkiaSharpView.Maui;
 
 namespace ControlInventarioMovil
 {
@@ -19,7 +21,9 @@ namespace ControlInventarioMovil
                 .UseMauiApp<App>()
                 .UseImageCropper()
                 .UseBarcodeReader()
-                        .ConfigureFonts(fonts =>
+                .UseSkiaSharp()
+                .UseLiveCharts()
+                .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");

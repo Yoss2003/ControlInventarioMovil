@@ -4,42 +4,29 @@
              xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.Maui.Controls"
              x:Class="ControlInventarioMovil.Views.Controls.ScanBarcodePage"
              BackgroundColor="#1C262E"
-             Title="ESCANEO ACTIVO">
+             Title="ESCANEO ACTIVO"
+             Shell.NavBarIsVisible="False">
 
     <Grid>
-        <zxing:CameraBarcodeReaderView x:Name="barcodeReader"
-                                      BarcodesDetected="OnBarcodesDetected"/>
+        <!-- 1. Cámara en el fondo -->
+        <zxing:CameraBarcodeReaderView x:Name="barcodeReader" BarcodesDetected="OnBarcodesDetected"/>
 
-        <Border Margin="30"
-                StrokeShape="RoundRectangle 20"
-                StrokeThickness="3"
-                Stroke="#A2D149"
-                BackgroundColor="Transparent"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                WidthRequest="250"
-                HeightRequest="150"
-                InputTransparent="True"/>
+        <!-- 2. Máscara oscura con un hueco en el centro -->
+        <Grid RowDefinitions="*, 200, *" ColumnDefinitions="*, 250, *" InputTransparent="True">
+            <BoxView Grid.Row="0" Grid.ColumnSpan="3" Color="#99000000" />
+            <BoxView Grid.Row="2" Grid.ColumnSpan="3" Color="#99000000" />
+            <BoxView Grid.Row="1" Grid.Column="0" Color="#99000000" />
+            <BoxView Grid.Row="1" Grid.Column="2" Color="#99000000" />
 
-        <HorizontalStackLayout VerticalOptions="End" 
-                               HorizontalOptions="Center" 
-                               Spacing="15" 
-                               Margin="20">
+            <Border Grid.Row="1" Grid.Column="1" Stroke="#A2D149" StrokeThickness="3" StrokeShape="RoundRectangle 12" BackgroundColor="Transparent"/>
+        </Grid>
 
-            <Button Text="Cancelar"
-                    BackgroundColor="#2E3842"
-                    TextColor="White"
-                    WidthRequest="130"
-                    HeightRequest="45"
-                    Clicked="OnCloseClicked"/>
+        <!-- 3. Instrucciones y Botones encima de todo -->
+        <Label Text="Apunta el código de barras dentro del marco" TextColor="White" FontSize="13" HorizontalOptions="Center" Margin="0,60,0,0" FontAttributes="Bold"/>
 
-            <Button Text="Subir de Galería"
-                    BackgroundColor="#A2D149"
-                    TextColor="#1C262E"
-                    FontAttributes="Bold"
-                    WidthRequest="160"
-                    HeightRequest="45"
-                    Clicked="OnPickImageClicked"/>
+        <HorizontalStackLayout VerticalOptions="End" HorizontalOptions="Center" Spacing="15" Margin="20,40">
+            <Button Text="Cancelar" BackgroundColor="#2E3842" TextColor="White" WidthRequest="130" HeightRequest="45" Clicked="OnCloseClicked"/>
+            <Button Text="Subir de Galería" BackgroundColor="#A2D149" TextColor="#1C262E" FontAttributes="Bold" WidthRequest="160" HeightRequest="45" Clicked="OnPickImageClicked"/>
         </HorizontalStackLayout>
     </Grid>
 </ContentPage>

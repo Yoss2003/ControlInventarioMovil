@@ -190,7 +190,7 @@
                                     <Label Text="(Reemplaza los '+' por - | / , )" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" FontSize="9" FontAttributes="Italic" VerticalOptions="Center"/>
                                 </HorizontalStackLayout>
 
-                                <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Default" HeightRequest="54" Padding="0,0,0,10" HorizontalOptions="Fill">
+                                <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Default" HeightRequest="54" Padding="0,15,0,10" HorizontalOptions="Fill">
                                     <HorizontalStackLayout Spacing="6" HorizontalOptions="Start" VerticalOptions="Start">
                                         <Button x:Name="BtnTagMarca" Text="Marca" Clicked="OnTagClicked" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="12,0" CornerRadius="8" FontSize="10" FontAttributes="Bold" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
                                         <Button x:Name="BtnTagCodigo" Text="Código" Clicked="OnTagClicked" HeightRequest="40" MinimumHeightRequest="0" Margin="0" Padding="12,0" CornerRadius="8" FontSize="10" FontAttributes="Bold" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#232B35}" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>

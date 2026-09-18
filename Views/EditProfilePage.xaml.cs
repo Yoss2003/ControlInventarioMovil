@@ -22,7 +22,7 @@ public partial class EditProfilePage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-
+        loadingOverlay.IsVisible = true;
         await CargarCatalogosAsync();
 
         if (UserSession.CurrentUser != null)
@@ -41,31 +41,39 @@ public partial class EditProfilePage : ContentPage
             swIsActive.IsToggled = user.IsActive;
 
             if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
-            {
                 imgProfilePreview.Source = ImageSource.FromUri(new Uri(user.ProfilePictureUrl));
-            }
 
             txtFirstName.TextChanged += OnNameFieldsChanged;
             txtLastName.TextChanged += OnNameFieldsChanged;
 
             PreseleccionarValoresUsuario(user);
         }
+        loadingOverlay.IsVisible = false;
     }
 
     //Metodo de preselección para Rol, Área, Puesto y Tipo de Contrato
     private void PreseleccionarValoresUsuario(User user)
     {
-        if (pckRole.ItemsSource is List<Role> rolesList && !string.IsNullOrEmpty(user.Role?.Name))
-            pckRole.SelectedItem = rolesList.FirstOrDefault(r => r.Name == user.Role?.Name);
-
+        if (pckRole.ItemsSource is List<Role> rolesList)
+        {
+            var match = rolesList.FirstOrDefault(r => r.Id != 0 && r.Name == user.Role?.Name);
+            pckRole.SelectedItem = match ?? rolesList[0];
+        }
         if (pckArea.ItemsSource is List<Parameters> areasList)
-            pckArea.SelectedItem = areasList.FirstOrDefault(a => a.Id == user.Employee?.AreaId);
-
+        {
+            var match = areasList.FirstOrDefault(a => a.Id != 0 && a.Id == user.Employee?.AreaId);
+            pckArea.SelectedItem = match ?? areasList[0];
+        }
         if (pckPosition.ItemsSource is List<Parameters> puestosList)
-            pckPosition.SelectedItem = puestosList.FirstOrDefault(p => p.Id == user.Employee?.JobPositionId);
-
+        {
+            var match = puestosList.FirstOrDefault(p => p.Id != 0 && p.Id == user.Employee?.JobPositionId);
+            pckPosition.SelectedItem = match ?? puestosList[0];
+        }
         if (pckContractType.ItemsSource is List<Parameters> contratosList)
-            pckContractType.SelectedItem = contratosList.FirstOrDefault(c => c.Id == user.Employee?.ContractTypeId);
+        {
+            var match = contratosList.FirstOrDefault(c => c.Id != 0 && c.Id == user.Employee?.ContractTypeId);
+            pckContractType.SelectedItem = match ?? contratosList[0];
+        }
     }
 
     // Métodos para agregar nuevos registros a los catálogos
@@ -74,11 +82,7 @@ public partial class EditProfilePage : ContentPage
         _currentParameterType = "Role";
         lblPopupTitle.Text = "Nuevo Rol";
         txtPopupName.Text = "";
-        
-        // Los roles no tienen descripción en tu BD, así que ocultamos esa cajita
         layoutPopupDesc.IsVisible = false; 
-        
-        // Mostramos la ventana flotante
         PopupOverlay.IsVisible = true;
     }
 
@@ -152,7 +156,6 @@ public partial class EditProfilePage : ContentPage
         {
             var objetoRol = new Role { Id = _selectedItemIdToDeleteOrEdit, Name = nombre };
 
-            // Si la bandera está encendida llamamos al PUT, de lo contrario al POST
             if (_isEditing) exito = await _apiService.UpdateRoleAsync(objetoRol);
             else exito = await _apiService.CreateRoleAsync(objetoRol);
         }
@@ -174,7 +177,7 @@ public partial class EditProfilePage : ContentPage
         if (exito)
         {
             PopupOverlay.IsVisible = false;
-            await CargarCatalogosAsync(); // Refrescamos las listas de internet automáticamente
+            await CargarCatalogosAsync();
 
             if (_currentParameterType == "Role" && pckRole.ItemsSource is List<Role> rList)
                 pckRole.SelectedItem = rList.FirstOrDefault(r => r.Name == nombre);
@@ -203,8 +206,6 @@ public partial class EditProfilePage : ContentPage
         lblPopupTitle.Text = titulo;
         txtPopupName.Text = nombre;
         txtPopupDesc.Text = desc;
-
-        // Ocultamos la descripción si la tabla es de Roles, ya que no cuenta con esa propiedad
         layoutPopupDesc.IsVisible = (tipoParametro != "Role");
         PopupOverlay.IsVisible = true;
     }
@@ -215,14 +216,27 @@ public partial class EditProfilePage : ContentPage
         try
         {
             var roles = await _apiService.GetRolesAsync();
-            if (roles != null) pckRole.ItemsSource = roles;
+            if (roles != null)
+            {
+                var roleList = roles.ToList();
+                roleList.Insert(0, new Role { Id = 0, Name = "Seleccione un Rol..." });
+                pckRole.ItemsSource = roleList;
+            }
 
             var parametros = await _apiService.GetParametersAsync();
             if (parametros != null)
             {
-                pckArea.ItemsSource = parametros.Where(p => p.ParameterType == "Area").ToList();
-                pckPosition.ItemsSource = parametros.Where(p => p.ParameterType == "JobPosition").ToList();
-                pckContractType.ItemsSource = parametros.Where(p => p.ParameterType == "ContractType").ToList();
+                var areasList = parametros.Where(p => p.ParameterType == "Area").ToList();
+                areasList.Insert(0, new Parameters { Id = 0, Name = "Seleccione el Área..." });
+                pckArea.ItemsSource = areasList;
+
+                var puestosList = parametros.Where(p => p.ParameterType == "JobPosition").ToList();
+                puestosList.Insert(0, new Parameters { Id = 0, Name = "Seleccione el Puesto..." });
+                pckPosition.ItemsSource = puestosList;
+
+                var contratosList = parametros.Where(p => p.ParameterType == "ContractType").ToList();
+                contratosList.Insert(0, new Parameters { Id = 0, Name = "Seleccione el Contrato..." });
+                pckContractType.ItemsSource = contratosList;
             }
         }
         catch (Exception ex)
@@ -304,7 +318,7 @@ public partial class EditProfilePage : ContentPage
             return;
         }
 
-        if (pckRole.SelectedItem == null || pckArea.SelectedItem == null || pckPosition.SelectedItem == null)
+        if (pckRole.SelectedIndex <= 0 || pckArea.SelectedIndex <= 0 || pckPosition.SelectedIndex <= 0)
         {
             await DisplayAlertAsync("Atención", "Debe seleccionar el Rol, Área y Puesto de trabajo.", "OK");
             return;
@@ -407,21 +421,16 @@ public partial class EditProfilePage : ContentPage
                 var savedUsername = await SecureStorage.Default.GetAsync("saved_username");
 
                 if (savedUsername == updatedUser.Username)
-                {
                     await SecureStorage.Default.SetAsync("saved_password", txtPassword.Text.Trim());
-                }
             }
 
             await DisplayAlertAsync("Éxito", "Perfil actualizado correctamente.", "OK");
 
             if (Application.Current?.Windows.Count > 0 && Application.Current.Windows[0].Page is not AppShell)
-            {
                 Application.Current.Windows[0].Page = new AppShell();
-            }
+            
             else
-            {
                 await Shell.Current.GoToAsync("..");
-            }
         }
         else
         {
@@ -433,18 +442,39 @@ public partial class EditProfilePage : ContentPage
     // Método para cancelar la edición y regresar a la pantalla anterior sin guardar cambios
     private async void OnCancelClicked(object sender, EventArgs e)
     {
+        try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+        if (sender is View btn) btn.IsEnabled = false;
+
+        await Task.Delay(50);
+
         if (Shell.Current == null)
         {
             UserSession.CurrentUser = null;
-
             if (Application.Current?.Windows.Count > 0)
-            {
                 Application.Current.Windows[0].Page = new Views.LoginPage();
-            }
         }
         else
-        {
             await Shell.Current.GoToAsync("..");
+
+        if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
+    }
+
+    private void OnPickerIndexChanged(object sender, EventArgs e)
+    {
+        if (sender is Picker picker)
+        {
+            if (picker.SelectedIndex <= 0)
+            {
+                picker.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark
+                    ? Color.FromArgb("#606A72")
+                    : Color.FromArgb("#8895A5");
+            }
+            else
+            {
+                picker.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark
+                    ? Colors.White
+                    : Color.FromArgb("#1C262E");
+            }
         }
     }
 }

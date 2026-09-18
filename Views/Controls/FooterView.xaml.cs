@@ -22,8 +22,7 @@ namespace ControlInventarioMovil.Views.Controls
         {
             if (_estaNavegando) return;
 
-            var botonSeleccionado = sender as ContentView;
-            if (botonSeleccionado == null) return;
+            if (sender is not ContentView botonSeleccionado) return;
 
             string parametro = (e.Parameter as string) ?? string.Empty;
 
@@ -48,9 +47,9 @@ namespace ControlInventarioMovil.Views.Controls
                     break;
 
                 case "Analisis":
-                    if (!rutaActual.Contains("MainPage"))
+                    if (!rutaActual.Contains("AnalyticsPage"))
                     {
-                        await Shell.Current.GoToAsync("//MainPage");
+                        await Shell.Current.GoToAsync("AnalyticsPage");
                     }
                     break;
 

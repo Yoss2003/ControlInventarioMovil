@@ -1,0 +1,233 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
+             x:Class="ControlInventarioMovil.Views.AnalyticsPage"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.Maui;assembly=LiveChartsCore.SkiaSharpView.Maui"
+             BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}"
+             Shell.NavBarIsVisible="False"
+             Title="Inteligencia de Negocio">
+
+    <Grid RowDefinitions="Auto, *">
+
+        <!-- CABECERA PRINCIPAL -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="20,20,15,15" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
+            <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="25" HeightRequest="25" BackgroundColor="Transparent" Padding="0" VerticalOptions="Center" Margin="0,0,15,0" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnBackClicked"/>
+
+            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                <Label Text="PANEL DE ANÁLISIS" TextColor="{AppThemeBinding Light=White, Dark=#A2D149}" FontAttributes="Bold" FontSize="15" CharacterSpacing="0.5"/>
+                <Label Text="Métricas y sugerencias automatizadas" TextColor="{AppThemeBinding Light=#CDD5DB, Dark=#606A72}" FontSize="11"/>
+            </VerticalStackLayout>
+
+            <ImageButton Grid.Column="2" Source="refresh_icon.png" WidthRequest="25" HeightRequest="25" BackgroundColor="Transparent" Padding="0" VerticalOptions="Center" Opacity="0.8" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnRefrescarClicked"/>
+        </Grid>
+
+        <!-- CONTENIDO ESCROLLEABLE -->
+        <ScrollView Grid.Row="1" Padding="15">
+            <VerticalStackLayout Spacing="20" Padding="0,0,0,30">
+
+                <!-- SECCIÓN 1: MÉTRICAS FINANCIERAS -->
+                <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                    <Border Grid.Column="0" BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" Padding="15">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12"/>
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="5">
+                            <HorizontalStackLayout Spacing="5">
+                                <Label Text="💰" FontSize="16"/>
+                                <Label Text="Capital en Stock" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" FontAttributes="Bold" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                            <Label x:Name="LblCapital" Text="S/. 0.00" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="18" FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="1" BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" Padding="15">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12"/>
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="5">
+                            <HorizontalStackLayout Spacing="5">
+                                <Label Text="📉" FontSize="16"/>
+                                <Label Text="Mermas (Mes)" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" FontAttributes="Bold" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                            <Label x:Name="LblMermas" Text="S/. 0.00" TextColor="#D32F2F" FontSize="18" FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <!-- SECCIÓN 2: INSIGHTS DE IA EN 3 COLUMNAS -->
+                <VerticalStackLayout Spacing="10">
+                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center" Margin="0,5,0,5">
+                        <Label Text="✨" FontSize="18"/>
+                        <Label Text="Sugerencias del Sistema" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="16" FontAttributes="Bold" VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+
+                    <Grid ColumnDefinitions="*, *, *" ColumnSpacing="8">
+
+                        <!-- Columna 1: Restock -->
+                        <Border Grid.Column="0" BackgroundColor="{AppThemeBinding Light=#F3E8FF, Dark=#2C1F3D}" Stroke="#8A2BE2" StrokeThickness="1" Padding="8,12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10"/>
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Label Text="📦" FontSize="22" HorizontalOptions="Center"/>
+                                <Label Text="Reabastecer" TextColor="#8A2BE2" FontAttributes="Bold" FontSize="11" HorizontalTextAlignment="Center"/>
+                                <Label Text="Evita quiebres de inventario." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="9" HorizontalTextAlignment="Center" LineBreakMode="WordWrap" HeightRequest="26" VerticalTextAlignment="Start"/>
+                                <Label x:Name="LblSumRestock" Text="..." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="10" HorizontalTextAlignment="Center" HeightRequest="30" VerticalTextAlignment="Center"/>
+                                <Button Text="Detalles" BackgroundColor="#8A2BE2" TextColor="White" FontSize="10" FontAttributes="Bold" HeightRequest="32" Padding="0" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVerDetallesRestockClicked"/>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Columna 2: Precios -->
+                        <Border Grid.Column="1" BackgroundColor="{AppThemeBinding Light=#FFF3E0, Dark=#3D2C1F}" Stroke="#EFA72F" StrokeThickness="1" Padding="8,12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10"/>
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Label Text="🏷️" FontSize="22" HorizontalOptions="Center"/>
+                                <Label Text="Precios" TextColor="#EFA72F" FontAttributes="Bold" FontSize="11" HorizontalTextAlignment="Center"/>
+                                <Label Text="Protege tu margen de ganancia." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="9" HorizontalTextAlignment="Center" LineBreakMode="WordWrap" HeightRequest="26" VerticalTextAlignment="Start"/>
+                                <Label x:Name="LblSumPrecios" Text="..." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="10" HorizontalTextAlignment="Center" HeightRequest="30" VerticalTextAlignment="Center"/>
+                                <Button Text="Detalles" BackgroundColor="#EFA72F" TextColor="White" FontSize="10" FontAttributes="Bold" HeightRequest="32" Padding="0" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVerDetallesPreciosClicked"/>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Columna 3: Estancamiento -->
+                        <Border Grid.Column="2" BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B3B2B}" Stroke="#2E7D32" StrokeThickness="1" Padding="8,12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="10"/>
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                <Label Text="⏳" FontSize="22" HorizontalOptions="Center"/>
+                                <Label Text="Estancado" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="11" HorizontalTextAlignment="Center"/>
+                                <Label Text="Libera capital sin movimiento." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="9" HorizontalTextAlignment="Center" LineBreakMode="WordWrap" HeightRequest="26" VerticalTextAlignment="Start"/>
+                                <Label x:Name="LblSumEstancado" Text="..." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="10" HorizontalTextAlignment="Center" HeightRequest="30" VerticalTextAlignment="Center"/>
+                                <Button Text="Detalles" BackgroundColor="#2E7D32" TextColor="White" FontSize="10" FontAttributes="Bold" HeightRequest="32" Padding="0" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVerDetallesEstancadoClicked"/>
+                            </VerticalStackLayout>
+                        </Border>
+
+                    </Grid>
+                </VerticalStackLayout>
+
+                <!-- ========================================== -->
+                <!-- SECCIÓN 3: TOP 5 DE PRODUCTOS (BARRAS)     -->
+                <!-- ========================================== -->
+                <VerticalStackLayout Spacing="10" Margin="0,10,0,0">
+                    <Label Text="Top 5: Mayor Rotación del Mes" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="16" FontAttributes="Bold"/>
+
+                    <Border BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" Padding="15">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12"/>
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout x:Name="ContenedorGraficoTop" Spacing="15">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Grid ColumnDefinitions="*, Auto">
+                                            <Label Grid.Column="0" Text="{Binding Name}" TextColor="{AppThemeBinding Light=#54606C, Dark=#CDD5DB}" FontSize="12" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
+                                            <Label Grid.Column="1" Text="{Binding DisplayAmount}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                        </Grid>
+                                        <ProgressBar Progress="{Binding ProgressValue}" ProgressColor="{Binding BarColor}" HeightRequest="8" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}"/>
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+
+                            <Label x:Name="LblSinVentas" Text="Aún no hay salidas registradas este mes." TextColor="Gray" FontSize="12" HorizontalOptions="Center" IsVisible="False" Margin="0,20"/>
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- ========================================== -->
+                <!-- SECCIÓN 4: TENDENCIA DE VENTAS (LÍNEAS)    -->
+                <!-- ========================================== -->
+                <VerticalStackLayout Spacing="10" Margin="0,15,0,0">
+                    <Label Text="Tendencias del Mes" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="16" FontAttributes="Bold"/>
+
+                    <Border BackgroundColor="{AppThemeBinding Light=White, Dark=#222B34}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" Padding="15">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12"/>
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Spacing="15">
+
+                            <!-- Botones de Filtro Interactivos -->
+                            <Grid ColumnDefinitions="*, *, *, *" ColumnSpacing="8">
+                                <Button x:Name="BtnFiltroTodos" Grid.Column="0" Text="Todos" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="#8A2BE2" TextColor="White" Padding="0" HeightRequest="32" Clicked="OnFiltroChartClicked" CommandParameter="Todos"/>
+                                <Button x:Name="BtnFiltroEstandar" Grid.Column="1" Text="Estándar" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="Transparent" TextColor="Gray" BorderColor="Gray" BorderWidth="1" Padding="0" HeightRequest="32" Clicked="OnFiltroChartClicked" CommandParameter="Standard"/>
+                                <Button x:Name="BtnFiltroGranel" Grid.Column="2" Text="Granel" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="Transparent" TextColor="Gray" BorderColor="Gray" BorderWidth="1" Padding="0" HeightRequest="32" Clicked="OnFiltroChartClicked" CommandParameter="Bulk"/>
+                                <Button x:Name="BtnFiltroSerial" Grid.Column="3" Text="Serial" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="Transparent" TextColor="Gray" BorderColor="Gray" BorderWidth="1" Padding="0" HeightRequest="32" Clicked="OnFiltroChartClicked" CommandParameter="Serialized"/>
+                            </Grid>
+
+                            <!-- Contenedor del Gráfico -->
+                            <Grid x:Name="ContenedorGraficoLineas" HeightRequest="220">
+                                <lvc:CartesianChart x:Name="GraficoTendencias" 
+                                                    Series="{Binding SeriesGrafico}" 
+                                                    XAxes="{Binding XAxesGrafico}" 
+                                                    YAxes="{Binding YAxesGrafico}" 
+                                                    BackgroundColor="Transparent" 
+                                                    HorizontalOptions="Fill" VerticalOptions="Fill"
+                                                    FindingStrategy="ExactMatch"/>
+
+                                <Label x:Name="LblSinDatosGrafico" Text="No hay datos registrados para este filtro." TextColor="Gray" FontSize="12" HorizontalOptions="Center" VerticalOptions="Center" IsVisible="False"/>
+                            </Grid>
+
+                            <!-- Leyenda de las líneas -->
+                            <HorizontalStackLayout Spacing="15" HorizontalOptions="Center">
+                                <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
+                                    <BoxView Color="#D32F2F" WidthRequest="10" HeightRequest="10" CornerRadius="5" VerticalOptions="Center"/>
+                                    <Label Text="Ingresos (S/.)" FontSize="10" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" VerticalOptions="Center"/>
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Spacing="5" VerticalOptions="Center">
+                                    <BoxView Color="#FFCDD2" WidthRequest="10" HeightRequest="10" CornerRadius="5" VerticalOptions="Center"/>
+                                    <Label Text="Cantidad Vendida" FontSize="10" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" VerticalOptions="Center"/>
+                                </HorizontalStackLayout>
+                            </HorizontalStackLayout>
+
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- 🔥 MODAL PARA VER DETALLES DE IA -->
+        <Grid x:Name="OverlayDetallesIA" Grid.RowSpan="2" BackgroundColor="#CC000000" IsVisible="False" Opacity="0" ZIndex="105">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer />
+            </Grid.GestureRecognizers>
+            <Border VerticalOptions="Center" HorizontalOptions="Center" WidthRequest="330" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" Padding="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="15"/>
+                </Border.StrokeShape>
+                <Grid RowDefinitions="Auto, *, Auto">
+
+                    <VerticalStackLayout x:Name="CabeceraModalIA" Grid.Row="0" Padding="15" BackgroundColor="#8A2BE2">
+                        <Label x:Name="LblModalIcono" Text="📦" FontSize="28" HorizontalOptions="Center"/>
+                        <Label x:Name="LblModalTitulo" Text="Título" TextColor="White" FontAttributes="Bold" FontSize="16" HorizontalOptions="Center" Margin="0,5,0,0"/>
+                    </VerticalStackLayout>
+
+                    <ScrollView Grid.Row="1" MaximumHeightRequest="350" Padding="20">
+                        <Label x:Name="LblModalDetalle" Text="Cargando detalles..." TextColor="{AppThemeBinding Light=#1C262E, Dark=#E0E0E0}" FontSize="13" LineBreakMode="WordWrap"/>
+                    </ScrollView>
+
+                    <Grid Grid.Row="2" Padding="20" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#161F27}">
+                        <Button Text="CERRAR DETALLES" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Clicked="OnCerrarOverlayDetallesClicked"/>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- PANTALLA DE CARGA -->
+        <Grid x:Name="OverlayCargando" Grid.RowSpan="2" BackgroundColor="#B3000000" IsVisible="False" ZIndex="110">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer />
+            </Grid.GestureRecognizers>
+            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="15">
+                <ActivityIndicator x:Name="ActCargando" IsRunning="False" IsVisible="True" Color="#A2D149" WidthRequest="50" HeightRequest="50" />
+                <Label Text="Procesando inteligencia..." TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" />
+            </VerticalStackLayout>
+        </Grid>
+
+    </Grid>
+</ContentPage>
