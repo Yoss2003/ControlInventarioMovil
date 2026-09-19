@@ -11,22 +11,26 @@
         <!-- 1. Cámara en el fondo -->
         <zxing:CameraBarcodeReaderView x:Name="barcodeReader" BarcodesDetected="OnBarcodesDetected"/>
 
-        <!-- 2. Máscara oscura con un hueco en el centro -->
-        <Grid RowDefinitions="*, 200, *" ColumnDefinitions="*, 250, *" InputTransparent="True">
-            <BoxView Grid.Row="0" Grid.ColumnSpan="3" Color="#99000000" />
-            <BoxView Grid.Row="2" Grid.ColumnSpan="3" Color="#99000000" />
-            <BoxView Grid.Row="1" Grid.Column="0" Color="#99000000" />
-            <BoxView Grid.Row="1" Grid.Column="2" Color="#99000000" />
+        <!-- 2. Máscara difuminada con marco translúcido moderno -->
+        <Grid RowDefinitions="*, 220, *" ColumnDefinitions="*, 280, *" InputTransparent="True">
+            <BoxView Grid.Row="0" Grid.ColumnSpan="3" Color="#E60B0F12" />
+            <BoxView Grid.Row="2" Grid.ColumnSpan="3" Color="#E60B0F12" />
+            <BoxView Grid.Row="1" Grid.Column="0" Color="#E60B0F12" />
+            <BoxView Grid.Row="1" Grid.Column="2" Color="#E60B0F12" />
 
-            <Border Grid.Row="1" Grid.Column="1" Stroke="#A2D149" StrokeThickness="3" StrokeShape="RoundRectangle 12" BackgroundColor="Transparent"/>
+            <Border Grid.Row="1" Grid.Column="1" Stroke="#A2D149" StrokeThickness="3" BackgroundColor="Transparent">
+                <Border.Shadow>
+                    <Shadow Brush="#A2D149" Offset="0,0" Radius="15" Opacity="0.4"/>
+                </Border.Shadow>
+            </Border>
         </Grid>
 
         <!-- 3. Instrucciones y Botones encima de todo -->
-        <Label Text="Apunta el código de barras dentro del marco" TextColor="White" FontSize="13" HorizontalOptions="Center" Margin="0,60,0,0" FontAttributes="Bold"/>
+        <Label Text="Apunta el código de barras dentro del marco" TextColor="White" FontSize="13" HorizontalOptions="Center" Margin="0,50,0,0" FontAttributes="Bold"/>
 
         <HorizontalStackLayout VerticalOptions="End" HorizontalOptions="Center" Spacing="15" Margin="20,40">
-            <Button Text="Cancelar" BackgroundColor="#2E3842" TextColor="White" WidthRequest="130" HeightRequest="45" Clicked="OnCloseClicked"/>
-            <Button Text="Subir de Galería" BackgroundColor="#A2D149" TextColor="#1C262E" FontAttributes="Bold" WidthRequest="160" HeightRequest="45" Clicked="OnPickImageClicked"/>
+            <Button Text="Cancelar" BackgroundColor="#2E3842" TextColor="White" WidthRequest="130" HeightRequest="45" CornerRadius="8" Clicked="OnCloseClicked"/>
+            <Button Text="Subir de Galería" BackgroundColor="#A2D149" TextColor="#1C262E" FontAttributes="Bold" WidthRequest="160" HeightRequest="45" CornerRadius="8" Clicked="OnPickImageClicked"/>
         </HorizontalStackLayout>
     </Grid>
 </ContentPage>

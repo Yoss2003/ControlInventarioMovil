@@ -1,12 +1,21 @@
-﻿namespace ControlInventarioMovil.Modelo.API
+﻿using System.Text.Json.Serialization;
+
+namespace ControlInventarioMovil.Modelo.API
 {
     public class RequestReniec
     {
-        public string? nombres { get; set; }
-        public string? apellidoPaterno { get; set; }
-        public string? apellidoMaterno { get; set; }
-        public string? numeroDocumento { get; set; }
+        [JsonPropertyName("first_name")]
+        public string? Nombres { get; set; }
 
-        public string NombreCompleto => $"{nombres} {apellidoPaterno} {apellidoMaterno}".Trim();
+        [JsonPropertyName("first_last_name")]
+        public string? ApellidoPaterno { get; set; }
+
+        [JsonPropertyName("second_last_name")]
+        public string? ApellidoMaterno { get; set; }
+
+        [JsonPropertyName("document_number")]
+        public string? NumeroDocumento { get; set; }
+
+        public string NombreCompleto => $"{Nombres} {ApellidoPaterno} {ApellidoMaterno}".Trim();
     }
 }

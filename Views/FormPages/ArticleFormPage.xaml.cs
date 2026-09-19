@@ -2,17 +2,35 @@ using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Data;
 using ControlInventarioMovil.Services;
+using ControlInventarioMovil.Utilities;
 using SkiaSharp;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using ZXing;
 using ZXing.Common;
+using ZXing.Net.Maui;
 using ZXing.SkiaSharp;
 
 namespace ControlInventarioMovil.Views
 {
+    [QueryProperty(nameof(ScannedCode), "scannedCode")]
     public partial class ArticleFormPage : ContentPage
     {
+        private string _scannedCode = "";
+
+        public string ScannedCode
+        {
+            get => _scannedCode;
+            set
+            {
+                _scannedCode = value;
+                if (!string.IsNullOrEmpty(_scannedCode))
+                {
+                    TxtBarcode.Text = _scannedCode;
+                }
+            }
+        }
+
         #region 1. VARIABLES GLOBALES Y PROPIEDADES
         private readonly ApiService _apiService;
         private Supplier? _currentMappedSupplier = null;
@@ -1184,7 +1202,6 @@ namespace ControlInventarioMovil.Views
             bool isStandard = string.Equals(trackingMode, "Standard", StringComparison.OrdinalIgnoreCase) || string.Equals(trackingMode, "Estándar", StringComparison.OrdinalIgnoreCase);
 
             if (isStandard) return;
-            if (!string.IsNullOrWhiteSpace(TxtSku.Text) && TxtSku.Text.Length > 8 && !TxtSku.Text.Contains("-GEN-")) return;
 
             string catPrefix = catSel.Name.Replace(" ", "").Length >= 3 ? catSel.Name.Replace(" ", "")[..3].ToUpper() : catSel.Name.ToUpper();
             string brandPrefix = "GEN";
@@ -1194,7 +1211,12 @@ namespace ControlInventarioMovil.Views
                 brandPrefix = brandName.Length >= 3 ? brandName[..3].ToUpper() : brandName.ToUpper();
             }
 
-            string randomSuffix = Guid.NewGuid().ToString("N")[..4].ToUpper();
+            string randomSuffix;
+            if (!string.IsNullOrWhiteSpace(TxtSku.Text) && TxtSku.Text.Length >= 4)
+                randomSuffix = TxtSku.Text.Substring(TxtSku.Text.Length - 4);
+
+            else
+                randomSuffix = Guid.NewGuid().ToString("N")[..4].ToUpper();
             TxtSku.Text = $"{catPrefix}-{brandPrefix}-{randomSuffix}";
         }
         #endregion
@@ -1511,10 +1533,10 @@ namespace ControlInventarioMovil.Views
                         bitmapToProcess = originalBitmap.Resize(new SKImageInfo(width, height), new SKSamplingOptions(SKFilterMode.Linear));
                     }
 
-                    var reader = new BarcodeReader
+                    var reader = new ZXing.SkiaSharp.BarcodeReader
                     {
                         AutoRotate = true,
-                        Options = new DecodingOptions
+                        Options = new ZXing.Common.DecodingOptions
                         {
                             TryHarder = true
                         }
@@ -1556,24 +1578,129 @@ namespace ControlInventarioMovil.Views
 
         private async void OnScanCameraClicked(object sender, EventArgs e)
         {
-            string? codigoEscaneado = await EscanearCodigoUniversalAsync(usarCamara: true);
+            if (sender is View btn) btn.IsEnabled = false;
 
-            if (!string.IsNullOrWhiteSpace(codigoEscaneado))
-                TxtBarcode.Text = codigoEscaneado;
+            await Shell.Current.GoToAsync("ScanBarcodePage");
 
-            else
-                Console.WriteLine("Escaneo por cámara cancelado o sin resultados.");
+            if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
         }
 
         private async void OnScanGalleryClicked(object sender, EventArgs e)
         {
-            string? codigoEscaneado = await EscanearCodigoUniversalAsync(usarCamara: false);
+            try
+            {
+                var customFileType = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+        {
+            { DevicePlatform.iOS, new[] { "public.image" } },
+            { DevicePlatform.Android, new[] { "image/*" } },
+            { DevicePlatform.WinUI, new[] { ".jpg", ".jpeg", ".png", ".bmp", ".webp" } },
+        });
 
-            if (!string.IsNullOrWhiteSpace(codigoEscaneado))
-                TxtBarcode.Text = codigoEscaneado;
+                var pickResult = await FilePicker.Default.PickAsync(new PickOptions
+                {
+                    PickerTitle = "Selecciona la imagen con el código de barras",
+                    FileTypes = customFileType
+                });
 
-            else
-                await DisplayAlertAsync("Aviso", "No se detectó ningún código en la imagen.", "OK");
+                if (pickResult == null) return;
+
+                // Mostramos indicador de carga sin bloquear el hilo principal
+                OverlayCargando.IsVisible = true;
+                LblOverlayTexto.Text = "Escaneando imagen...";
+                await Task.Delay(50);
+
+                // 🚀 EJECUCIÓN 100% EN SEGUNDO PLANO (Evita el ANR y el cierre por MIUI Scout)
+                string? codigoDetectado = await Task.Run(async () =>
+                {
+                    try
+                    {
+                        using var stream = await pickResult.OpenReadAsync();
+                        if (stream == null || stream.Length == 0) return null;
+
+                        using var originalBitmap = SKBitmap.Decode(stream);
+                        if (originalBitmap == null) return null;
+
+                        // Margen blanco automático (Quiet Zone)
+                        int padding = 50;
+                        int newWidth = originalBitmap.Width + (padding * 2);
+                        int newHeight = originalBitmap.Height + (padding * 2);
+
+                        using var paddedBitmap = new SKBitmap(newWidth, newHeight, SKColorType.Bgra8888, SKAlphaType.Opaque);
+                        using (var canvas = new SKCanvas(paddedBitmap))
+                        {
+                            canvas.Clear(SKColors.White);
+                            canvas.DrawBitmap(originalBitmap, padding, padding);
+                        }
+
+                        int maxSize = 1200;
+                        SKBitmap bitmapToProcess = paddedBitmap;
+                        bool fueRedimensionado = false;
+
+                        if (paddedBitmap.Width > maxSize || paddedBitmap.Height > maxSize)
+                        {
+                            float ratio = Math.Min((float)maxSize / paddedBitmap.Width, (float)maxSize / paddedBitmap.Height);
+                            int targetWidth = (int)(paddedBitmap.Width * ratio);
+                            int targetHeight = (int)(paddedBitmap.Height * ratio);
+                            bitmapToProcess = paddedBitmap.Resize(new SKImageInfo(targetWidth, targetHeight), new SKSamplingOptions(SKFilterMode.Linear));
+                            fueRedimensionado = true;
+                        }
+
+                        var reader = new ZXing.SkiaSharp.BarcodeReader
+                        {
+                            AutoRotate = true,
+                            Options = new ZXing.Common.DecodingOptions
+                            {
+                                TryHarder = true,
+                                PureBarcode = false,
+                                PossibleFormats = new List<ZXing.BarcodeFormat>
+                        {
+                            ZXing.BarcodeFormat.EAN_13,
+                            ZXing.BarcodeFormat.EAN_8,
+                            ZXing.BarcodeFormat.CODE_128,
+                            ZXing.BarcodeFormat.QR_CODE,
+                            ZXing.BarcodeFormat.UPC_A,
+                            ZXing.BarcodeFormat.CODE_39,
+                            ZXing.BarcodeFormat.ITF
+                        }
+                            }
+                        };
+
+                        var resultado = reader.Decode(bitmapToProcess);
+
+                        if (fueRedimensionado && bitmapToProcess != null)
+                        {
+                            bitmapToProcess.Dispose();
+                        }
+
+                        return resultado?.Text?.Trim();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[SKIA_TASK_ERROR] {ex.Message}");
+                        return null;
+                    }
+                });
+
+                OverlayCargando.IsVisible = false;
+
+                if (!string.IsNullOrEmpty(codigoDetectado))
+                {
+                    TxtBarcode.Text = codigoDetectado;
+                    try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+                }
+                else
+                {
+                    await DisplayAlertAsync("Sin resultados",
+                        "El lector analizó la imagen en segundo plano pero no logró extraer los datos del código.",
+                        "Entendido");
+                }
+            }
+            catch (Exception ex)
+            {
+                if (OverlayCargando.IsVisible) OverlayCargando.IsVisible = false;
+                CrashLogger.LogHandledException(ex, "ArticleFormPage - OnScanGalleryClicked");
+                await DisplayAlertAsync("Error Crítico", $"Fallo al procesar la imagen: {ex.Message}", "OK");
+            }
         }
 
         private void OnScanCameraSerieClicked(object sender, EventArgs e) => ProcesarEscaneoUniversal(true, TxtSerialNumber);

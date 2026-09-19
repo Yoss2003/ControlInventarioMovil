@@ -2,6 +2,7 @@ using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Helpers;
 using ControlInventarioMovil.Services;
+using ControlInventarioMovil.Utilities;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
@@ -329,7 +330,9 @@ namespace ControlInventarioMovil.Views
             }
             catch (Exception ex)
             {
+                Utilities.CrashLogger.LogHandledException(ex, "ConfiguracionPage - OnGuardarConfigClicked");
                 await DisplayAlertAsync("Fallo Crítico", $"Error de transmisión: {ex.Message}", "OK");
+                return;
             }
             finally
             {
@@ -499,6 +502,33 @@ namespace ControlInventarioMovil.Views
                 // Restauramos el botón a su estado normal
                 BtnProbarSmtp.IsEnabled = true;
                 BtnProbarSmtp.Text = "PROBAR CONEXIÓN Y ENVIAR CORREO";
+            }
+        }
+
+        private async void OnSecretLogTapped(object sender, TappedEventArgs e)
+        {
+            try
+            {
+                string contenidoLog = Utilities.CrashLogger.ReadLog();
+
+                if (contenidoLog == "Sin registros de errores." || string.IsNullOrWhiteSpace(contenidoLog))
+                {
+                    await DisplayAlertAsync("Logs", "El sistema está limpio, no hay errores registrados.", "OK");
+                    return;
+                }
+
+                string tempFilePath = Path.Combine(FileSystem.CacheDirectory, "SysInventory_ErrorLog.txt");
+                File.WriteAllText(tempFilePath, contenidoLog);
+
+                await Share.Default.RequestAsync(new ShareFileRequest
+                {
+                    Title = "Compartir Log de Errores",
+                    File = new ShareFile(tempFilePath)
+                });
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlertAsync("Error de Log", $"No se pudo generar el archivo: {ex.Message}", "OK");
             }
         }
 

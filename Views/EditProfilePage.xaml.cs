@@ -1,6 +1,7 @@
+using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
-using ControlInventario.Models;
+using ControlInventarioMovil.Utilities;
 using Plugin.Maui.ImageCropper;
 
 namespace ControlInventarioMovil.Views;
@@ -241,7 +242,7 @@ public partial class EditProfilePage : ContentPage
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[CATALOG_ERROR] Error al poblar listas: {ex.Message}");
+            CrashLogger.LogHandledException(ex, "EditProfilePage - CargarCatalogosAsync");
         }
     }
 
@@ -306,8 +307,18 @@ public partial class EditProfilePage : ContentPage
                 }
             }
         }
-        catch (PermissionException) { await DisplayAlertAsync("Permisos", "Se necesitan permisos.", "OK"); }
-        catch (Exception ex) { Console.WriteLine(ex.Message); }
+        catch (PermissionException pEx)
+        {
+            CrashLogger.LogHandledException(pEx, "EditProfilePage - OnChangePhotoTapped (Permisos)");
+            await DisplayAlertAsync("Permisos", "Se necesitan permisos.", "OK");
+            return;
+        }
+        catch (Exception ex)
+        {
+            CrashLogger.LogHandledException(ex, "EditProfilePage - OnChangePhotoTapped (General)");
+            await DisplayAlertAsync("Error", "No se pudo procesar la foto.", "OK");
+            return;
+        }
     }
 
     private async void OnSaveClicked(object sender, EventArgs e)

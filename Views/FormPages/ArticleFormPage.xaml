@@ -111,7 +111,7 @@
                                         </Border>
 
                                         <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
-                                            <ImageButton Source="" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnScanGalleryClicked" ToolTipProperties.Text="Subir foto"/>
+                                            <ImageButton Source="gallery_scan.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnScanGalleryClicked" ToolTipProperties.Text="Subir foto"/>
                                             <ImageButton Source="camera_icon.png" BackgroundColor="{AppThemeBinding Light=#E0E4E7, Dark=#2E3842}" WidthRequest="42" HeightRequest="45" Padding="10" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnScanCameraClicked" ToolTipProperties.Text="Usar cámara"/>
                                         </HorizontalStackLayout>
                                     </Grid>
@@ -121,7 +121,7 @@
                                 <VerticalStackLayout x:Name="SecSku" Spacing="5">
                                     <Label Text="Código SKU / Interno *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                     <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
-                                        <Entry x:Name="TxtSku" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ingrese SKU" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnGeneradorNombreTriggered"/>
+                                        <Entry x:Name="TxtSku" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Ingrese SKU" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HeightRequest="40" TextChanged="OnGeneradorNombreTriggered" IsReadOnly="True"/>
                                     </Border>
                                 </VerticalStackLayout>
                                 <BoxView IsVisible="{Binding Source={x:Reference SecSku}, Path=IsVisible}" HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}"/>

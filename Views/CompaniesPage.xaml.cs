@@ -1,11 +1,12 @@
 ﻿namespace ControlInventarioMovil.Views;
 
 using ControlInventario.Shared.Models;
-using ControlInventarioMovil.Services;
-using Newtonsoft.Json;
-using System.Text;
-using System.Collections.ObjectModel;
 using ControlInventarioMovil.Helpers;
+using ControlInventarioMovil.Services;
+using ControlInventarioMovil.Utilities;
+using Newtonsoft.Json;
+using System.Collections.ObjectModel;
+using System.Text;
 
 [QueryProperty(nameof(TargetCompanyId), "TargetCompanyId")]
 public partial class CompaniesPage : ContentPage
@@ -68,7 +69,9 @@ public partial class CompaniesPage : ContentPage
         }
         catch (Exception ex)
         {
+            CrashLogger.LogHandledException(ex, "CompaniesPage - CargarEmpresasAsync");
             await DisplayAlertAsync("Error", $"No se pudieron cargar las sucursales: {ex.Message}", "OK");
+            return;
         }
         finally
         {
@@ -227,8 +230,10 @@ public partial class CompaniesPage : ContentPage
                 }
                 catch (Exception ex)
                 {
+                    CrashLogger.LogHandledException(ex, "CompaniesPage - OnEliminarEmpresaClicked");
                     loadingOverlay.IsVisible = false;
                     await DisplayAlertAsync("Error de Red", ex.Message, "OK");
+                    return;
                 }
             }
         }
