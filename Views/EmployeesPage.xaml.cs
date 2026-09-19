@@ -27,12 +27,21 @@ namespace ControlInventarioMovil.Views
         private async Task LoadEmployeesAsync()
         {
             refreshEmployees.IsRefreshing = true;
-            var lista = await _apiService.GetEmployeesAsync();
-
-            _allEmployees = [.. lista.Where(e => e.IsActive).OrderBy(e => e.FirstName)];
-            
-            FilterEmployees();
-            refreshEmployees.IsRefreshing = false;
+            try
+            {
+                var lista = await _apiService.GetEmployeesAsync();
+                _allEmployees = [.. lista.Where(e => e.IsActive).OrderBy(e => e.FirstName)];
+                FilterEmployees();
+            }
+            catch (Exception ex)
+            {
+                Utilities.CrashLogger.LogHandledException(ex, "EmployeesPage - LoadEmployeesAsync");
+                await DisplayAlertAsync("Error", "No se pudo cargar el personal. Verifica tu conexión a internet.", "OK");
+            }
+            finally
+            {
+                refreshEmployees.IsRefreshing = false;
+            }
         }
 
         private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
@@ -101,22 +110,31 @@ namespace ControlInventarioMovil.Views
             if (button?.CommandParameter is Employee empleadoSeleccionado)
             {
                 bool confirmar = await DisplayAlertAsync("Dar de Baja",
-                    $"¿Estás seguro de que deseas desactivar al empleado {empleadoSeleccionado.FirstName} {empleadoSeleccionado.LastName}?\n\nPerderá el acceso al sistema, pero su historial operativo se mantendrá intacto.",
+                    $"¿Es seguro de que deseas desactivar al empleado {empleadoSeleccionado.FirstName} {empleadoSeleccionado.LastName}?\n\nPerderá el acceso al sistema, pero su historial operativo se mantendrá intacto.",
                     "Sí, desactivar", "Cancelar");
 
                 if (confirmar)
                 {
-                    empleadoSeleccionado.IsActive = false;
-                    bool exito = await _apiService.UpdateEmployeeAsync(empleadoSeleccionado.Id, empleadoSeleccionado);
+                    try
+                    {
+                        empleadoSeleccionado.IsActive = false;
+                        bool exito = await _apiService.UpdateEmployeeAsync(empleadoSeleccionado.Id, empleadoSeleccionado);
 
-                    if (exito)
-                    {
-                        FilteredEmployees.Remove(empleadoSeleccionado);
-                        _allEmployees.Remove(empleadoSeleccionado);
+                        if (exito)
+                        {
+                            FilteredEmployees.Remove(empleadoSeleccionado);
+                            _allEmployees.Remove(empleadoSeleccionado);
+                        }
+                        else
+                        {
+                            await DisplayAlertAsync("Error", "El servidor rechazó la inactivación del empleado.", "OK");
+                            empleadoSeleccionado.IsActive = true;
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        await DisplayAlertAsync("Error", "El servidor rechazó la inactivación del empleado.", "OK");
+                        Utilities.CrashLogger.LogHandledException(ex, "EmployeesPage - OnDeleteEmployeeClicked");
+                        await DisplayAlertAsync("Error de Red", $"Falló la conexión al servidor: {ex.Message}", "OK");
                         empleadoSeleccionado.IsActive = true;
                     }
                 }

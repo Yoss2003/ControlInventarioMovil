@@ -20,12 +20,7 @@
                   Padding="15,10" 
                   ColumnDefinitions="*, Auto, *">
 
-                <Image Grid.Column="0"
-                       Source="warehouse_icon.png" 
-                       HeightRequest="25" 
-                       WidthRequest="25" 
-                       HorizontalOptions="Start"
-                       VerticalOptions="Center"/>
+                <Image Grid.Column="0" Source="warehouse_ico" HeightRequest="25" WidthRequest="25" HorizontalOptions="Start" VerticalOptions="Center"/>
 
                 <HorizontalStackLayout Grid.Column="1" Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
                     <Border StrokeShape="RoundRectangle 8"
@@ -198,6 +193,41 @@
             </Grid>
 
             <controls:FooterView x:Name="FooterView" Grid.Row="3" />
+            
+            <Grid x:Name="OverlayStockRapido" BackgroundColor="#CC000000" IsVisible="False" Opacity="0" ZIndex="150">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer />
+                </Grid.GestureRecognizers>
+
+                <Border VerticalOptions="Center" HorizontalOptions="Center" WidthRequest="320" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" Padding="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12"/>
+                    </Border.StrokeShape>
+
+                    <Grid RowDefinitions="Auto, *, Auto">
+                        <VerticalStackLayout Grid.Row="0" Padding="15" BackgroundColor="#8A2BE2">
+                            <Label Text="INGRESO RÁPIDO DE STOCK" TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center"/>
+                            <Label x:Name="LblOverlayQuickNombre" Text="Producto..." TextColor="#E0E0E0" FontAttributes="Bold" FontSize="16" HorizontalOptions="Center" Margin="0,5,0,0" HorizontalTextAlignment="Center"/>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Row="1" Padding="20" Spacing="15">
+                            <Label x:Name="LblOverlayQuickStock" Text="Stock Actual: 0" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="13" HorizontalOptions="Center" FontAttributes="Bold"/>
+
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="Cantidad Nueva a Ingresar *" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="10,0" HeightRequest="45">
+                                    <Entry x:Name="TxtQuickStockToAdd" Keyboard="Numeric" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" Placeholder="Ej. 10" HorizontalTextAlignment="Center" FontAttributes="Bold" FontSize="16"/>
+                                </Border>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+
+                        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="15" Padding="15" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#161F27}">
+                            <Button Grid.Column="0" Text="CANCELAR" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" CornerRadius="8" Clicked="OnCerrarStockRapidoClicked"/>
+                            <Button Grid.Column="1" Text="AGREGAR" BackgroundColor="#A2D149" TextColor="#1C262E" FontAttributes="Bold" CornerRadius="8" Clicked="OnGuardarStockRapidoClicked"/>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </ContentView>
 </ContentPage>

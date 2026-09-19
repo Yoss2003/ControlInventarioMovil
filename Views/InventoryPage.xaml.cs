@@ -3,6 +3,7 @@ using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Data;
 using ControlInventarioMovil.Helpers;
 using ControlInventarioMovil.Services;
+using ControlInventarioMovil.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -125,7 +126,7 @@ namespace ControlInventarioMovil.Views
                 }
                 catch (Exception dbEx)
                 {
-                    Debug.WriteLine($"[ERROR_LOCAL_DB] {dbEx.Message}");
+                    CrashLogger.LogHandledException(dbEx, "InventoryPage - SincronizarListadoArticulosAsync (Local DB)");
                 }
 
                 List<Article> articulosNube = [];
@@ -139,7 +140,7 @@ namespace ControlInventarioMovil.Views
                 }
                 catch (Exception apiEx)
                 {
-                    Debug.WriteLine($"[API_FETCH_FAIL] {apiEx.Message}");
+                    CrashLogger.LogHandledException(apiEx, "InventoryPage - SincronizarListadoArticulosAsync (API Fetch)");
                 }
 
                 var articulosUnicos = articulosNube
@@ -266,9 +267,10 @@ namespace ControlInventarioMovil.Views
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[API_FETCH_ARTICLES_FAIL] {ex.Message}");
+                CrashLogger.LogHandledException(ex, "InventoryPage - SincronizarListadoArticulosAsync (General)");
                 await DisplayAlertAsync("Error Crítico", "Ocurrió un problema al cargar el inventario.", "OK");
                 SecEstadoVacio.IsVisible = true;
+                return;
             }
             finally
             {
@@ -517,14 +519,14 @@ namespace ControlInventarioMovil.Views
             {
                 ArticleId = articuloUpdate.Id,
                 EmployeeId = empleadoIdReal,
-                ActionId = 2, // Código para "Salida" o "Merma"
+                ActionId = 2,
                 MovementDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                 Observation = $"{detalleTipo}: {motivo} (Por {nombreEmpleado})",
                 Amount = cantidadRetirada,
                 SalePrice = 0,
                 PaymentMethod = "N/A",
                 Recipient = "Ajuste de Almacén",
-                PhotoPath = _rutaFotoRetiro, // Se guarda la ruta local de la foto
+                PhotoPath = _rutaFotoRetiro,
                 IsSynced = false
             };
 
@@ -558,7 +560,12 @@ namespace ControlInventarioMovil.Views
             }
             catch (Exception ex)
             {
-                await DisplayAlertAsync("Error", $"Falla al procesar: {ex.Message}", "OK");
+                CrashLogger.LogHandledException(ex, "InventoryPage - OnConfirmarRetiroClicked");
+                await DisplayAlertAsync("Error", $"Falla al procesar el retiro: {ex.Message}", "OK");
+
+                ActCargando.IsRunning = false;
+                OverlayCargando.IsVisible = false;
+                return;
             }
 
             ActCargando.IsRunning = false;
@@ -908,7 +915,10 @@ namespace ControlInventarioMovil.Views
                 }
                 catch (Exception ex)
                 {
+                    CrashLogger.LogHandledException(ex, "InventoryPage - OnBotonInteligenteClicked");
                     await DisplayAlertAsync("Error", $"Error al guardar: {ex.Message}", "OK");
+                    ActCargando.IsVisible = false;
+                    return;
                 }
 
                 ActCargando.IsVisible = false;

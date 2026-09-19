@@ -2,6 +2,7 @@ using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Helpers;
 using ControlInventarioMovil.Services;
+using ControlInventarioMovil.Utilities;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -103,8 +104,9 @@ namespace ControlInventarioMovil.Views
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR_HIJAS] Fallo al agrupar: {ex.Message}");
+                CrashLogger.LogHandledException(ex, "CategoriasPage - CargarCategoriasPadre");
                 OverlayCarga.IsVisible = false;
+                return;
             }
         }
 
@@ -234,7 +236,7 @@ namespace ControlInventarioMovil.Views
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[VALIDACION_ERROR]: {ex.Message}");
+                CrashLogger.LogHandledException(ex, "CategoriasPage - OnEliminarSubcategoriaClicked (Validación)");
             }
             finally
             {
@@ -603,7 +605,9 @@ namespace ControlInventarioMovil.Views
             catch (Exception ex)
             {
                 OverlayCarga?.IsVisible = false;
-                await DisplayAlertAsync("Error Crítico", $"El formulario falló: {ex.Message}", "OK");
+                CrashLogger.LogHandledException(ex, "CategoriasPage - OnConfirmarFormClicked");
+                await DisplayAlertAsync("Error Crítico", $"No se pudo guardar la categoría: {ex.Message}", "OK");
+                return;
             }
         }
 

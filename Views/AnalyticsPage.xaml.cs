@@ -6,6 +6,7 @@ using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
+using ControlInventarioMovil.Utilities;
 
 namespace ControlInventarioMovil.Views
 {
@@ -245,7 +246,9 @@ namespace ControlInventarioMovil.Views
             }
             catch (Exception ex)
             {
+                CrashLogger.LogHandledException(ex, "AnalyticsPage - ProcesarInteligenciaDeNegocioAsync");
                 await DisplayAlertAsync("Error", $"Fallo al procesar analíticas: {ex.Message}", "OK");
+                return;
             }
             finally
             {

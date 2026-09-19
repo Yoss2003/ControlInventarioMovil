@@ -27,12 +27,21 @@ namespace ControlInventarioMovil.Views
         private async Task LoadCustomersAsync()
         {
             refreshCustomers.IsRefreshing = true;
-            var lista = await _apiService.GetCustomersAsync();
-
-            _allCustomers = [.. lista.Where(c => c.IsActive).OrderBy(c => c.Name)];
-
-            FilterCustomers();
-            refreshCustomers.IsRefreshing = false;
+            try
+            {
+                var lista = await _apiService.GetCustomersAsync();
+                _allCustomers = [.. lista.Where(c => c.IsActive).OrderBy(c => c.Name)];
+                FilterCustomers();
+            }
+            catch (Exception ex)
+            {
+                Utilities.CrashLogger.LogHandledException(ex, "CustomersPage - LoadCustomersAsync");
+                await DisplayAlertAsync("Error", "No se pudieron cargar los clientes. Verifica tu conexión a internet.", "OK");
+            }
+            finally
+            {
+                refreshCustomers.IsRefreshing = false;
+            }
         }
 
         private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
@@ -100,17 +109,26 @@ namespace ControlInventarioMovil.Views
 
                 if (confirmar)
                 {
-                    clienteSeleccionado.IsActive = false;
-                    bool exito = await _apiService.UpdateCustomerAsync(clienteSeleccionado.Id, clienteSeleccionado);
+                    try
+                    {
+                        clienteSeleccionado.IsActive = false;
+                        bool exito = await _apiService.UpdateCustomerAsync(clienteSeleccionado.Id, clienteSeleccionado);
 
-                    if (exito)
-                    {
-                        FilteredCustomers.Remove(clienteSeleccionado);
-                        _allCustomers.Remove(clienteSeleccionado);
+                        if (exito)
+                        {
+                            FilteredCustomers.Remove(clienteSeleccionado);
+                            _allCustomers.Remove(clienteSeleccionado);
+                        }
+                        else
+                        {
+                            await DisplayAlertAsync("Error", "No se pudo actualizar el estado del cliente en el servidor.", "OK");
+                            clienteSeleccionado.IsActive = true;
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        await DisplayAlertAsync("Error", "No se pudo actualizar el estado del cliente en el servidor.", "OK");
+                        Utilities.CrashLogger.LogHandledException(ex, "CustomersPage - OnDeleteCustomerClicked");
+                        await DisplayAlertAsync("Error de Red", $"Falló la conexión al servidor: {ex.Message}", "OK");
                         clienteSeleccionado.IsActive = true;
                     }
                 }

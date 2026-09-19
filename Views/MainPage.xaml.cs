@@ -1,14 +1,14 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
-using ControlInventarioMovil.Services;
-using ControlInventarioMovil.Views.Controls;
+using ControlInventarioMovil.Data;
 using ControlInventarioMovil.Helpers;
-using System.Diagnostics;
+using ControlInventarioMovil.Services;
+using ControlInventarioMovil.Utilities;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 namespace ControlInventarioMovil.Views
 {
-    [QueryProperty(nameof(ScannedCodeResult), "scannedCode")]
     public partial class MainPage : ContentPage
     {
         private readonly ApiService _apiService;
@@ -24,11 +24,11 @@ namespace ControlInventarioMovil.Views
 
         private int _pasoActual = 0;
         private double _anguloAcumuladoRad = 0;
-
         private bool _estaAnimando = false;
         private bool _faseDeMovimientoActiva = false;
         private bool _solicitudDetenerDespuesDelPaso = false;
         private bool _estaNavegando = false;
+        private Article? _articuloRapidoEncontrado;
 
         private CancellationTokenSource? _cts;
         private CancellationTokenSource? _radarCts;
@@ -51,11 +51,6 @@ namespace ControlInventarioMovil.Views
             SetupInactivityTimer();
 
             _apiService = new ApiService();
-        }
-
-        public string ScannedCodeResult
-        {
-            set => Dispatcher.Dispatch(async () => await EntregarCódigoAlFooterAsync(value));
         }
 
         protected override async void OnAppearing()
@@ -167,13 +162,6 @@ namespace ControlInventarioMovil.Views
             ResetInactivityTimer();
         }
 
-        private async Task EntregarCódigoAlFooterAsync(string codigo)
-        {
-            if (!string.IsNullOrWhiteSpace(codigo))
-            {
-                await FooterView.ProcesarLógicaAvanzadaEscanerAsync(codigo);
-            }
-        }
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
@@ -575,65 +563,6 @@ namespace ControlInventarioMovil.Views
             }
         }
 
-        private async void OnStockOkCardClicked(object sender, EventArgs e)
-        {
-            // Redirige al operador a un listado detallado filtrado por stock activo
-            await Shell.Current.GoToAsync("ActiveStockReportPage");
-        }
-
-        private async void OnFooterAddClicked(object sender, EventArgs e)
-        {
-            // 1. Preguntar la acción al operador
-            string accion = await DisplayActionSheetAsync("¿Qué deseas registrar?", "Cancelar", null, "📦 Agregar Producto Nuevo", "🔍 Escanear Código de Barras");
-
-            if (accion == "📦 Agregar Producto Nuevo")
-            {
-                UserSession.CurrentArticleToEdit = null; // Modo Alta Nueva
-                await Shell.Current.GoToAsync("ArticleFormPage");
-            }
-            else if (accion == "🔍 Escanear Código de Barras")
-            {
-                // 2. Disparar cámara de escaneo (Ej: usando ZXing o CommunityToolkit)
-                string codigoEscaneado = await DispararEscanerCamaraAsync();
-
-                if (string.IsNullOrWhiteSpace(codigoEscaneado)) return;
-
-                // 3. Consultar a la API si el Barcode ya existía en este almacén
-                var articuloExistente = await _apiService.GetArticleByBarcodeAsync(codigoEscaneado);
-
-                if (articuloExistente != null)
-                {
-                    // 4. ¡Existe! Pedimos la cantidad a sumar usando un Prompt nativo
-                    string cantidadTxt = await DisplayPromptAsync("Producto Detectado", $"El artículo '{articuloExistente.Name}' ya existe.\n\n¿Cuántas unidades vas a ingresar al stock?", "Aumentar Stock", "Cancelar", "1", -1, Keyboard.Numeric);
-
-                    if (decimal.TryParse(cantidadTxt, out decimal cantidadASumar) && cantidadASumar > 0)
-                    {
-                        articuloExistente.Stock += cantidadASumar;
-                        bool exito = await _apiService.UpdateArticleAsync(articuloExistente.Id, articuloExistente);
-
-                        if (exito) await DisplayAlertAsync("Stock Actualizado", $"Se añadieron {cantidadASumar} unidades. Stock total actual: {articuloExistente.Stock}", "OK");
-                    }
-                }
-                else
-                {
-                    // 5. NO EXISTE: Mandamos al formulario mandándole el código pre-cargado
-                    bool crear = await DisplayAlertAsync("Código Nuevo", "El código escaneado no está registrado en el inventario. ¿Deseas crear su ficha técnica desde cero?", "Sí, registrar", "No");
-                    if (crear)
-                    {
-                        UserSession.PreloadedBarcode = codigoEscaneado; // Guardamos en sesión para auto-rellenar
-                        await Shell.Current.GoToAsync("ArticleFormPage");
-                    }
-                }
-            }
-        }
-        
-        private async Task<string> DispararEscanerCamaraAsync()
-        {
-            // Muestra un input box en la pantalla para simular la lectura de la pistola de barras
-            string resultado = await DisplayPromptAsync("Escáner Simulado", "Digita o simula la lectura de un código de barras:", "Escanear", "Cancelar", "Ej. 7501000001", -1, Keyboard.Numeric);
-            return resultado?.Trim() ?? "";
-        }
-
         public async Task ActualizarStockCircularAsync()
         {
             try
@@ -715,7 +644,7 @@ namespace ControlInventarioMovil.Views
         {
             try
             {
-                using var context = new ControlInventarioMovil.Data.LocalDbContext();
+                using var context = new LocalDbContext();
                 var unidadesLocales = await context.MeasurementUnits.ToListAsync();
 
                 UserSession.UnidadesMedidaCache.Clear();
@@ -780,6 +709,151 @@ namespace ControlInventarioMovil.Views
                 }
             }
             catch { }
+        }
+
+        private async void ProcesarEscaneoFooterAsync(string codigoBarras)
+        {
+            try
+            {
+                if (UserSession.CurrentInventory == null)
+                {
+                    await DisplayAlertAsync("Aviso", "No hay un almacén o inventario activo seleccionado.", "OK");
+                    return;
+                }
+
+                using var context = new LocalDbContext();
+
+                // Buscamos si existe en la base de datos local
+                var articuloExistente = await context.Articles.FirstOrDefaultAsync(a =>
+                    a.Barcode == codigoBarras &&
+                    a.InventoryId == UserSession.CurrentInventory.Id &&
+                    a.IsActive);
+
+                if (articuloExistente == null)
+                {
+                    // 🚀 1. MOSTRAR EL TEXTO DE AVISO ANTES DE REDIRIGIR
+                    await DisplayAlertAsync(
+                        "Artículo No Registrado",
+                        "El artículo no existe, se te va a redirigir al formulario del artículo.",
+                        "Entendido");
+
+                    // 🚀 2. REDIRIGIR AL FORMULARIO PASANDO EL CÓDIGO POR URL
+                    UserSession.CurrentArticleToEdit = null;
+                    await Shell.Current.GoToAsync($"ArticleFormPage?scannedCode={codigoBarras}");
+                }
+                else
+                {
+                    // REGLA 1: Sí existe. Verificamos su tipo.
+                    string tracking = articuloExistente.Tracking.ToString();
+                    bool esSerializado = tracking.Equals("Serialized", StringComparison.OrdinalIgnoreCase) ||
+                                         tracking.Equals("Serializado", StringComparison.OrdinalIgnoreCase);
+
+                    if (esSerializado)
+                    {
+                        await DisplayAlertAsync("Acción Denegada", "Este artículo es Serializado. No se puede agregar stock rápido masivo porque cada unidad requiere un IMEI/N° de Serie único. Ve al módulo de Inventario.", "Entendido");
+                    }
+                    else
+                    {
+                        // Es Estándar o Granel: Mostramos el Overlay
+                        _articuloRapidoEncontrado = articuloExistente;
+                        LblOverlayQuickNombre.Text = articuloExistente.Name;
+                        LblOverlayQuickStock.Text = $"Stock Actual: {articuloExistente.Stock}";
+                        TxtQuickStockToAdd.Text = "";
+
+                        OverlayStockRapido.IsVisible = true;
+                        await OverlayStockRapido.FadeToAsync(1, 200);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.LogHandledException(ex, "MainPage - ProcesarEscaneoFooterAsync");
+                await DisplayAlertAsync("Error de Escaneo", "Hubo un problema al procesar el código.", "OK");
+            }
+        }
+
+        private async void OnCerrarStockRapidoClicked(object sender, EventArgs e)
+        {
+            await OverlayStockRapido.FadeToAsync(0, 150);
+            OverlayStockRapido.IsVisible = false;
+            _articuloRapidoEncontrado = null;
+        }
+
+        private async void OnGuardarStockRapidoClicked(object sender, EventArgs e)
+        {
+            if (_articuloRapidoEncontrado == null) return;
+
+            if (!decimal.TryParse(TxtQuickStockToAdd.Text, out decimal stockAAgregar) || stockAAgregar <= 0)
+            {
+                await DisplayAlertAsync("Validación", "Ingresa una cantidad válida mayor a 0.", "OK");
+                return;
+            }
+
+            try
+            {
+                // Mostramos un Loading si tienes uno, si no, bloqueamos el botón
+                if (sender is Button btn) btn.IsEnabled = false;
+
+                _articuloRapidoEncontrado.Stock += stockAAgregar;
+                _articuloRapidoEncontrado.IsSynced = false; // Marcamos para sincronización
+
+                string nombreEmpleado = Preferences.Get("UserName", "Usuario Móvil");
+                int empleadoId = Preferences.Get("UserId", 1);
+
+                // Creamos el registro de movimiento
+                var movimientoIngreso = new Movement
+                {
+                    ArticleId = _articuloRapidoEncontrado.Id,
+                    EmployeeId = empleadoId,
+                    ActionId = 1, // Ingreso
+                    MovementDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    Observation = $"Ingreso Rápido desde Footer (Por {nombreEmpleado})",
+                    Amount = stockAAgregar,
+                    SalePrice = 0,
+                    PaymentMethod = "N/A",
+                    Recipient = "Almacén Local",
+                    IsSynced = false
+                };
+
+                // Guardado Local (Offline First)
+                using var context = new LocalDbContext();
+                context.Articles.Update(_articuloRapidoEncontrado);
+                context.Movements.Add(movimientoIngreso);
+                await context.SaveChangesAsync();
+
+                // Intento a la nube (Opcional, si falla se queda en SQLite para sincronizar luego)
+                try
+                {
+                    var apiService = new Services.ApiService();
+                    bool exitoArt = await apiService.UpdateArticleAsync(_articuloRapidoEncontrado.Id, _articuloRapidoEncontrado);
+                    bool exitoMov = await apiService.CreateMovementAsync(movimientoIngreso);
+
+                    if (exitoArt && exitoMov)
+                    {
+                        _articuloRapidoEncontrado.IsSynced = true;
+                        movimientoIngreso.IsSynced = true;
+                        context.Articles.Update(_articuloRapidoEncontrado);
+                        context.Movements.Update(movimientoIngreso);
+                        await context.SaveChangesAsync();
+                    }
+                }
+                catch
+                {
+                    // Se ignora silenciosamente, ya se guardó en local
+                }
+
+                await DisplayAlertAsync("Éxito", $"Se ingresaron {stockAAgregar} unidades a {_articuloRapidoEncontrado.Name} correctamente.", "OK");
+                OnCerrarStockRapidoClicked(sender, e);
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.LogHandledException(ex, "MainPage - OnGuardarStockRapidoClicked");
+                await DisplayAlertAsync("Error", "No se pudo actualizar el stock.", "OK");
+            }
+            finally
+            {
+                if (sender is Button btnRestaurar) btnRestaurar.IsEnabled = true;
+            }
         }
     }
 }

@@ -18,7 +18,7 @@ namespace ControlInventarioMovil.Services
     public class ApiService
     {
         private readonly HttpClient _httpClient;
-        public static readonly string BaseApiUrl = "http://db-inventario-api.somee.com/api";
+        public static readonly string BaseApiUrl = "https://db-inventario-api.somee.com/api";
         private readonly static List<Parameters>? _cacheParametros = null;
 
         public ApiService()
@@ -39,7 +39,9 @@ namespace ControlInventarioMovil.Services
             };
 
             var client = new HttpClient(handler);
-            int companyId = Preferences.Get("SelectedCompanyId", 1);
+
+            int companyId = UserSession.CurrentUser?.Employee?.CompanyId ?? 0;
+
             client.DefaultRequestHeaders.Add("X-Company-Id", companyId.ToString());
 
             return client;
@@ -1008,6 +1010,17 @@ namespace ControlInventarioMovil.Services
             return [];
         }
 
+        public async Task<bool> CreateEmployeeAsync(Employee empleado)
+        {
+            try
+            {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+                var response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Employees", empleado);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) { Debug.WriteLine($"[API_ERR] CreateEmployee: {ex.Message}"); return false; }
+        }
+
         public async Task<bool> UpdateEmployeeAsync(int id, Employee empleado)
         {
             try
@@ -1106,13 +1119,24 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
-                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return null;
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet || string.IsNullOrWhiteSpace(ruc)) return null;
 
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Suppliers/ruc/{ruc}");
+
                 if (response.IsSuccessStatusCode)
+                {
                     return await response.Content.ReadFromJsonAsync<Supplier>(GetOptions());
+                }
+                else
+                {
+                    string errorServer = await response.Content.ReadAsStringAsync();
+                    Debug.WriteLine($"[ERROR RUC 400 DETALLE]: {errorServer}");
+                }
             }
-            catch (Exception ex) { Debug.WriteLine($"[API_CRITICAL_EX] ConsultarRuc: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_CRITICAL_EX] ConsultarRuc: {ex.Message}");
+            }
             return null;
         }
 
@@ -1120,13 +1144,27 @@ namespace ControlInventarioMovil.Services
         {
             try
             {
-                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return null;
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet || string.IsNullOrWhiteSpace(dni)) return null;
 
                 var response = await _httpClient.GetAsync($"{BaseApiUrl}/Customers/dni/{dni}");
+
                 if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadFromJsonAsync<RequestReniec>(GetOptions());
+                {
+                    string jsonExito = await response.Content.ReadAsStringAsync();
+                    System.Diagnostics.Debug.WriteLine($"[JSON EXITOSO RENIEC]: {jsonExito}");
+
+                    return System.Text.Json.JsonSerializer.Deserialize<RequestReniec>(jsonExito, GetOptions());
+                }
+                else
+                {
+                    string errorServer = await response.Content.ReadAsStringAsync();
+                    System.Diagnostics.Debug.WriteLine($"[ERROR DNI 400 DETALLE]: {errorServer}");
+                }
             }
-            catch (Exception ex) { Debug.WriteLine($"[API_CRITICAL_EX] ConsultarDni: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[API_CRITICAL_EX] ConsultarDni: {ex.Message}");
+            }
             return null;
         }
 
@@ -1393,11 +1431,8 @@ namespace ControlInventarioMovil.Services
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            int companyId = Preferences.Get("SelectedCompanyId", 0);
-            if (companyId == 0) companyId = Preferences.Get("CurrentCompanyId", 0);
-            if (companyId == 0) companyId = Preferences.Get("CompanyId", 1);
-
-            string userName = Preferences.Get("UserName", "Usuario Sistema");
+            int companyId = UserSession.CurrentUser?.Employee?.CompanyId ?? 1;
+            string userName = UserSession.CurrentUser?.Username ?? "Usuario Sistema";
 
             Debug.WriteLine($"[API_INTERCEPTOR] Inyectando Empresa ID: {companyId} y Usuario: {userName} a la ruta: {request.RequestUri}");
 

@@ -4,6 +4,7 @@ namespace ControlInventarioMovil.Views
     using ControlInventario.Shared.Models;
     using ControlInventarioMovil.Data;
     using ControlInventarioMovil.Services;
+    using ControlInventarioMovil.Utilities;
     using Microsoft.EntityFrameworkCore;
     using Newtonsoft.Json;
     using System.Diagnostics;
@@ -15,7 +16,7 @@ namespace ControlInventarioMovil.Views
         private readonly ApiService _apiService;
         private CompanyPublicDTO? _selectedCompany;
         private CancellationTokenSource _animacionCts = new();
-        private List<CompanyPublicDTO> _empresasDisponibles = new();
+        private List<CompanyPublicDTO> _empresasDisponibles = [];
         private int _currentCompanyIndex = 0;
         public LoginPage()
     	{
@@ -139,7 +140,7 @@ namespace ControlInventarioMovil.Views
 
                         if (user != null)
                         {
-                            user.Password = HashPasswordLocal(txtPassword.Text.Trim());
+                            user.Password = LoginPage.HashPasswordLocal(txtPassword.Text.Trim());
                             UserSession.CurrentUser = user;
                             Preferences.Set("SelectedCompanyId", _selectedCompany.Id);
 
@@ -271,7 +272,7 @@ namespace ControlInventarioMovil.Views
                 {
                     using var localContext = new LocalDbContext();
                     string userIngresado = txtUsername.Text.Trim();
-                    string passIngresadaHash = HashPasswordLocal(txtPassword.Text.Trim());
+                    string passIngresadaHash = LoginPage.HashPasswordLocal(txtPassword.Text.Trim());
 
                     var localUser = await localContext.Users.Include(u => u.Role!).ThenInclude(r => r.RolePermissions!).ThenInclude(rp => rp.Permission).FirstOrDefaultAsync(u => u.Username == userIngresado && u.Password == passIngresadaHash);
 
@@ -308,7 +309,10 @@ namespace ControlInventarioMovil.Views
                 catch (Exception ex)
                 {
                     MainThread.BeginInvokeOnMainThread(() => LoadingOverlay.IsVisible = false);
-                    await DisplayAlertAsync("Error", $"Ocurrió un fallo: {ex.Message}", "OK");
+
+                    CrashLogger.LogHandledException(ex, "LoginPage - OnLoginClicked");
+                    await DisplayAlertAsync("Error", $"Ocurrió un fallo de conexión: {ex.Message}", "OK");
+                    return;
                 }
             }
             finally
@@ -355,7 +359,7 @@ namespace ControlInventarioMovil.Views
             {
                 _empresasDisponibles = await ApiService.GetActiveCompaniesAsync();
 
-                if (_empresasDisponibles.Any())
+                if (_empresasDisponibles.Count != 0)
                 {
                     _currentCompanyIndex = 0;
                     ActualizarVistaEmpresa();
@@ -374,7 +378,7 @@ namespace ControlInventarioMovil.Views
 
         private void ActualizarVistaEmpresa()
         {
-            if (!_empresasDisponibles.Any()) return;
+            if (_empresasDisponibles.Count == 0) return;
 
             _selectedCompany = _empresasDisponibles[_currentCompanyIndex];
 
@@ -395,7 +399,7 @@ namespace ControlInventarioMovil.Views
 
         private async void OnPrevCompanyClicked(object sender, EventArgs e)
         {
-            if (!_empresasDisponibles.Any()) return;
+            if (_empresasDisponibles.Count == 0) return;
 
             var btn = (ImageButton)sender;
             _ = btn.TranslateToAsync(-15, 0, 100, Easing.CubicOut).ContinueWith(t => btn.TranslateToAsync(0, 0, 100, Easing.CubicIn));
@@ -419,7 +423,7 @@ namespace ControlInventarioMovil.Views
 
         private async void OnNextCompanyClicked(object sender, EventArgs e)
         {
-            if (!_empresasDisponibles.Any()) return;
+            if (_empresasDisponibles.Count == 0) return;
 
             var btn = (ImageButton)sender;
             _ = btn.TranslateToAsync(15, 0, 100, Easing.CubicOut).ContinueWith(t => btn.TranslateToAsync(0, 0, 100, Easing.CubicIn));
@@ -520,11 +524,10 @@ namespace ControlInventarioMovil.Views
             return textos[new Random().Next(textos.Length)];
         }
 
-        private string HashPasswordLocal(string password)
+        private static string HashPasswordLocal(string password)
         {
-            using var sha256 = SHA256.Create();
             var bytes = Encoding.UTF8.GetBytes(password);
-            var hash = sha256.ComputeHash(bytes);
+            var hash = SHA256.HashData(bytes);
             return Convert.ToBase64String(hash);
         }
     }

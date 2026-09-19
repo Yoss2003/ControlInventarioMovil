@@ -61,5 +61,10 @@ namespace ControlInventarioMovil.Utilities
         {
             if (File.Exists(LogFilePath)) File.Delete(LogFilePath);
         }
+
+        public static void LogHandledException(Exception ex, string origen)
+        {
+            LogException(ex, origen, false);
+        }
     }
 }
