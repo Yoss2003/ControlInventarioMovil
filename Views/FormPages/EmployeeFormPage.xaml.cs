@@ -222,7 +222,7 @@ namespace ControlInventarioMovil.Views
                 return;
             }
 
-            // 🚨 EVALUACIÓN DINÁMICA DE LA EMPRESA
+            // EVALUACIÓN DINÁMICA DE LA EMPRESA
             int sucursalFinal;
             if (SecEmpresa.IsVisible)
             {
@@ -244,6 +244,18 @@ namespace ControlInventarioMovil.Views
             {
                 await DisplayAlertAsync("Error de Sesión", "No se pudo determinar la empresa activa.", "OK");
                 return;
+            }
+
+            // 🚨 NUEVA VALIDACIÓN: Evaluamos el inventario si la sección está visible para roles operativos
+            int inventarioSeleccionado = 0;
+            if (SecInventario.IsVisible)
+            {
+                if (pkrInventory.SelectedItem is not Inventory inv || inv.Id == 0)
+                {
+                    await DisplayAlertAsync("Validación", "Debes asignarle un inventario al colaborador.", "OK");
+                    return;
+                }
+                inventarioSeleccionado = inv.Id;
             }
 
             // Inyectamos valores sin harcodeo
@@ -303,7 +315,8 @@ namespace ControlInventarioMovil.Views
                         CompanyId = sucursalFinal,
                         MustChangePassword = true,
                         ProfilePictureUrl = _rutaFotoBase64,
-                        Employee = _currentEmployee
+                        Employee = _currentEmployee,
+                        AssignedInventoryId = inventarioSeleccionado
                     };
 
                     using var client = ApiService.GetAuthenticatedClient();
@@ -331,10 +344,21 @@ namespace ControlInventarioMovil.Views
                             await DisplayAlertAsync("Usuario Duplicado", "El nombre de usuario generado ya existe en el sistema. Por favor, modifíquelo agregando números o iniciales para que sea único.", "Entendido");
                             txtUsername.Focus();
                         }
-                        else
+                        else if (errorResponse.Contains("Este usuario FUE un trabajador") || errorResponse.Contains("El trabajador ya existe"))
                         {
-                            await DisplayAlertAsync("Error", $"Validación del servidor: {errorResponse}", "OK");
+                            try
+                            {
+                                var errorObj = System.Text.Json.JsonDocument.Parse(errorResponse);
+                                string mensajeReal = errorObj.RootElement.GetProperty("mensaje").GetString()!;
+                                await DisplayAlertAsync("Validación de Usuario", mensajeReal, "Entendido");
+                                txtUsername.Focus();
+                            }
+                            catch
+                            {
+                                await DisplayAlertAsync("Validación de Usuario", errorResponse, "Entendido");
+                            }
                         }
+                        else await DisplayAlertAsync("Error", $"Validación del servidor: {errorResponse}", "OK");
                     }
                     else await DisplayAlertAsync("Error de Servidor", "No se obtuvo respuesta exitosa.", "OK");
                 }
@@ -397,6 +421,36 @@ namespace ControlInventarioMovil.Views
             finally
             {
                 if (sender is Button btn) btn.IsEnabled = true;
+            }
+        }
+        private async void OnRoleOrCompanyChanged(object sender, EventArgs e)
+        {
+            if (pkrJobPosition.SelectedItem is not Role rolSeleccionado) return;
+
+            bool esRolOperativo = rolSeleccionado.Id > 2;
+            SecInventario.IsVisible = esRolOperativo && !_isEditMode;
+
+            if (SecInventario.IsVisible)
+            {
+                int empresaFiltro = 0;
+
+                if (SecEmpresa.IsVisible && pkrCompany.SelectedItem is CompanyPublicDTO empSel && empSel.Id > 0)
+                {
+                    empresaFiltro = empSel.Id;
+                }
+                else
+                {
+                    empresaFiltro = UserSession.CurrentUser?.Employee?.CompanyId ?? 0;
+                }
+
+                var inventariosBD = await _apiService.GetInventoriesAsync();
+                var inventariosFiltrados = inventariosBD.Where(i => i.CompanyId == empresaFiltro).ToList();
+
+                var listaInventarios = new List<Inventory> { new() { Id = 0, InventoryName = "Seleccione Inventario..." } };
+                listaInventarios.AddRange(inventariosFiltrados);
+
+                pkrInventory.ItemsSource = listaInventarios;
+                pkrInventory.SelectedIndex = 0;
             }
         }
     }
