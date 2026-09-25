@@ -62,19 +62,19 @@
                             <Shadow Brush="Black" Offset="0,2" Radius="4" Opacity="0.1"/>
                         </Border.Shadow>
 
-                        <Grid RowDefinitions="Auto, Auto, Auto" ColumnDefinitions="*, *" RowSpacing="15" ColumnSpacing="15">
+                        <Grid RowDefinitions="Auto, Auto, Auto, Auto" ColumnDefinitions="*, *" RowSpacing="15" ColumnSpacing="15">
 
                             <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="5">
                                 <Label Text="Nombres *" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                 <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0">
-                                    <Entry x:Name="txtFirstName" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=Gray}" BackgroundColor="Transparent" FontSize="14" MaxLength="50" TextChanged="OnNameFieldsChanged" HeightRequest="40"/>
+                                    <Entry x:Name="txtFirstName" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" FontSize="14" MaxLength="50" TextChanged="OnNameFieldsChanged" HeightRequest="40"/>
                                 </Border>
                             </VerticalStackLayout>
 
                             <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="5">
                                 <Label Text="Apellidos *" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                 <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0">
-                                    <Entry x:Name="txtLastName" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=Gray}" BackgroundColor="Transparent" FontSize="14" MaxLength="50" TextChanged="OnNameFieldsChanged" HeightRequest="40"/>
+                                    <Entry x:Name="txtLastName" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" FontSize="14" MaxLength="50" TextChanged="OnNameFieldsChanged" HeightRequest="40"/>
                                 </Border>
                             </VerticalStackLayout>
 
@@ -88,14 +88,35 @@
                             <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="5">
                                 <Label Text="Teléfono" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                 <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0">
-                                    <Entry x:Name="txtPhoneNumber" Keyboard="Telephone" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=Gray}" BackgroundColor="Transparent" FontSize="14" HeightRequest="40"/>
+                                    <Entry x:Name="txtPhoneNumber" Keyboard="Telephone" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" FontSize="14" HeightRequest="40"/>
                                 </Border>
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Spacing="5">
+                            <VerticalStackLayout Grid.Row="2" Grid.Column="0" Spacing="5">
+                                <Label Text="Nacimiento *" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0">
+                                    <DatePicker x:Name="dpBirthDate" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" FontSize="14" HeightRequest="40" DateSelected="OnBirthDateSelected"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Row="2" Grid.Column="1" Spacing="5">
+                                <Label Text="Edad" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#12181F}" Padding="10,0">
+                                    <Entry x:Name="txtAge" IsReadOnly="True" TextColor="{AppThemeBinding Light=#6C757D, Dark=#939CA5}" BackgroundColor="Transparent" FontSize="14" HeightRequest="40"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Row="3" Grid.Column="0" Spacing="5">
+                                <Label Text="Contratación *" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0">
+                                    <DatePicker x:Name="dpHireDate" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" FontSize="14" HeightRequest="40"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Row="3" Grid.Column="1" Spacing="5">
                                 <Label Text="Correo Electrónico *" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
                                 <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0">
-                                    <Entry x:Name="txtEmail" Keyboard="Email" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=Gray}" BackgroundColor="Transparent" FontSize="14" HeightRequest="40"/>
+                                    <Entry x:Name="txtEmail" Keyboard="Email" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" FontSize="14" HeightRequest="40"/>
                                 </Border>
                             </VerticalStackLayout>
                         </Grid>
@@ -113,13 +134,16 @@
 
                         <Grid ColumnDefinitions="*, Auto" ColumnSpacing="15" VerticalOptions="Center">
                             <VerticalStackLayout Grid.Column="0" Spacing="5" VerticalOptions="Center">
-                                <Label Text="Nueva Contraseña (Opcional)" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12"/>
+                                <HorizontalStackLayout Spacing="8" Margin="0,0,0,2">
+                                    <Label x:Name="lblPasswordHeader" Text="Nueva Contraseña (Opcional)" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" VerticalOptions="Center"/>
+                                    <Button Text="i" FontAttributes="Bold,Italic" FontFamily="monospace" FontSize="14" WidthRequest="24" HeightRequest="24" MinimumWidthRequest="24" MinimumHeightRequest="24" CornerRadius="12" Padding="0" BackgroundColor="#8A2BE2" TextColor="White" VerticalOptions="Center" Clicked="OnPasswordInfoClicked" helpers:EfectosVisualesHelper.Animar="True"/>
+                                </HorizontalStackLayout>
                                 <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0">
-                                    <Entry x:Name="txtPassword" IsPassword="True" Placeholder="Dejar en blanco para no cambiar" PlaceholderColor="Gray" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" FontSize="13" HeightRequest="40"/>
+                                    <Entry x:Name="txtPassword" IsPassword="True" Placeholder="Dejar en blanco para no cambiar" PlaceholderColor="Gray" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" FontSize="13" HeightRequest="40" TextChanged="OnPasswordTextChanged"/>
                                 </Border>
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout Grid.Column="1" Spacing="5" HorizontalOptions="Center" VerticalOptions="Center">
+                            <VerticalStackLayout x:Name="stackActiveStatus" Grid.Column="1" Spacing="5" HorizontalOptions="Center" VerticalOptions="Center">
                                 <Label Text="Estado (Activo)" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" HorizontalTextAlignment="Center"/>
                                 <Switch x:Name="swIsActive" OnColor="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}" HorizontalOptions="Center"/>
                             </VerticalStackLayout>
@@ -144,7 +168,7 @@
                                     <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="40">
                                         <Picker x:Name="pckRole" ItemDisplayBinding="{Binding Name, x:DataType=models:Role}" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged"/>
                                     </Border>
-                                    <HorizontalStackLayout Grid.Column="1" Spacing="5" VerticalOptions="Center">
+                                    <HorizontalStackLayout x:Name="stackRoleButtons" Grid.Column="1" Spacing="5" VerticalOptions="Center">
                                         <ImageButton Source="add_icon.png" WidthRequest="36" HeightRequest="36" Padding="10" CornerRadius="18" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#2E3842}" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAddRoleClicked"/>
                                         <ImageButton Source="edit_icon.png" WidthRequest="36" HeightRequest="36" Padding="10" CornerRadius="18" BackgroundColor="#E67E22" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditRoleClicked"/>
                                     </HorizontalStackLayout>
@@ -157,7 +181,7 @@
                                     <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="40">
                                         <Picker x:Name="pckArea" ItemDisplayBinding="{Binding Name, x:DataType=models:Parameters}" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged"/>
                                     </Border>
-                                    <HorizontalStackLayout Grid.Column="1" Spacing="5" VerticalOptions="Center">
+                                    <HorizontalStackLayout x:Name="stackAreaButtons" Grid.Column="1" Spacing="5" VerticalOptions="Center">
                                         <ImageButton Source="add_icon.png" WidthRequest="36" HeightRequest="36" Padding="10" CornerRadius="18" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#2E3842}" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAddAreaClicked"/>
                                         <ImageButton Source="edit_icon.png" WidthRequest="36" HeightRequest="36" Padding="10" CornerRadius="18" BackgroundColor="#E67E22" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditAreaClicked"/>
                                     </HorizontalStackLayout>
@@ -170,7 +194,7 @@
                                     <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="40">
                                         <Picker x:Name="pckPosition" ItemDisplayBinding="{Binding Name, x:DataType=models:Parameters}" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged"/>
                                     </Border>
-                                    <HorizontalStackLayout Grid.Column="1" Spacing="5" VerticalOptions="Center">
+                                    <HorizontalStackLayout x:Name="stackPositionButtons" Grid.Column="1" Spacing="5" VerticalOptions="Center">
                                         <ImageButton Source="add_icon.png" WidthRequest="36" HeightRequest="36" Padding="10" CornerRadius="18" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#2E3842}" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAddPositionClicked"/>
                                         <ImageButton Source="edit_icon.png" WidthRequest="36" HeightRequest="36" Padding="10" CornerRadius="18" BackgroundColor="#E67E22" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditPositionClicked"/>
                                     </HorizontalStackLayout>
@@ -183,7 +207,7 @@
                                     <Border Grid.Column="0" StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="5,0" HeightRequest="40">
                                         <Picker x:Name="pckContractType" ItemDisplayBinding="{Binding Name, x:DataType=models:Parameters}" TextColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Center" SelectedIndexChanged="OnPickerIndexChanged"/>
                                     </Border>
-                                    <HorizontalStackLayout Grid.Column="1" Spacing="5" VerticalOptions="Center">
+                                    <HorizontalStackLayout x:Name="stackContractButtons" Grid.Column="1" Spacing="5" VerticalOptions="Center">
                                         <ImageButton Source="add_icon.png" WidthRequest="36" HeightRequest="36" Padding="10" CornerRadius="18" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#2E3842}" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnAddContractTypeClicked"/>
                                         <ImageButton Source="edit_icon.png" WidthRequest="36" HeightRequest="36" Padding="10" CornerRadius="18" BackgroundColor="#E67E22" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnEditContractTypeClicked"/>
                                     </HorizontalStackLayout>
@@ -237,6 +261,32 @@
                         <Button Grid.Column="0" Text="Cancelar" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=#939CA5}" FontAttributes="Bold" CornerRadius="8" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnClosePopupClicked"/>
                         <Button Grid.Column="1" Text="Guardar" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="8" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnSavePopupClicked"/>
                     </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+        <Grid x:Name="PasswordInfoOverlay" BackgroundColor="#80000000" IsVisible="False" Padding="20" ZIndex="15">
+            <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C262E}" 
+            Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" 
+            StrokeThickness="{AppThemeBinding Light=1, Dark=0}"
+            VerticalOptions="Center" HorizontalOptions="Center" WidthRequest="300" Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="15"/>
+                </Border.StrokeShape>
+                <Border.Shadow>
+                    <Shadow Brush="Black" Offset="0,4" Radius="10" Opacity="0.3"/>
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="Seguridad de Contraseña" FontAttributes="Bold" FontSize="18" TextColor="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}" HorizontalOptions="Center"/>
+
+                    <VerticalStackLayout Spacing="10" Margin="0,10">
+                        <Label x:Name="reqLength" Text="❌ Mínimo 8 caracteres" FontSize="14" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
+                        <Label x:Name="reqUpper" Text="❌ Al menos una mayúscula" FontSize="14" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
+                        <Label x:Name="reqNumber" Text="❌ Al menos un número" FontSize="14" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
+                        <Label x:Name="reqSpecial" Text="❌ Al menos un carácter especial" FontSize="14" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}"/>
+                    </VerticalStackLayout>
+
+                    <Button Text="Entendido" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" CornerRadius="8" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnClosePasswordInfoClicked"/>
                 </VerticalStackLayout>
             </Border>
         </Grid>

@@ -12,6 +12,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Net.Http.Headers;
 
 namespace ControlInventarioMovil.Services
 {
@@ -23,26 +24,34 @@ namespace ControlInventarioMovil.Services
 
         public ApiService()
         {
-            var handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
-            };
+            var handler = new HttpClientHandler();
+
+            #if DEBUG
+            handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+            #endif
+
             var delegatingHandler = new CompanyHeaderHandler { InnerHandler = handler };
             _httpClient = new HttpClient(delegatingHandler);
         }
 
         public static HttpClient GetAuthenticatedClient()
         {
-            var handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (s, c, chain, errors) => true
-            };
+            var handler = new HttpClientHandler();
+
+            #if DEBUG
+            handler.ServerCertificateCustomValidationCallback = (s, c, chain, errors) => true;
+            #endif
 
             var client = new HttpClient(handler);
 
-            int companyId = UserSession.CurrentUser?.Employee?.CompanyId ?? 0;
-
+            int companyId = UserSession.CurrentUser?.CompanyId ?? 0;
             client.DefaultRequestHeaders.Add("X-Company-Id", companyId.ToString());
+
+            string? token = UserSession.CurrentUser?.Token;
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
 
             return client;
         }
@@ -1273,6 +1282,7 @@ namespace ControlInventarioMovil.Services
 
         public async Task<List<Movement>> GetMovementsAsync()
         {
+            int currentCompanyId = UserSession.CurrentUser?.CompanyId ?? 1;
             try
             {
                 using var context = new LocalDbContext();
@@ -1280,7 +1290,7 @@ namespace ControlInventarioMovil.Services
                 // 1. MODO OFFLINE PURO
                 if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
                 {
-                    return await context.Movements.ToListAsync();
+                    return await context.Movements.Where(m => m.CompanyId == currentCompanyId).ToListAsync();
                 }
 
                 // 2. MODO ONLINE CON ANTI-DUPLICIDAD
@@ -1288,8 +1298,9 @@ namespace ControlInventarioMovil.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var listaNube = await response.Content.ReadFromJsonAsync<List<Movement>>(GetOptions()) ?? [];
-
-                    var pendientesLocales = await context.Movements.Where(m => m.IsSynced == false).ToListAsync();
+                    var pendientesLocales = await context.Movements
+                        .Where(m => m.IsSynced == false && m.CompanyId == currentCompanyId)
+                        .ToListAsync();
 
                     return [.. listaNube, .. pendientesLocales];
                 }
@@ -1431,16 +1442,20 @@ namespace ControlInventarioMovil.Services
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            int companyId = UserSession.CurrentUser?.Employee?.CompanyId ?? 1;
+            int companyId = UserSession.CurrentUser?.CompanyId ?? 1;
             string userName = UserSession.CurrentUser?.Username ?? "Usuario Sistema";
+            string? token = UserSession.CurrentUser?.Token;
 
-            Debug.WriteLine($"[API_INTERCEPTOR] Inyectando Empresa ID: {companyId} y Usuario: {userName} a la ruta: {request.RequestUri}");
+            Debug.WriteLine($"[API_INTERCEPTOR] Inyectando Empresa ID: {companyId} y Token a la ruta: {request.RequestUri}");
 
             request.Headers.Remove("X-Company-Id");
             request.Headers.TryAddWithoutValidation("X-Company-Id", companyId.ToString());
 
             request.Headers.Remove("X-User-Name");
             request.Headers.TryAddWithoutValidation("X-User-Name", userName);
+
+            if (!string.IsNullOrEmpty(token))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             return await base.SendAsync(request, cancellationToken);
         }

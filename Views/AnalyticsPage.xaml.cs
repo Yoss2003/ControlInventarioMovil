@@ -78,7 +78,8 @@ namespace ControlInventarioMovil.Views
                 try
                 {
                     using var context = new Data.LocalDbContext();
-                    todosMovimientos = [.. context.Movements]; // Descargamos rápido de SQLite
+                    int empresaId = UserSession.CurrentUser?.CompanyId ?? 1;
+                    todosMovimientos = [.. context.Movements.Where(m => m.CompanyId == empresaId)];
                 }
                 catch { }
 
@@ -144,7 +145,12 @@ namespace ControlInventarioMovil.Views
                 string fechaLimiteStr = fechaLimite.ToString("yyyy-MM-dd");
 
                 // Extraemos todas las salidas (ActionId = 2) de los últimos 30 días a la variable global
-                _salidasUltimoMes = [.. todosMovimientos.Where(m => m.ActionId == 2 && m.MovementDate != null && string.Compare(m.MovementDate, fechaLimiteStr) >= 0)];
+                _salidasUltimoMes = [.. todosMovimientos.Where(m =>
+                    m.ActionId == 2 &&
+                    m.MovementDate != null &&
+                    string.Compare(m.MovementDate, fechaLimiteStr) >= 0 &&
+                    _inventarioActual.Any(a => a.Id == m.ArticleId)
+                )];
 
                 var alertasEstancado = new List<Article>();                
                 var detallesEstancadoList = new List<string>();

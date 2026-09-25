@@ -1,4 +1,6 @@
 ﻿using ControlInventario.Models;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace ControlInventarioMovil.Helpers
 {
@@ -9,7 +11,7 @@ namespace ControlInventarioMovil.Helpers
             var role = UserSession.CurrentUser?.Role;
             if (role == null) return false;
 
-            if (role.Name == "SuperAdmin" || UserSession.CurrentUser?.RoleId == 1)
+            if (UserSession.CurrentUser?.RoleId == 1 || UserSession.CurrentUser?.RoleId == 2)
                 return true;
 
             return role.RolePermissions?.Any(rp => rp.Permission?.SystemCode == systemCode) == true;

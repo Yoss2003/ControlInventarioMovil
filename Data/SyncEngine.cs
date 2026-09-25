@@ -62,7 +62,82 @@ namespace ControlInventarioMovil.Data
                 // ==========================================
                 // 1. PUSH (Offline a Nube)
                 // ==========================================
-                await SyncEngine.EjecutarSeguro("Push Movimientos", async (ctx) =>
+                await EjecutarSeguro("Push Marcas", async (ctx) =>
+                {
+                    var marcasPendientes = await ctx.Brands.AsNoTracking().Where(b => b.IsSynced != true).ToListAsync();
+                    foreach (var marca in marcasPendientes)
+                    {
+                        int idLocal = marca.Id;
+                        marca.Id = 0;
+                        if (await _apiService.CreateBrandAsync(marca) != null)
+                        {
+                            var localEntity = await ctx.Brands.FindAsync(idLocal);
+                            if (localEntity != null) ctx.Brands.Remove(localEntity);
+                        }
+                    }
+                });
+
+                await EjecutarSeguro("Push Categorias", async (ctx) =>
+                {
+                    var pendientes = await ctx.Categories.AsNoTracking().Where(c => c.IsSynced != true).ToListAsync();
+                    foreach (var item in pendientes)
+                    {
+                        int idLocal = item.Id;
+                        item.Id = 0;
+                        if (await _apiService.CreateCategoryAsync(item))
+                        {
+                            var localEntity = await ctx.Categories.FindAsync(idLocal);
+                            if (localEntity != null) ctx.Categories.Remove(localEntity);
+                        }
+                    }
+                });
+
+                await EjecutarSeguro("Push Clientes", async (ctx) =>
+                {
+                    var pendientes = await ctx.Customer.AsNoTracking().Where(c => c.IsSynced != true).ToListAsync();
+                    foreach (var item in pendientes)
+                    {
+                        int idLocal = item.Id;
+                        item.Id = 0;
+                        if (await _apiService.SaveCustomerAsync(item))
+                        {
+                            var localEntity = await ctx.Customer.FindAsync(idLocal);
+                            if (localEntity != null) ctx.Customer.Remove(localEntity);
+                        }
+                    }
+                });
+
+                await EjecutarSeguro("Push Proveedores", async (ctx) =>
+                {
+                    var pendientes = await ctx.Supplier.AsNoTracking().Where(s => s.IsSynced != true).ToListAsync();
+                    foreach (var item in pendientes)
+                    {
+                        int idLocal = item.Id;
+                        item.Id = 0;
+                        if (await _apiService.CreateSupplierAsync(item))
+                        {
+                            var localEntity = await ctx.Supplier.FindAsync(idLocal);
+                            if (localEntity != null) ctx.Supplier.Remove(localEntity);
+                        }
+                    }
+                });
+
+                await EjecutarSeguro("Push Articulos", async (ctx) =>
+                {
+                    var pendientes = await ctx.Articles.AsNoTracking().Where(a => a.IsSynced != true).ToListAsync();
+                    foreach (var item in pendientes)
+                    {
+                        int idLocal = item.Id;
+                        item.Id = 0;
+                        if (await _apiService.CreateArticleAsync(item))
+                        {
+                            var localEntity = await ctx.Articles.FindAsync(idLocal);
+                            if (localEntity != null) ctx.Articles.Remove(localEntity);
+                        }
+                    }
+                });
+
+                await EjecutarSeguro("Push Movimientos", async (ctx) =>
                 {
                     var movimientosPendientes = await ctx.Movements.AsNoTracking().Where(m => m.IsSynced != true).ToListAsync();
                     foreach (var mov in movimientosPendientes)
@@ -77,7 +152,7 @@ namespace ControlInventarioMovil.Data
                     }
                 });
 
-                await SyncEngine.EjecutarSeguro("Push Ventas", async (ctx) =>
+                await EjecutarSeguro("Push Ventas", async (ctx) =>
                 {
                     var ventasPendientes = await ctx.Sales.AsNoTracking().Include(s => s.SaleDetails).Where(s => s.IsSynced != true).ToListAsync();
                     foreach (var venta in ventasPendientes)
@@ -99,126 +174,51 @@ namespace ControlInventarioMovil.Data
                     }
                 });
 
-                await SyncEngine.EjecutarSeguro("Push Marcas", async (ctx) =>
-                {
-                    var marcasPendientes = await ctx.Brands.AsNoTracking().Where(b => b.IsSynced != true).ToListAsync();
-                    foreach (var marca in marcasPendientes)
-                    {
-                        int idLocal = marca.Id;
-                        marca.Id = 0;
-                        if (await _apiService.CreateBrandAsync(marca) != null)
-                        {
-                            var localEntity = await ctx.Brands.FindAsync(idLocal);
-                            if (localEntity != null) ctx.Brands.Remove(localEntity);
-                        }
-                    }
-                });
-
-                await SyncEngine.EjecutarSeguro("Push Categorias", async (ctx) =>
-                {
-                    var pendientes = await ctx.Categories.AsNoTracking().Where(c => c.IsSynced != true).ToListAsync();
-                    foreach (var item in pendientes)
-                    {
-                        int idLocal = item.Id;
-                        item.Id = 0;
-                        if (await _apiService.CreateCategoryAsync(item))
-                        {
-                            var localEntity = await ctx.Categories.FindAsync(idLocal);
-                            if (localEntity != null) ctx.Categories.Remove(localEntity);
-                        }
-                    }
-                });
-
-                await SyncEngine.EjecutarSeguro("Push Articulos", async (ctx) =>
-                {
-                    var pendientes = await ctx.Articles.AsNoTracking().Where(a => a.IsSynced != true).ToListAsync();
-                    foreach (var item in pendientes)
-                    {
-                        int idLocal = item.Id;
-                        item.Id = 0;
-                        if (await _apiService.CreateArticleAsync(item))
-                        {
-                            var localEntity = await ctx.Articles.FindAsync(idLocal);
-                            if (localEntity != null) ctx.Articles.Remove(localEntity);
-                        }
-                    }
-                });
-
-                await SyncEngine.EjecutarSeguro("Push Clientes", async (ctx) =>
-                {
-                    var pendientes = await ctx.Customer.AsNoTracking().Where(c => c.IsSynced != true).ToListAsync();
-                    foreach (var item in pendientes)
-                    {
-                        int idLocal = item.Id;
-                        item.Id = 0;
-                        if (await _apiService.SaveCustomerAsync(item))
-                        {
-                            var localEntity = await ctx.Customer.FindAsync(idLocal);
-                            if (localEntity != null) ctx.Customer.Remove(localEntity);
-                        }
-                    }
-                });
-
-                await SyncEngine.EjecutarSeguro("Push Proveedores", async (ctx) =>
-                {
-                    var pendientes = await ctx.Supplier.AsNoTracking().Where(s => s.IsSynced != true).ToListAsync();
-                    foreach (var item in pendientes)
-                    {
-                        int idLocal = item.Id;
-                        item.Id = 0;
-                        if (await _apiService.CreateSupplierAsync(item))
-                        {
-                            var localEntity = await ctx.Supplier.FindAsync(idLocal);
-                            if (localEntity != null) ctx.Supplier.Remove(localEntity);
-                        }
-                    }
-                });
-
                 // ==========================================
                 // 2. PULL: CATÁLOGOS BASE
                 // ==========================================
-                await SyncEngine.EjecutarSeguro("Currencies", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCurrenciesAsync()));
-                await SyncEngine.EjecutarSeguro("DateFormats", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<DateFormat>("DateFormats")));
-                await SyncEngine.EjecutarSeguro("Themes", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Theme>("Themes")));
-                await SyncEngine.EjecutarSeguro("TimeZoneItems", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<TimeZoneItem>("TimeZoneItems")));
-                await SyncEngine.EjecutarSeguro("Languages", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Language>("Languages")));
-                await SyncEngine.EjecutarSeguro("Parameters", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetParametersAsync()));
-                await SyncEngine.EjecutarSeguro("Permissions", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetPermissionsAsync()));
-                await SyncEngine.EjecutarSeguro("Roles", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetRolesAsync()));
-                await SyncEngine.EjecutarSeguro("RolePermissions", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<RolePermission>("RolePermissions")));
-                await SyncEngine.EjecutarSeguro("ActionItems", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetActionsAsync()));
-                await SyncEngine.EjecutarSeguro("SalesModes", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<SalesMode>("SalesModes")));
-                await SyncEngine.EjecutarSeguro("MeasurementUnits", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetMeasurementUnitsAsync()));
-                await SyncEngine.EjecutarSeguro("ExchangeRates", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<ExchangeRate>("ExchangeRates")));
+                await EjecutarSeguro("Currencies", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCurrenciesAsync()));
+                await EjecutarSeguro("DateFormats", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<DateFormat>("DateFormats")));
+                await EjecutarSeguro("Themes", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Theme>("Themes")));
+                await EjecutarSeguro("TimeZoneItems", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<TimeZoneItem>("TimeZoneItems")));
+                await EjecutarSeguro("Languages", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Language>("Languages")));
+                await EjecutarSeguro("Parameters", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetParametersAsync()));
+                await EjecutarSeguro("Permissions", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetPermissionsAsync()));
+                await EjecutarSeguro("Roles", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetRolesAsync()));
+                await EjecutarSeguro("RolePermissions", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<RolePermission>("RolePermissions")));
+                await EjecutarSeguro("ActionItems", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetActionsAsync()));
+                await EjecutarSeguro("SalesModes", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<SalesMode>("SalesModes")));
+                await EjecutarSeguro("MeasurementUnits", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetMeasurementUnitsAsync()));
+                await EjecutarSeguro("ExchangeRates", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<ExchangeRate>("ExchangeRates")));
 
                 // ==========================================
                 // 3. PULL: NÚCLEO EMPRESARIAL
                 // ==========================================
-                await SyncEngine.EjecutarSeguro("Companies", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Company>("Companies")));
-                await SyncEngine.EjecutarSeguro("Users", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetUsersAsync()));
-                await SyncEngine.EjecutarSeguro("Employees", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetEmployeesAsync()));
-                await SyncEngine.EjecutarSeguro("Profiles", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Profile>("Profiles")));
-                await SyncEngine.EjecutarSeguro("Inventories", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetInventoriesAsync()));
-                await SyncEngine.EjecutarSeguro("SharedInventories", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<SharedInventory>("SharedInventories")));
+                await EjecutarSeguro("Companies", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Company>("Companies")));
+                await EjecutarSeguro("Users", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetUsersAsync()));
+                await EjecutarSeguro("Employees", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetEmployeesAsync()));
+                await EjecutarSeguro("Profiles", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Profile>("Profiles")));
+                await EjecutarSeguro("Inventories", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetInventoriesAsync()));
+                await EjecutarSeguro("SharedInventories", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<SharedInventory>("SharedInventories")));
 
                 // ==========================================
                 // 4. PULL: PRODUCTOS Y CLASIFICACIÓN
                 // ==========================================
-                await SyncEngine.EjecutarSeguro("Categories", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCategoriesAsync()));
-                await SyncEngine.EjecutarSeguro("CategoryMeasurementUnits", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<CategoryMeasurementUnit>("CategoryMeasurementUnits")));
-                await SyncEngine.EjecutarSeguro("Brands", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetBrandsAsync()));
-                await SyncEngine.EjecutarSeguro("Suppliers", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetSuppliersAsync()));
-                await SyncEngine.EjecutarSeguro("Customers", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCustomersAsync()));
-                await SyncEngine.EjecutarSeguro("Articles", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetArticlesAsync()));
+                await EjecutarSeguro("Categories", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCategoriesAsync()));
+                await EjecutarSeguro("CategoryMeasurementUnits", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<CategoryMeasurementUnit>("CategoryMeasurementUnits")));
+                await EjecutarSeguro("Brands", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetBrandsAsync()));
+                await EjecutarSeguro("Suppliers", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetSuppliersAsync()));
+                await EjecutarSeguro("Customers", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCustomersAsync()));
+                await EjecutarSeguro("Articles", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetArticlesAsync()));
 
                 // ==========================================
                 // 5. PULL: TRANSACCIONALIDAD
                 // ==========================================
-                await SyncEngine.EjecutarSeguro("Movements", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetMovementsAsync()));
-                await SyncEngine.EjecutarSeguro("Sales", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Sale>("Sales")));
-                await SyncEngine.EjecutarSeguro("SaleDetails", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<SaleDetail>("SaleDetails")));
-                await SyncEngine.EjecutarSeguro("HistoryLogs", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetHistoryLogsAsync()));
-                await SyncEngine.EjecutarSeguro("Notifications", async (ctx) => await SyncEngine.SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Notification>("Notifications")));
+                await EjecutarSeguro("Movements", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetMovementsAsync()));
+                await EjecutarSeguro("Sales", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Sale>("Sales")));
+                await EjecutarSeguro("SaleDetails", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<SaleDetail>("SaleDetails")));
+                await EjecutarSeguro("HistoryLogs", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetHistoryLogsAsync()));
+                await EjecutarSeguro("Notifications", async (ctx) => await SincronizarTablaAsync(ctx, await _apiService.GetCatalogAsync<Notification>("Notifications")));
 
                 Debug.WriteLine("=== SINCRONIZACIÓN FINALIZADA SIN ERRORES ===");
             }
