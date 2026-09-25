@@ -52,14 +52,12 @@ namespace ControlInventarioMovil.Data
 
         public LocalDbContext()
         {
-            var basePath = FileSystem.AppDataDirectory;
-            _dbPath = Path.Combine(basePath, "inventory_local.db3");
+            _dbPath = Path.Combine(FileSystem.AppDataDirectory, "ControlInventario_Offline.db3");
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            string dbPath = Path.Combine(FileSystem.AppDataDirectory, "ControlInventario.db3");
-            optionsBuilder.UseSqlite($"Filename={_dbPath}");
+            optionsBuilder.UseSqlite($"Filename={_dbPath};Foreign Keys=True;");
         }
     }
 }

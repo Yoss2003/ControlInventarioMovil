@@ -3,6 +3,7 @@ using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
 using ControlInventarioMovil.Utilities;
 using Plugin.Maui.ImageCropper;
+using System.Text.RegularExpressions;
 
 namespace ControlInventarioMovil.Views;
 
@@ -33,16 +34,47 @@ public partial class EditProfilePage : ContentPage
             txtFirstName.TextChanged -= OnNameFieldsChanged;
             txtLastName.TextChanged -= OnNameFieldsChanged;
 
-            txtFirstName.Text = user.Employee?.FirstName ?? string.Empty;
-            txtLastName.Text = user.Employee?.LastName ?? string.Empty;
-
+            txtFirstName.Text = user.Employee?.FirstName;
+            txtLastName.Text = user.Employee?.LastName;
             txtPhoneNumber.Text = user.PhoneNumber;
+            txtAge.Text = user.Employee?.DNI;
             txtEmail.Text = user.Email;
             txtUsername.Text = user.Username;
             swIsActive.IsToggled = user.IsActive;
 
+            if (DateTime.TryParse(user.Employee?.BirthDate, out DateTime bDate))
+                dpBirthDate.Date = bDate;
+
+            if (DateTime.TryParse(user.Employee?.HireDate, out DateTime hDate))
+                dpHireDate.Date = hDate;
+
+            txtAge.Text = user.Employee?.Age?.ToString() ?? "0";
+
+            bool esAdmin = user.RoleId == 1;
+            stackActiveStatus.IsVisible = esAdmin;
+            stackRoleButtons.IsVisible = esAdmin;
+            stackAreaButtons.IsVisible = esAdmin;
+            stackPositionButtons.IsVisible = esAdmin;
+            stackContractButtons.IsVisible = esAdmin;
+            pckRole.IsEnabled = esAdmin;
+
+            if (user.MustChangePassword)
+            {
+                lblPasswordHeader.Text = "Nueva Contraseña (Obligatorio)";
+                txtPassword.Placeholder = "Escribe una contraseña segura";
+                btnSave.IsEnabled = false;
+            }
+            else
+            {
+                lblPasswordHeader.Text = "Nueva Contraseña (Opcional)";
+                txtPassword.Placeholder = "Dejar en blanco para no cambiar";
+                btnSave.IsEnabled = true;
+            }
+
             if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
+            {
                 imgProfilePreview.Source = ImageSource.FromUri(new Uri(user.ProfilePictureUrl));
+            }
 
             txtFirstName.TextChanged += OnNameFieldsChanged;
             txtLastName.TextChanged += OnNameFieldsChanged;
@@ -292,18 +324,38 @@ public partial class EditProfilePage : ContentPage
 
             if (tempPhoto != null)
             {
-                var settings = new CropSettings { AspectRatioX = 1, AspectRatioY = 1, CropShape = CropSettings.CropShapeType.Oval, PageTitle = "Ajustar Foto" };
-                string resultPath = await Cropper.Current.Crop(settings, tempPhoto.FullPath);
+                string localSafePath = Path.Combine(FileSystem.CacheDirectory, $"temp_crop_{Guid.NewGuid()}.jpg");
 
-                if (!string.IsNullOrEmpty(resultPath))
+                using (var sourceStream = await tempPhoto.OpenReadAsync())
+                using (var localFileStream = File.OpenWrite(localSafePath))
                 {
-                    _croppedPhotoPath = resultPath;
+                    await sourceStream.CopyToAsync(localFileStream);
+                }
+
+                if (DeviceInfo.Platform == DevicePlatform.WinUI || DeviceInfo.Platform == DevicePlatform.MacCatalyst)
+                {
+                    _croppedPhotoPath = localSafePath;
                     imgProfilePreview.Source = null;
-                    using var stream = File.OpenRead(_croppedPhotoPath);
-                    var memoryStream = new MemoryStream();
-                    await stream.CopyToAsync(memoryStream);
-                    memoryStream.Position = 0;
-                    imgProfilePreview.Source = ImageSource.FromStream(() => memoryStream);
+                    imgProfilePreview.Source = ImageSource.FromFile(_croppedPhotoPath);
+                }
+                else
+                {
+                    var settings = new CropSettings
+                    {
+                        AspectRatioX = 1,
+                        AspectRatioY = 1,
+                        CropShape = CropSettings.CropShapeType.Oval,
+                        PageTitle = "Ajustar Foto"
+                    };
+
+                    string resultPath = await Cropper.Current.Crop(settings, localSafePath);
+
+                    if (!string.IsNullOrEmpty(resultPath))
+                    {
+                        _croppedPhotoPath = resultPath;
+                        imgProfilePreview.Source = null;
+                        imgProfilePreview.Source = ImageSource.FromFile(_croppedPhotoPath);
+                    }
                 }
             }
         }
@@ -363,6 +415,15 @@ public partial class EditProfilePage : ContentPage
             updatedUser.Employee.AreaId = (pckArea.SelectedItem as Parameters)?.Id ?? 0;
             updatedUser.Employee.ContractTypeId = (pckContractType.SelectedItem as Parameters)?.Id ?? 0;
 
+            DateTime bDate = Convert.ToDateTime(dpBirthDate.Date);
+            updatedUser.Employee.BirthDate = bDate.ToString("yyyy-MM-dd");
+
+            DateTime hDate = Convert.ToDateTime(dpHireDate.Date);
+            updatedUser.Employee.HireDate = hDate.ToString("yyyy-MM-dd");
+
+            if (int.TryParse(txtAge.Text, out int edadCalculada))
+                updatedUser.Employee.Age = edadCalculada;
+
             updatedUser.PhoneNumber = txtPhoneNumber.Text?.Trim() ?? string.Empty;
             updatedUser.Email = txtEmail.Text.Trim();
             updatedUser.Username = txtUsername.Text.Trim();
@@ -373,9 +434,13 @@ public partial class EditProfilePage : ContentPage
                 updatedUser.Password = txtPassword.Text.Trim();
                 updatedUser.MustChangePassword = false;
             }
+            else
+            {
+                updatedUser.Password = null;
+            }
 
-            updatedUser.Role = pckRole.SelectedItem as Role;
             updatedUser.RoleId = (pckRole.SelectedItem as Role)?.Id ?? 0;
+            updatedUser.Role = null;
         }
         else
         {
@@ -450,7 +515,6 @@ public partial class EditProfilePage : ContentPage
         }
     }
 
-    // Método para cancelar la edición y regresar a la pantalla anterior sin guardar cambios
     private async void OnCancelClicked(object sender, EventArgs e)
     {
         try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
@@ -487,5 +551,68 @@ public partial class EditProfilePage : ContentPage
                     : Color.FromArgb("#1C262E");
             }
         }
+    }
+
+    private void OnPasswordTextChanged(object sender, TextChangedEventArgs e)
+    {
+        string pwd = e.NewTextValue ?? "";
+
+        bool hasLength = pwd.Length >= 8;
+        bool hasUpper = Regex.IsMatch(pwd, @"[A-Z]");
+        bool hasNumber = Regex.IsMatch(pwd, @"[0-9]");
+        bool hasSpecial = Regex.IsMatch(pwd, @"[\W_]");
+
+        UpdateRequirementLabel(reqLength, hasLength, "Mínimo 8 caracteres");
+        UpdateRequirementLabel(reqUpper, hasUpper, "Al menos una mayúscula");
+        UpdateRequirementLabel(reqNumber, hasNumber, "Al menos un número");
+        UpdateRequirementLabel(reqSpecial, hasSpecial, "Al menos un carácter especial");
+
+        bool isPasswordValid = hasLength && hasUpper && hasNumber && hasSpecial;
+
+        if (UserSession.CurrentUser != null && UserSession.CurrentUser.MustChangePassword)
+        {
+            btnSave.IsEnabled = isPasswordValid;
+        }
+        else
+        {
+            btnSave.IsEnabled = string.IsNullOrEmpty(pwd) || isPasswordValid;
+        }
+    }
+
+    private static void UpdateRequirementLabel(Label lbl, bool isValid, string text)
+    {
+        if (isValid)
+        {
+            lbl.Text = $"✅ {text}";
+            lbl.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#A2D149") : Color.FromArgb("#10B981");
+        }
+        else
+        {
+            lbl.Text = $"❌ {text}";
+            lbl.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#939CA5") : Color.FromArgb("#54606C");
+        }
+    }
+
+    private void OnPasswordInfoClicked(object sender, EventArgs e)
+    {
+        PasswordInfoOverlay.IsVisible = true;
+    }
+
+    private void OnClosePasswordInfoClicked(object sender, EventArgs e)
+    {
+        PasswordInfoOverlay.IsVisible = false;
+    }
+
+    private void OnBirthDateSelected(object sender, DateChangedEventArgs e)
+    {
+        DateTime fechaSeleccionada = Convert.ToDateTime(e.NewDate);
+        DateTime hoy = DateTime.Today;
+
+        int edad = hoy.Year - fechaSeleccionada.Year;
+
+        if (fechaSeleccionada.Date > hoy.AddYears(-edad))
+            edad--;
+
+        txtAge.Text = edad.ToString();
     }
 }

@@ -532,6 +532,19 @@ namespace ControlInventarioMovil.Views
             }
         }
 
+        private async void OnSmtpInfoClicked(object sender, EventArgs e)
+        {
+            string mensaje =
+                "1. Correo del Sistema (Emisor):\n" +
+                "Es la cuenta de Gmail desde donde saldrán los mensajes automáticos (te sugerimos crear una exclusiva para el almacén).\n\n" +
+                "2. Contraseña de Aplicación:\n" +
+                "Google no permite usar tu clave normal. Debes activar la verificación en 2 pasos en tu cuenta de Google y generar una 'Contraseña de Aplicación' (un código de 16 letras que debes pegar aquí).\n\n" +
+                "3. Correo del Aprobador (Destino):\n" +
+                "Es el gerente o dueño. Recibirá los correos para autorizar a los nuevos trabajadores. Si lo dejas en blanco, las peticiones se enviarán al Correo del Sistema.";
+
+            await DisplayAlertAsync("Guía de Configuración de Correos", mensaje, "¡Entendido!");
+        }
+
         [GeneratedRegex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$")]
         private static partial Regex ValidarEmail();
     }

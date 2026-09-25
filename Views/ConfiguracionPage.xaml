@@ -213,9 +213,14 @@
 
                             <Grid ColumnDefinitions="*, Auto">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                    <Label Text="Habilitar Envío de Correos (SMTP)" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold"/>
+
+                                    <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                                        <Label Text="Habilitar Envío de Correos (SMTP)" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="14" FontAttributes="Bold" VerticalOptions="Center"/>
+                                        <Button Text="i" FontAttributes="Bold,Italic" FontFamily="monospace" FontSize="14" WidthRequest="24" HeightRequest="24" MinimumWidthRequest="24" MinimumHeightRequest="24" CornerRadius="12" Padding="0" BackgroundColor="#8A2BE2" TextColor="White" VerticalOptions="Center" IsVisible="{Binding Source={x:Reference SwSmtpEnabled}, Path=IsToggled}" Clicked="OnSmtpInfoClicked" helpers:EfectosVisualesHelper.Animar="True"/>
+                                    </HorizontalStackLayout>
                                     <Label Text="Permite al sistema enviar correos automáticos (ej. aprobaciones)." TextColor="{AppThemeBinding Light=#54606C, Dark=#606A72}" FontSize="11"/>
                                 </VerticalStackLayout>
+
                                 <Switch x:Name="SwSmtpEnabled" Grid.Column="1" Toggled="OnSmtpToggled"/>
                             </Grid>
 

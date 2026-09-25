@@ -33,6 +33,7 @@ namespace ControlInventarioMovil.Views
         private CancellationTokenSource? _cts;
         private CancellationTokenSource? _radarCts;
         private IDispatcherTimer? _inactivityTimer;
+        private const int MinutosParaCierreSesion = 15;
         private readonly List<Grid> _botonesOrbitales;
         private readonly List<Label> _textosOrbitales;
         private List<Inventory> _almacenesDisponibles = [];
@@ -49,6 +50,11 @@ namespace ControlInventarioMovil.Views
 
             _cts = new CancellationTokenSource();
             SetupInactivityTimer();
+
+            _inactivityTimer = Dispatcher.CreateTimer();
+            _inactivityTimer.Interval = TimeSpan.FromMinutes(MinutosParaCierreSesion);
+            _inactivityTimer.Tick += OnSessionTimeout;
+            _inactivityTimer.Start();
 
             _apiService = new ApiService();
         }
@@ -82,7 +88,38 @@ namespace ControlInventarioMovil.Views
             // 3. FORMATEO DE BIENVENIDA AL USUARIO 
             string firstName = UserSession.CurrentUser.Employee?.FirstName?.Trim() ?? "";
             string lastName = UserSession.CurrentUser.Employee?.LastName?.Trim() ?? "";
-            string userRole = UserSession.CurrentUser.Role?.Name?.Trim() ?? "Usuario";
+            
+            string userRole = "Usuario";
+            if (UserSession.CurrentUser.Role != null && !string.IsNullOrEmpty(UserSession.CurrentUser.Role.Name))
+            {
+                userRole = UserSession.CurrentUser.Role.Name.Trim();
+            }
+            else if (UserSession.CurrentUser.RoleId > 0)
+            {
+                try
+                {
+                    using var context = new LocalDbContext();
+                    var rolLocal = await context.Roles.FirstOrDefaultAsync(r => r.Id == UserSession.CurrentUser.RoleId);
+
+                    if (rolLocal != null)
+                    {
+                        userRole = rolLocal.Name.Trim();
+                    }
+                    else
+                    {
+                        var rolesApi = await _apiService.GetRolesAsync();
+                        var rolEncontrado = rolesApi?.FirstOrDefault(r => r.Id == UserSession.CurrentUser.RoleId);
+                        if (rolEncontrado != null)
+                        {
+                            userRole = rolEncontrado.Name.Trim();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[ROLE_FALLBACK_ERROR]: {ex.Message}");
+                }
+            }
 
             string apellido = "";
             string nombre = UserSession.CurrentUser.Username ?? "Móvil";
@@ -160,6 +197,22 @@ namespace ControlInventarioMovil.Views
             }
 
             ResetInactivityTimer();
+        }
+
+        private async void OnSessionTimeout(object? sender, EventArgs e)
+        {
+            _inactivityTimer?.Stop();
+
+            UserSession.CurrentUser = null;
+            UserSession.CurrentProfile = null;
+            UserSession.CurrentInventory = null;
+
+            await DisplayAlertAsync("Sesión Expirada", "Tu sesión se ha cerrado por inactividad por motivos de seguridad.", "OK");
+
+            if (Application.Current?.Windows.Count > 0)
+            {
+                Application.Current.Windows[0].Page = new Views.LoginPage();
+            }
         }
 
         protected override void OnDisappearing()
@@ -396,6 +449,8 @@ namespace ControlInventarioMovil.Views
         private void OnPageInteraction(object sender, TappedEventArgs e)
         {
             if (!_estaNavegando) ResetInactivityTimer();
+            _inactivityTimer?.Stop();
+            _inactivityTimer?.Start();
         }
         private void ResetInactivityTimer()
         {

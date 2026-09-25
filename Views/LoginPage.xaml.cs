@@ -142,6 +142,10 @@ namespace ControlInventarioMovil.Views
                         {
                             user.Password = LoginPage.HashPasswordLocal(txtPassword.Text.Trim());
                             UserSession.CurrentUser = user;
+
+                            if(!String.IsNullOrEmpty(user.Token))
+                                await SecureStorage.Default.SetAsync("AuthToken", user.Token);
+
                             Preferences.Set("SelectedCompanyId", _selectedCompany.Id);
 
                             Preferences.Set("UserId", user.Id);
@@ -185,6 +189,43 @@ namespace ControlInventarioMovil.Views
                                             await localContext.Profiles.AddAsync(perfil);
                                         else
                                             localContext.Entry(localProfile).CurrentValues.SetValues(perfil);
+                                    }
+                                    else
+                                    {
+                                        perfil = new Profile
+                                        {
+                                            Username = user.Username!,
+                                            CompanyId = _selectedCompany.Id,
+                                            LanguageId = 1,
+                                            ThemeId = 1,
+                                            NotificationId = 1,
+                                            CurrencyId = 1,
+                                            MeasurementUnitId = 1,
+                                            TimeZoneId = 1,
+                                            DateFormatId = 1,
+                                            SalesModeId = 1,
+                                            ApplyLateFee = false,
+                                            LateFeePercentage = 0,
+                                            GraceDays = 0,
+                                            CalculateDevaluation = false,
+                                            SharedActivity = false,
+                                            UseBarcodes = true
+                                        };
+
+                                        await _apiService.SaveUserProfileConfigAsync(perfil);
+
+                                        UserSession.CurrentProfile = perfil;
+                                        await localContext.Profiles.AddAsync(perfil);
+
+                                        MainThread.BeginInvokeOnMainThread(() =>
+                                        {
+                                            Application.Current!.UserAppTheme = AppTheme.Light;
+                                        });
+
+                                        Preferences.Set("UseBarcodes", true);
+                                        Preferences.Set("CurrencyId", 1);
+                                        Preferences.Set("DateFormatId", 1);
+                                        Preferences.Set("SalesModeId", 1);
                                     }
 
                                     var existingUser = await localContext.Users.FirstOrDefaultAsync(u => u.Username == user.Username);
@@ -361,7 +402,10 @@ namespace ControlInventarioMovil.Views
 
                 if (_empresasDisponibles.Count != 0)
                 {
-                    _currentCompanyIndex = 0;
+                    int ultimaEmpresaId = Preferences.Get("SelectedCompanyId", 0);
+                    int indiceEncontrado = _empresasDisponibles.FindIndex(e => e.Id == ultimaEmpresaId);
+                    _currentCompanyIndex = indiceEncontrado >= 0 ? indiceEncontrado : 0;
+
                     ActualizarVistaEmpresa();
                 }
                 else
