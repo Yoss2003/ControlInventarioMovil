@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "924137658710",
+    "project_id": "inventarioapp-653bb",
+    "storage_bucket": "inventarioapp-653bb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:924137658710:android:834083456352de85499ef7",
+        "android_client_info": {
+          "package_name": "com.companyname.controlinventariomovil"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkO2NS0TIQxZzL7vXFhrG4narimLLYtuk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

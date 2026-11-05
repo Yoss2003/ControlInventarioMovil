@@ -1,11 +1,9 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Helpers;
-using ControlInventarioMovil.Services;
 using ControlInventarioMovil.Utilities;
+using ControlInventarioMovil.ViewModels;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Button = Microsoft.Maui.Controls.Button;
 
@@ -14,44 +12,17 @@ namespace ControlInventarioMovil.Views
     public partial class CategoriasPage : ContentPage
     {
         private bool _isCargandoUnidades = false;
-        private readonly ApiService _apiService;
-        private ObservableCollection<CategoriaPadreUI> _categoriasPadre = [];
+        private readonly CategoriasViewModel _viewModel;
         private Category? _categoriaEnEdicion = null;
         private readonly List<int> _unidadesSeleccionadasTemporales = [];
         private Category? _categoriaUnidadesActual = null;
         private bool _isSystemEdit = false;
-
-        // 🚀 VARIABLE DE BACKUP 
         private string _formulaBackupCat = "";
-
-        public partial class SelectableUnit : INotifyPropertyChanged
-        {
-            public MeasurementUnit Unit { get; set; } = null!;
-            private bool _isSelected;
-            public bool IsSelected
-            {
-                get => _isSelected;
-                set
-                {
-                    if (_isSelected != value)
-                    {
-                        _isSelected = value;
-                        OnPropertyChanged();
-                    }
-                }
-            }
-
-            public event PropertyChangedEventHandler? PropertyChanged;
-            protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-            {
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-            }
-        }
 
         public CategoriasPage()
         {
             InitializeComponent();
-            _apiService = new ApiService();
+            _viewModel = new CategoriasViewModel();
         }
 
         protected override async void OnAppearing()
@@ -67,7 +38,7 @@ namespace ControlInventarioMovil.Views
                 OverlayCarga.IsVisible = true;
                 OverlayCarga.Opacity = 1;
 
-                var todasLasCategorias = await _apiService.GetCategoriesAsync();
+                var todasLasCategorias = await _viewModel.ObtenerCategoriasBrutasAsync();
 
                 var padresClasificados = todasLasCategorias
                     .Where(c => (c.ParentCategoryId == null || c.ParentCategoryId == 0) && c.IsActive)
@@ -80,20 +51,20 @@ namespace ControlInventarioMovil.Views
                     )
                 }).ToList();
 
-                _categoriasPadre = new ObservableCollection<CategoriaPadreUI>(padres);
+                _viewModel.CategoriasPadre = new ObservableCollection<CategoriaPadreUI>(padres);
 
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    ColCategoriasPadre.ItemsSource = _categoriasPadre;
+                    ColCategoriasPadre.ItemsSource = _viewModel.CategoriasPadre;
 
-                    bool hayDatos = _categoriasPadre.Any();
+                    bool hayDatos = _viewModel.CategoriasPadre.Any();
                     ColCategoriasPadre.IsVisible = hayDatos;
                     SecEstadoVacio.IsVisible = !hayDatos;
 
                     PkrPadre.Items.Clear();
                     PkrPadre.Items.Add("-- SELECCIONE --");
 
-                    foreach (var cat in _categoriasPadre)
+                    foreach (var cat in _viewModel.CategoriasPadre)
                     {
                         PkrPadre.Items.Add(cat.Name);
                     }
@@ -106,7 +77,6 @@ namespace ControlInventarioMovil.Views
             {
                 CrashLogger.LogHandledException(ex, "CategoriasPage - CargarCategoriasPadre");
                 OverlayCarga.IsVisible = false;
-                return;
             }
         }
 
@@ -166,10 +136,7 @@ namespace ControlInventarioMovil.Views
             if (confirmar)
             {
                 OverlayCarga.IsVisible = true;
-
-                categoriaPadre.IsActive = false;
-                bool exito = await _apiService.DeleteCategoryAsync(categoriaPadre.Id);
-
+                bool exito = await _viewModel.EliminarCategoriaAsync(categoriaPadre.Id);
                 OverlayCarga.IsVisible = false;
 
                 if (exito)
@@ -186,9 +153,8 @@ namespace ControlInventarioMovil.Views
 
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        _categoriasPadre.Remove(categoriaPadre);
-
-                        if (!_categoriasPadre.Any())
+                        _viewModel.CategoriasPadre.Remove(categoriaPadre);
+                        if (!_viewModel.CategoriasPadre.Any())
                         {
                             ColCategoriasPadre.IsVisible = false;
                             SecEstadoVacio.IsVisible = true;
@@ -216,31 +182,18 @@ namespace ControlInventarioMovil.Views
             if (subcategoria == null) return;
 
             OverlayCarga.IsVisible = true;
+            var articulosVinculados = await _viewModel.ObtenerArticulosVinculadosAsync(subcategoria.Id);
+            OverlayCarga.IsVisible = false;
 
-            try
+            if (articulosVinculados.Count != 0)
             {
-                var todosLosArticulos = await _apiService.GetArticlesAsync();
-                var articulosVinculados = todosLosArticulos?.Where(a => a.CategoryId == subcategoria.Id && a.ActionId != 6).ToList();
+                string nombresArticulos = string.Join("\n• ", articulosVinculados.Select(a => a.Name).Take(3));
+                string extra = articulosVinculados.Count > 3 ? $"\n...y {articulosVinculados.Count - 3} más." : "";
 
-                if (articulosVinculados != null && articulosVinculados.Count != 0)
-                {
-                    OverlayCarga.IsVisible = false;
-                    string nombresArticulos = string.Join("\n• ", articulosVinculados.Select(a => a.Name).Take(3));
-                    string extra = articulosVinculados.Count > 3 ? $"\n...y {articulosVinculados.Count - 3} más." : "";
-
-                    await DisplayAlertAsync("Acción Denegada",
-                        $"No puedes eliminar esta categoría porque contiene artículos activos en stock:\n\n• {nombresArticulos}{extra}",
-                        "Entendido");
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                CrashLogger.LogHandledException(ex, "CategoriasPage - OnEliminarSubcategoriaClicked (Validación)");
-            }
-            finally
-            {
-                OverlayCarga.IsVisible = false;
+                await DisplayAlertAsync("Acción Denegada",
+                    $"No puedes eliminar esta categoría porque contiene artículos activos en stock:\n\n• {nombresArticulos}{extra}",
+                    "Entendido");
+                return;
             }
 
             bool confirmar = await DisplayAlertAsync("Eliminar Categoría",
@@ -250,9 +203,7 @@ namespace ControlInventarioMovil.Views
             if (confirmar)
             {
                 OverlayCarga.IsVisible = true;
-
-                subcategoria.IsActive = false;
-                bool exito = await _apiService.DeleteCategoryAsync(subcategoria.Id);
+                bool exito = await _viewModel.EliminarCategoriaAsync(subcategoria.Id);
                 OverlayCarga.IsVisible = false;
 
                 if (exito)
@@ -268,7 +219,7 @@ namespace ControlInventarioMovil.Views
 
                     MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        var padre = _categoriasPadre.FirstOrDefault(p => p.Subcategorias.Any(h => h.Id == subcategoria.Id));
+                        var padre = _viewModel.CategoriasPadre.FirstOrDefault(p => p.Subcategorias.Any(h => h.Id == subcategoria.Id));
                         if (padre != null)
                         {
                             var itemToRemove = padre.Subcategorias.FirstOrDefault(h => h.Id == subcategoria.Id);
@@ -293,7 +244,6 @@ namespace ControlInventarioMovil.Views
             _categoriaEnEdicion = (CategoriaPadreUI)boton.BindingContext;
 
             LblFormTitulo.Text = "EDITAR CATEGORÍA PADRE";
-
             BtnConfirmarForm.Text = "ACTUALIZAR";
             BtnConfirmarForm.BackgroundColor = Color.FromArgb("#EFA72F");
             BtnConfirmarForm.TextColor = Color.FromArgb("#1C262E");
@@ -312,7 +262,6 @@ namespace ControlInventarioMovil.Views
             AbrirFormulario();
         }
 
-        // 🚀 MÉTODO SEGURO PARA ACTUALIZAR LA FÓRMULA SIN DISPARAR LA VALIDACIÓN
         private void SetFormulaText(string text)
         {
             _isSystemEdit = true;
@@ -328,7 +277,6 @@ namespace ControlInventarioMovil.Views
             _categoriaEnEdicion = (Category)boton.BindingContext;
 
             LblFormTitulo.Text = "EDITAR CATEGORÍA HIJA";
-
             BtnConfirmarForm.Text = "ACTUALIZAR";
             BtnConfirmarForm.BackgroundColor = Color.FromArgb("#EFA72F");
             BtnConfirmarForm.TextColor = Color.FromArgb("#1C262E");
@@ -336,23 +284,12 @@ namespace ControlInventarioMovil.Views
             TxtNombreCat.Text = _categoriaEnEdicion.Name;
             TxtDescription.Text = _categoriaEnEdicion.Description;
 
-            TxtLabel1.Text = _categoriaEnEdicion.Label1;
-            ChkUniqueL1.IsChecked = _categoriaEnEdicion.IsUnique1;
-
-            TxtLabel2.Text = _categoriaEnEdicion.Label2;
-            ChkUniqueL2.IsChecked = _categoriaEnEdicion.IsUnique2;
-
-            TxtLabel3.Text = _categoriaEnEdicion.Label3;
-            ChkUniqueL3.IsChecked = _categoriaEnEdicion.IsUnique3;
-
-            TxtLabel4.Text = _categoriaEnEdicion.Label4;
-            ChkUniqueL4.IsChecked = _categoriaEnEdicion.IsUnique4;
-
-            TxtLabel5.Text = _categoriaEnEdicion.Label5;
-            ChkUniqueL5.IsChecked = _categoriaEnEdicion.IsUnique5;
-
-            TxtLabel6.Text = _categoriaEnEdicion.Label6;
-            ChkUniqueL6.IsChecked = _categoriaEnEdicion.IsUnique6;
+            TxtLabel1.Text = _categoriaEnEdicion.Label1; ChkUniqueL1.IsChecked = _categoriaEnEdicion.IsUnique1;
+            TxtLabel2.Text = _categoriaEnEdicion.Label2; ChkUniqueL2.IsChecked = _categoriaEnEdicion.IsUnique2;
+            TxtLabel3.Text = _categoriaEnEdicion.Label3; ChkUniqueL3.IsChecked = _categoriaEnEdicion.IsUnique3;
+            TxtLabel4.Text = _categoriaEnEdicion.Label4; ChkUniqueL4.IsChecked = _categoriaEnEdicion.IsUnique4;
+            TxtLabel5.Text = _categoriaEnEdicion.Label5; ChkUniqueL5.IsChecked = _categoriaEnEdicion.IsUnique5;
+            TxtLabel6.Text = _categoriaEnEdicion.Label6; ChkUniqueL6.IsChecked = _categoriaEnEdicion.IsUnique6;
 
             ActualizarVisibilidadBotonesSlots();
 
@@ -363,96 +300,72 @@ namespace ControlInventarioMovil.Views
 
             if (_categoriaEnEdicion.ParentCategoryId.HasValue)
             {
-                var padreEncontrado = _categoriasPadre.FirstOrDefault(p => p.Id == _categoriaEnEdicion.ParentCategoryId.Value);
-                int index = padreEncontrado != null ? _categoriasPadre.IndexOf(padreEncontrado) : -1;
+                var padreEncontrado = _viewModel.CategoriasPadre.FirstOrDefault(p => p.Id == _categoriaEnEdicion.ParentCategoryId.Value);
+                int index = padreEncontrado != null ? _viewModel.CategoriasPadre.IndexOf(padreEncontrado) : -1;
                 PkrPadre.SelectedIndex = index >= 0 ? index + 1 : 0;
             }
 
             if (_categoriaEnEdicion.TrackingMode == TrackingMode.Serialized.ToString())
             {
-                PkrTrackingMode.SelectedIndex = 1;
-                SecAtributos.IsVisible = true;
-                SecNamingMethod.IsVisible = true;
+                PkrTrackingMode.SelectedIndex = 1; SecAtributos.IsVisible = true; SecNamingMethod.IsVisible = true;
             }
             else if (_categoriaEnEdicion.TrackingMode == TrackingMode.Standard.ToString())
             {
-                PkrTrackingMode.SelectedIndex = 2;
-                SecAtributos.IsVisible = true;
-                SecNamingMethod.IsVisible = true;
+                PkrTrackingMode.SelectedIndex = 2; SecAtributos.IsVisible = true; SecNamingMethod.IsVisible = true;
             }
             else if (_categoriaEnEdicion.TrackingMode == TrackingMode.Bulk.ToString())
             {
-                PkrTrackingMode.SelectedIndex = 3;
-                SecAtributos.IsVisible = false;
-                SecNamingMethod.IsVisible = true;
+                PkrTrackingMode.SelectedIndex = 3; SecAtributos.IsVisible = false; SecNamingMethod.IsVisible = true;
             }
             else
             {
                 SecNamingMethod.IsVisible = false;
             }
 
-            SwRetornable.IsToggled = _categoriaEnEdicion.IsReturnable == 1;
-
+            SwRetornable.IsToggled = _categoriaEnEdicion.IsReturnable;
             ActualizarControlesNamingSegunTracking();
 
             bool esGranel = PkrTrackingMode.SelectedIndex == 3;
-
             if (esGranel)
             {
                 SwModoLibre.IsToggled = false;
                 ContenedorCheckLibre.IsVisible = false;
-
-                ContainerBotonesNaming.Opacity = 0;
-                ContainerBotonesNaming.InputTransparent = true;
-
-                ContainerPickerNaming.IsVisible = true;
-                ContainerTxtNaming.IsVisible = false;
-
-                PkrNaming.SelectedIndex = 0;
-                SetFormulaText("[Marca]");
+                ContainerBotonesNaming.Opacity = 0; ContainerBotonesNaming.InputTransparent = true;
+                ContainerPickerNaming.IsVisible = true; ContainerTxtNaming.IsVisible = false;
+                PkrNaming.SelectedIndex = 0; SetFormulaText("[Marca]");
             }
             else
             {
                 ContenedorCheckLibre.IsVisible = true;
-
                 if (!string.IsNullOrEmpty(_categoriaEnEdicion.NamingMethod))
                 {
                     if (_categoriaEnEdicion.NamingMethod == "Código + Modelo" || _categoriaEnEdicion.NamingMethod == "Solo Empaque" || _categoriaEnEdicion.NamingMethod == "Nombre")
                     {
                         SwModoLibre.IsToggled = false;
                         PkrNaming.SelectedItem = _categoriaEnEdicion.NamingMethod;
-                        ContainerPickerNaming.IsVisible = true;
-                        ContainerTxtNaming.IsVisible = false;
-
-                        ContainerBotonesNaming.Opacity = 0;
-                        ContainerBotonesNaming.InputTransparent = true;
+                        ContainerPickerNaming.IsVisible = true; ContainerTxtNaming.IsVisible = false;
+                        ContainerBotonesNaming.Opacity = 0; ContainerBotonesNaming.InputTransparent = true;
                         SetFormulaText("[Marca]");
                     }
                     else
                     {
                         SwModoLibre.IsToggled = true;
-                        ContainerPickerNaming.IsVisible = false;
-                        ContainerTxtNaming.IsVisible = true;
-
-                        ContainerBotonesNaming.Opacity = 1;
-                        ContainerBotonesNaming.InputTransparent = false;
-
+                        ContainerPickerNaming.IsVisible = false; ContainerTxtNaming.IsVisible = true;
+                        ContainerBotonesNaming.Opacity = 1; ContainerBotonesNaming.InputTransparent = false;
                         SetFormulaText(_categoriaEnEdicion.NamingMethod);
                         ActualizarColoresBotonesNaming();
                     }
                 }
                 else
                 {
-                    SwModoLibre.IsToggled = false;
-                    PkrNaming.SelectedIndex = 0;
-                    ContainerPickerNaming.IsVisible = true;
-                    ContainerTxtNaming.IsVisible = false;
+                    SwModoLibre.IsToggled = false; PkrNaming.SelectedIndex = 0;
+                    ContainerPickerNaming.IsVisible = true; ContainerTxtNaming.IsVisible = false;
                     SetFormulaText("[Marca]");
                 }
             }
 
             _unidadesSeleccionadasTemporales.Clear();
-            if (_categoriaEnEdicion.SelectedUnitIds != null)
+            if (_categoriaEnEdicion.SelectedUnitIds != null && _categoriaEnEdicion.SelectedUnitIds.Count > 0)
             {
                 _unidadesSeleccionadasTemporales.AddRange(_categoriaEnEdicion.SelectedUnitIds);
             }
@@ -482,11 +395,9 @@ namespace ControlInventarioMovil.Views
                 {
                     bool continuar = await DisplayAlertAsync(
                         "Verificación de Atributos",
-                        "No has marcado ningún atributo dinámico como 'Dato Único'.\n\nEsto significa que el único dato irrepetible para esta categoría será el [Número de Serie] principal, y el resto de especificaciones serán compartidas.\n\n¿Estás seguro de guardar la configuración así?",
-                        "Sí, guardar",
-                        "No, revisar"
+                        "No has marcado ningún atributo dinámico como 'Dato Único'.\n\n¿Estás seguro de guardar la configuración así?",
+                        "Sí, guardar", "No, revisar"
                     );
-
                     if (!continuar) return;
                 }
 
@@ -496,34 +407,24 @@ namespace ControlInventarioMovil.Views
                     return;
                 }
 
-                if (OverlayCarga != null)
-                {
-                    OverlayCarga.Opacity = 1;
-                    OverlayCarga.IsVisible = true;
-                }
-
-                var lblCarga = this.FindByName<Label>("LblOverlayCarga");
-                lblCarga?.Text = _categoriaEnEdicion == null ? "Guardando categoría..." : "Actualizando categoría...";
-
+                OverlayCarga.Opacity = 1; OverlayCarga.IsVisible = true;
+                LblOverlayCarga.Text = _categoriaEnEdicion == null ? "Guardando categoría..." : "Actualizando categoría...";
                 await Task.Delay(100);
 
                 int? parentId = null;
                 if (SecContexto.IsVisible && PkrPadre.SelectedIndex > 0)
-                    parentId = _categoriasPadre[PkrPadre.SelectedIndex - 1].Id;
+                    parentId = _viewModel.CategoriasPadre[PkrPadre.SelectedIndex - 1].Id;
 
                 string? namingMethod = string.Empty;
                 bool esGranel = SecNamingMethod.IsVisible && PkrTrackingMode.SelectedIndex == 3;
 
                 if (SecNamingMethod.IsVisible)
                 {
-                    if (esGranel)
-                        namingMethod = "Nombre";
+                    if (esGranel) namingMethod = "Nombre";
                     else
                     {
-                        if (SwModoLibre.IsToggled)
-                            namingMethod = TxtNamingCustom.Text;
-                        else if (PkrNaming.SelectedIndex >= 0)
-                            namingMethod = PkrNaming.SelectedItem?.ToString();
+                        if (SwModoLibre.IsToggled) namingMethod = TxtNamingCustom.Text;
+                        else if (PkrNaming.SelectedIndex >= 0) namingMethod = PkrNaming.SelectedItem?.ToString();
                     }
                 }
 
@@ -533,7 +434,6 @@ namespace ControlInventarioMovil.Views
                 if (PkrTrackingMode.SelectedIndex > 0)
                 {
                     esRetornable = SwRetornable.IsToggled;
-
                     if (PkrTrackingMode.SelectedIndex == 1) trackingModeEnum = TrackingMode.Serialized;
                     else if (PkrTrackingMode.SelectedIndex == 2) trackingModeEnum = TrackingMode.Standard;
                     else if (PkrTrackingMode.SelectedIndex == 3) trackingModeEnum = TrackingMode.Bulk;
@@ -541,60 +441,42 @@ namespace ControlInventarioMovil.Views
 
                 var categoriaProcesada = new Category
                 {
-                    Id = _categoriaEnEdicion != null ? _categoriaEnEdicion.Id : 0,
+                    Id = _categoriaEnEdicion?.Id ?? 0,
                     InventoryId = UserSession.CurrentInventory?.Id ?? 1,
                     Name = TxtNombreCat.Text,
                     ParentCategoryId = parentId,
                     TrackingMode = trackingModeEnum.ToString(),
                     NamingMethod = namingMethod,
                     Description = TxtDescription.Text,
-                    IsReturnable = esRetornable ? 1 : 0,
-                    CreationDate = _categoriaEnEdicion != null ? _categoriaEnEdicion.CreationDate : DateTime.Now,
-                    CreationUser = _categoriaEnEdicion != null ? _categoriaEnEdicion.CreationUser : "Admin",
+                    IsReturnable = esRetornable,
+                    CreationDate = _categoriaEnEdicion?.CreationDate ?? DateTime.Now,
+                    CreationUser = _categoriaEnEdicion?.CreationUser ?? "Admin",
                     SelectedUnitIds = [.. _unidadesSeleccionadasTemporales],
                     Label1 = TxtLabel1.Text,
                     IsUnique1 = ChkUniqueL1.IsChecked,
-
                     Label2 = TxtLabel2.Text,
                     IsUnique2 = ChkUniqueL2.IsChecked,
-
                     Label3 = TxtLabel3.Text,
                     IsUnique3 = ChkUniqueL3.IsChecked,
-
                     Label4 = TxtLabel4.Text,
                     IsUnique4 = ChkUniqueL4.IsChecked,
-
                     Label5 = TxtLabel5.Text,
                     IsUnique5 = ChkUniqueL5.IsChecked,
-
                     Label6 = TxtLabel6.Text,
                     IsUnique6 = ChkUniqueL6.IsChecked,
-
                     IsActive = true
                 };
 
-                bool exito;
-                if (_categoriaEnEdicion == null)
-                {
-                    exito = await _apiService.CreateCategoryAsync(categoriaProcesada);
-                }
-                else
-                {
-                    exito = await _apiService.UpdateCategoryAsync(categoriaProcesada);
-                }
+                bool exito = await _viewModel.GuardarCategoriaAsync(categoriaProcesada, _categoriaEnEdicion != null);
 
-                if (OverlayCarga != null)
-                {
-                    await OverlayCarga.FadeToAsync(0, 200);
-                    OverlayCarga.IsVisible = false;
-                }
+                await OverlayCarga.FadeToAsync(0, 200);
+                OverlayCarga.IsVisible = false;
 
                 if (exito)
                 {
                     OnCerrarFormClicked(null, null);
-                    lblCarga?.Text = "Refrescando datos...";
-                    if (OverlayCarga != null) { OverlayCarga.Opacity = 1; OverlayCarga.IsVisible = true; }
-
+                    LblOverlayCarga.Text = "Refrescando datos...";
+                    OverlayCarga.Opacity = 1; OverlayCarga.IsVisible = true;
                     await CargarCategoriasPadre();
                 }
                 else
@@ -604,10 +486,9 @@ namespace ControlInventarioMovil.Views
             }
             catch (Exception ex)
             {
-                OverlayCarga?.IsVisible = false;
+                OverlayCarga.IsVisible = false;
                 CrashLogger.LogHandledException(ex, "CategoriasPage - OnConfirmarFormClicked");
                 await DisplayAlertAsync("Error Crítico", $"No se pudo guardar la categoría: {ex.Message}", "OK");
-                return;
             }
         }
 
@@ -615,17 +496,12 @@ namespace ControlInventarioMovil.Views
         {
             _categoriaEnEdicion = null;
             LblFormTitulo.Text = "AGREGAR CATEGORÍA PADRE";
-
             BtnConfirmarForm.Text = "GUARDAR";
             BtnConfirmarForm.BackgroundColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
             BtnConfirmarForm.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#1C262E") : Colors.White;
 
-            SecReglas.IsVisible = false;
-            SecContexto.IsVisible = false;
-            SecAtributos.IsVisible = false;
-            SecNamingMethod.IsVisible = false;
-            SecUnidadesMedida.IsVisible = false;
-            ContenedorRetornable.IsVisible = false;
+            SecReglas.IsVisible = false; SecContexto.IsVisible = false; SecAtributos.IsVisible = false;
+            SecNamingMethod.IsVisible = false; SecUnidadesMedida.IsVisible = false; ContenedorRetornable.IsVisible = false;
             Grid.SetColumnSpan(SecNombre, 2);
             AbrirFormulario();
         }
@@ -634,17 +510,12 @@ namespace ControlInventarioMovil.Views
         {
             _categoriaEnEdicion = null;
             LblFormTitulo.Text = "AGREGAR CATEGORÍA HIJA";
-
             BtnConfirmarForm.Text = "GUARDAR";
             BtnConfirmarForm.BackgroundColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
             BtnConfirmarForm.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#1C262E") : Colors.White;
 
-            SecReglas.IsVisible = true;
-            SecContexto.IsVisible = true;
-            SecAtributos.IsVisible = false;
-            SecNamingMethod.IsVisible = false;
-            SecUnidadesMedida.IsVisible = true;
-            ContenedorRetornable.IsVisible = false;
+            SecReglas.IsVisible = true; SecContexto.IsVisible = true; SecAtributos.IsVisible = false;
+            SecNamingMethod.IsVisible = false; SecUnidadesMedida.IsVisible = true; ContenedorRetornable.IsVisible = false;
             Grid.SetColumnSpan(SecNombre, 1);
 
             _unidadesSeleccionadasTemporales.Clear();
@@ -670,33 +541,16 @@ namespace ControlInventarioMovil.Views
             FormOverlay.IsVisible = false;
             _categoriaEnEdicion = null;
 
-            TxtNombreCat.Text = string.Empty;
-            TxtDescription.Text = string.Empty;
-            TxtLabel1.Text = string.Empty;
-            TxtLabel2.Text = string.Empty;
-            TxtLabel3.Text = string.Empty;
-            TxtLabel4.Text = string.Empty;
-            TxtLabel5.Text = string.Empty;
-            TxtLabel6.Text = string.Empty;
-            ChkUniqueL1.IsChecked = false;
-            ChkUniqueL2.IsChecked = false;
-            ChkUniqueL3.IsChecked = false;
-            ChkUniqueL4.IsChecked = false;
-            ChkUniqueL5.IsChecked = false;
-            ChkUniqueL6.IsChecked = false;
+            TxtNombreCat.Text = string.Empty; TxtDescription.Text = string.Empty;
+            TxtLabel1.Text = string.Empty; TxtLabel2.Text = string.Empty; TxtLabel3.Text = string.Empty;
+            TxtLabel4.Text = string.Empty; TxtLabel5.Text = string.Empty; TxtLabel6.Text = string.Empty;
+            ChkUniqueL1.IsChecked = false; ChkUniqueL2.IsChecked = false; ChkUniqueL3.IsChecked = false;
+            ChkUniqueL4.IsChecked = false; ChkUniqueL5.IsChecked = false; ChkUniqueL6.IsChecked = false;
 
-            _formulaBackupCat = "";
-            _isSystemEdit = true;
-            TxtNamingCustom.Text = string.Empty;
-            _isSystemEdit = false;
+            _formulaBackupCat = ""; _isSystemEdit = true; TxtNamingCustom.Text = string.Empty; _isSystemEdit = false;
 
-            ActualizarVisibilidadBotonesSlots();
-            ActualizarColoresBotonesNaming();
-
-            PkrPadre.SelectedIndex = 0;
-            PkrTrackingMode.SelectedIndex = 0;
-            PkrNaming.SelectedIndex = 0;
-            SwModoLibre.IsToggled = false;
+            ActualizarVisibilidadBotonesSlots(); ActualizarColoresBotonesNaming();
+            PkrPadre.SelectedIndex = 0; PkrTrackingMode.SelectedIndex = 0; PkrNaming.SelectedIndex = 0; SwModoLibre.IsToggled = false;
         }
 
         private async void OnVolverClicked(object sender, EventArgs e)
@@ -704,9 +558,7 @@ namespace ControlInventarioMovil.Views
             try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
             if (sender is View btn) btn.IsEnabled = false;
             await Task.Delay(50);
-
             await Shell.Current.GoToAsync("..");
-
             if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
         }
 
@@ -714,152 +566,72 @@ namespace ControlInventarioMovil.Views
         {
             if (PkrTrackingMode.SelectedIndex <= 0)
             {
-                ContenedorRetornable.IsVisible = false;
-                SwRetornable.IsToggled = false;
-                BtnConfigurarUnidades.IsEnabled = false;
-                SecAtributos.IsVisible = false;
-                SecNamingMethod.IsVisible = false;
+                ContenedorRetornable.IsVisible = false; SwRetornable.IsToggled = false;
+                BtnConfigurarUnidades.IsEnabled = false; SecAtributos.IsVisible = false; SecNamingMethod.IsVisible = false;
                 return;
             }
 
             SecNamingMethod.IsVisible = true;
-
             string? seleccion = PkrTrackingMode.SelectedItem?.ToString();
 
-            if (seleccion == "Serializado" || seleccion == "Estándar")
-            {
-                ContenedorRetornable.IsVisible = true;
-            }
-            else
-            {
-                ContenedorRetornable.IsVisible = false;
-                SwRetornable.IsToggled = false;
-            }
+            if (seleccion == "Serializado" || seleccion == "Estándar") ContenedorRetornable.IsVisible = true;
+            else { ContenedorRetornable.IsVisible = false; SwRetornable.IsToggled = false; }
 
-            if (seleccion == "Serializado")
-            {
-                BtnConfigurarUnidades.IsEnabled = false;
-                _unidadesSeleccionadasTemporales.Clear();
-                SecAtributos.IsVisible = true;
-            }
-            else
-            {
-                BtnConfigurarUnidades.IsEnabled = true;
-                SecAtributos.IsVisible = false;
-            }
+            if (seleccion == "Serializado") { BtnConfigurarUnidades.IsEnabled = false; _unidadesSeleccionadasTemporales.Clear(); }
+            else { BtnConfigurarUnidades.IsEnabled = true; }
 
-            if (seleccion == "Serializado" || seleccion == "Estándar")
-            {
-                SecAtributos.IsVisible = true;
-            }
-            else
-            {
-                SecAtributos.IsVisible = false;
-            }
-
+            SecAtributos.IsVisible = (seleccion == "Serializado" || seleccion == "Estándar");
             ActualizarControlesNamingSegunTracking();
         }
 
         private void ActualizarControlesNamingSegunTracking()
         {
             bool isBulk = PkrTrackingMode.SelectedIndex == 3;
-
             PkrNaming.Items.Clear();
             if (isBulk)
             {
-                PkrNaming.Items.Add("Nombre");
-                PkrNaming.SelectedIndex = 0;
-
-                SwModoLibre.IsToggled = false;
-                ContenedorCheckLibre.IsVisible = false;
-
-                ContainerBotonesNaming.Opacity = 0;
-                ContainerBotonesNaming.InputTransparent = true;
-
-                ContainerPickerNaming.IsVisible = true;
-                ContainerTxtNaming.IsVisible = false;
+                PkrNaming.Items.Add("Nombre"); PkrNaming.SelectedIndex = 0;
+                SwModoLibre.IsToggled = false; ContenedorCheckLibre.IsVisible = false;
+                ContainerBotonesNaming.Opacity = 0; ContainerBotonesNaming.InputTransparent = true;
+                ContainerPickerNaming.IsVisible = true; ContainerTxtNaming.IsVisible = false;
             }
             else
             {
-                PkrNaming.Items.Add("Código + Modelo");
-                PkrNaming.Items.Add("Solo Empaque");
-                PkrNaming.Items.Add("Nombre");
-                PkrNaming.SelectedIndex = 0;
-
-                ContenedorCheckLibre.IsVisible = true;
+                PkrNaming.Items.Add("Código + Modelo"); PkrNaming.Items.Add("Solo Empaque"); PkrNaming.Items.Add("Nombre");
+                PkrNaming.SelectedIndex = 0; ContenedorCheckLibre.IsVisible = true;
             }
 
-            BtnTagSerie.IsVisible = !isBulk;
-            BtnTagModelo.IsVisible = !isBulk;
-            BtnTagPresentacion.IsVisible = !isBulk;
-
-            if (isBulk)
-            {
-                SetFormulaText("[Marca]");
-            }
+            BtnTagSerie.IsVisible = !isBulk; BtnTagModelo.IsVisible = !isBulk; BtnTagPresentacion.IsVisible = !isBulk;
+            if (isBulk) SetFormulaText("[Marca]");
         }
 
         private void OnLabelTextChanged(object sender, TextChangedEventArgs e)
         {
-            ActualizarVisibilidadBotonesSlots();
-            ActualizarColoresBotonesNaming();
+            ActualizarVisibilidadBotonesSlots(); ActualizarColoresBotonesNaming();
         }
 
         private void ActualizarVisibilidadBotonesSlots()
         {
-            // Atributo 1
-            bool has1 = !string.IsNullOrWhiteSpace(TxtLabel1.Text);
-            BtnTagL1.IsVisible = has1; if (has1) BtnTagL1.Text = TxtLabel1.Text;
-            ChkUniqueL1.IsEnabled = has1; if (!has1) ChkUniqueL1.IsChecked = false;
-
-            // Atributo 2
-            bool has2 = !string.IsNullOrWhiteSpace(TxtLabel2.Text);
-            BtnTagL2.IsVisible = has2; if (has2) BtnTagL2.Text = TxtLabel2.Text;
-            ChkUniqueL2.IsEnabled = has2; if (!has2) ChkUniqueL2.IsChecked = false;
-
-            // Atributo 3
-            bool has3 = !string.IsNullOrWhiteSpace(TxtLabel3.Text);
-            BtnTagL3.IsVisible = has3; if (has3) BtnTagL3.Text = TxtLabel3.Text;
-            ChkUniqueL3.IsEnabled = has3; if (!has3) ChkUniqueL3.IsChecked = false;
-
-            // Atributo 4
-            bool has4 = !string.IsNullOrWhiteSpace(TxtLabel4.Text);
-            BtnTagL4.IsVisible = has4; if (has4) BtnTagL4.Text = TxtLabel4.Text;
-            ChkUniqueL4.IsEnabled = has4; if (!has4) ChkUniqueL4.IsChecked = false;
-
-            // Atributo 5
-            bool has5 = !string.IsNullOrWhiteSpace(TxtLabel5.Text);
-            BtnTagL5.IsVisible = has5; if (has5) BtnTagL5.Text = TxtLabel5.Text;
-            ChkUniqueL5.IsEnabled = has5; if (!has5) ChkUniqueL5.IsChecked = false;
-
-            // Atributo 6
-            bool has6 = !string.IsNullOrWhiteSpace(TxtLabel6.Text);
-            BtnTagL6.IsVisible = has6; if (has6) BtnTagL6.Text = TxtLabel6.Text;
-            ChkUniqueL6.IsEnabled = has6; if (!has6) ChkUniqueL6.IsChecked = false;
+            bool has1 = !string.IsNullOrWhiteSpace(TxtLabel1.Text); BtnTagL1.IsVisible = has1; if (has1) BtnTagL1.Text = TxtLabel1.Text; ChkUniqueL1.IsEnabled = has1; if (!has1) ChkUniqueL1.IsChecked = false;
+            bool has2 = !string.IsNullOrWhiteSpace(TxtLabel2.Text); BtnTagL2.IsVisible = has2; if (has2) BtnTagL2.Text = TxtLabel2.Text; ChkUniqueL2.IsEnabled = has2; if (!has2) ChkUniqueL2.IsChecked = false;
+            bool has3 = !string.IsNullOrWhiteSpace(TxtLabel3.Text); BtnTagL3.IsVisible = has3; if (has3) BtnTagL3.Text = TxtLabel3.Text; ChkUniqueL3.IsEnabled = has3; if (!has3) ChkUniqueL3.IsChecked = false;
+            bool has4 = !string.IsNullOrWhiteSpace(TxtLabel4.Text); BtnTagL4.IsVisible = has4; if (has4) BtnTagL4.Text = TxtLabel4.Text; ChkUniqueL4.IsEnabled = has4; if (!has4) ChkUniqueL4.IsChecked = false;
+            bool has5 = !string.IsNullOrWhiteSpace(TxtLabel5.Text); BtnTagL5.IsVisible = has5; if (has5) BtnTagL5.Text = TxtLabel5.Text; ChkUniqueL5.IsEnabled = has5; if (!has5) ChkUniqueL5.IsChecked = false;
+            bool has6 = !string.IsNullOrWhiteSpace(TxtLabel6.Text); BtnTagL6.IsVisible = has6; if (has6) BtnTagL6.Text = TxtLabel6.Text; ChkUniqueL6.IsEnabled = has6; if (!has6) ChkUniqueL6.IsChecked = false;
         }
 
         private void OnModoLibreToggled(object sender, ToggledEventArgs e)
         {
             if (e.Value)
             {
-                ContainerPickerNaming.IsVisible = false;
-                ContainerTxtNaming.IsVisible = true;
-
-                ContainerBotonesNaming.Opacity = 1;
-                ContainerBotonesNaming.InputTransparent = false;
-
-                PkrNaming.SelectedIndex = 0;
-
-                SetFormulaText("[Marca]");
+                ContainerPickerNaming.IsVisible = false; ContainerTxtNaming.IsVisible = true;
+                ContainerBotonesNaming.Opacity = 1; ContainerBotonesNaming.InputTransparent = false;
+                PkrNaming.SelectedIndex = 0; SetFormulaText("[Marca]");
             }
             else
             {
-                ContainerPickerNaming.IsVisible = true;
-                ContainerTxtNaming.IsVisible = false;
-
-                ContainerBotonesNaming.Opacity = 0;
-                ContainerBotonesNaming.InputTransparent = true;
-
+                ContainerPickerNaming.IsVisible = true; ContainerTxtNaming.IsVisible = false;
+                ContainerBotonesNaming.Opacity = 0; ContainerBotonesNaming.InputTransparent = true;
                 SetFormulaText("[Marca]");
             }
         }
@@ -873,9 +645,8 @@ namespace ControlInventarioMovil.Views
             {
                 _categoriaUnidadesActual = catDeLista;
                 modoActual = catDeLista.TrackingMode ?? "";
-
                 _unidadesSeleccionadasTemporales.Clear();
-                if (catDeLista.SelectedUnitIds != null)
+                if (catDeLista.SelectedUnitIds != null && catDeLista.SelectedUnitIds.Count > 0)
                 {
                     _unidadesSeleccionadasTemporales.AddRange(catDeLista.SelectedUnitIds);
                 }
@@ -885,65 +656,25 @@ namespace ControlInventarioMovil.Views
                 modoActual = PkrTrackingMode.SelectedItem?.ToString() ?? "";
             }
 
-            if (modoActual.Equals("Serialized", StringComparison.OrdinalIgnoreCase) || modoActual.Equals("Serializado", StringComparison.OrdinalIgnoreCase))
-                modoActual = "Serializado";
-            else if (modoActual.Equals("Standard", StringComparison.OrdinalIgnoreCase) || modoActual.Equals("Estándar", StringComparison.OrdinalIgnoreCase) || modoActual.Equals("Stackable", StringComparison.OrdinalIgnoreCase))
-                modoActual = "Estándar";
-            else if (modoActual.Equals("Bulk", StringComparison.OrdinalIgnoreCase) || modoActual.Equals("A Granel", StringComparison.OrdinalIgnoreCase))
-                modoActual = "A Granel";
+            if (modoActual.Equals("Serialized", StringComparison.OrdinalIgnoreCase) || modoActual.Equals("Serializado", StringComparison.OrdinalIgnoreCase)) modoActual = "Serializado";
+            else if (modoActual.Equals("Standard", StringComparison.OrdinalIgnoreCase) || modoActual.Equals("Estándar", StringComparison.OrdinalIgnoreCase) || modoActual.Equals("Stackable", StringComparison.OrdinalIgnoreCase)) modoActual = "Estándar";
+            else if (modoActual.Equals("Bulk", StringComparison.OrdinalIgnoreCase) || modoActual.Equals("A Granel", StringComparison.OrdinalIgnoreCase)) modoActual = "A Granel";
 
             CvUnidades.ItemsSource = null;
-
             OverlayUnidades.IsVisible = true;
             await OverlayUnidades.TranslateToAsync(0, 0, 300, Easing.CubicOut);
 
-            var todasLasUnidades = await _apiService.GetMeasurementUnitsAsync();
-
-            if (todasLasUnidades != null)
+            var unidadesFiltradas = await _viewModel.ObtenerUnidadesDeMedidaAsync(modoActual);
+            var listaRender = unidadesFiltradas.Select(unit => new SelectableUnit
             {
-                var unidadesFiltradas = todasLasUnidades.Where(u =>
-                {
-                    string nombre = (u.UnitName ?? "").ToLower();
+                Unit = unit,
+                IsSelected = _unidadesSeleccionadasTemporales.Contains(unit.Id)
+            }).ToList();
 
-                    if (modoActual == "Serializado")
-                    {
-                        return nombre.Contains("unidad") || nombre.Contains("pieza") ||
-                               nombre.Contains("equipo") || nombre.Contains("kit");
-                    }
-                    else if (modoActual == "Estándar")
-                    {
-                        return nombre.Contains("unidad") || nombre.Contains("caja") ||
-                               nombre.Contains("paquete") || nombre.Contains("docena") ||
-                               nombre.Contains("display") || nombre.Contains("par") ||
-                               nombre.Contains("millar");
-                    }
-                    else if (modoActual == "A Granel")
-                    {
-                        return nombre.Contains("kilo") || nombre.Contains("gramo") ||
-                               nombre.Contains("litro") || nombre.Contains("mililitro") ||
-                               nombre.Contains("metro") || nombre.Contains("galón") ||
-                               nombre.Contains("galon") || nombre.Contains("tonelada") ||
-                               nombre.Contains("onza");
-                    }
-                    return true;
-                }).ToList();
-
-                var listaRender = new List<SelectableUnit>();
-                foreach (var unit in unidadesFiltradas)
-                {
-                    listaRender.Add(new SelectableUnit
-                    {
-                        Unit = unit,
-                        IsSelected = _unidadesSeleccionadasTemporales.Contains(unit.Id)
-                    });
-                }
-
-                _isCargandoUnidades = true;
-                CvUnidades.ItemsSource = listaRender;
-
-                await Task.Delay(100);
-                _isCargandoUnidades = false;
-            }
+            _isCargandoUnidades = true;
+            CvUnidades.ItemsSource = listaRender;
+            await Task.Delay(100);
+            _isCargandoUnidades = false;
         }
 
         private async void OnCerrarUnidadesClicked(object sender, EventArgs e)
@@ -966,7 +697,7 @@ namespace ControlInventarioMovil.Views
             if (_categoriaUnidadesActual != null)
             {
                 _categoriaUnidadesActual.SelectedUnitIds = [.. _unidadesSeleccionadasTemporales];
-                bool exito = await _apiService.UpdateCategoryAsync(_categoriaUnidadesActual);
+                bool exito = await _viewModel.GuardarCategoriaAsync(_categoriaUnidadesActual, true);
 
                 if (exito)
                 {
@@ -986,28 +717,31 @@ namespace ControlInventarioMovil.Views
         private async void OnUnitSwitchToggled(object sender, ToggledEventArgs e)
         {
             if (_isCargandoUnidades) return;
-
             var switchControl = (Switch)sender;
             var unitSelection = (SelectableUnit)switchControl.BindingContext;
-
             if (unitSelection == null) return;
 
             if (_categoriaUnidadesActual != null)
             {
-                _categoriaUnidadesActual.SelectedUnitIds ??= [];
+                var tempList = new List<int>();
+                if (_categoriaUnidadesActual.SelectedUnitIds != null && _categoriaUnidadesActual.SelectedUnitIds.Count > 0)
+                {
+                    tempList.AddRange(_categoriaUnidadesActual.SelectedUnitIds);
+                }
 
                 if (e.Value)
                 {
-                    if (!_categoriaUnidadesActual.SelectedUnitIds.Contains(unitSelection.Unit.Id))
-                        _categoriaUnidadesActual.SelectedUnitIds.Add(unitSelection.Unit.Id);
+                    if (!tempList.Contains(unitSelection.Unit.Id)) tempList.Add(unitSelection.Unit.Id);
                 }
                 else
                 {
-                    _categoriaUnidadesActual.SelectedUnitIds.Remove(unitSelection.Unit.Id);
+                    tempList.Remove(unitSelection.Unit.Id);
                 }
 
+                _categoriaUnidadesActual.SelectedUnitIds = tempList;
+
                 switchControl.IsEnabled = false;
-                bool guardadoExitoso = await _apiService.UpdateCategoryAsync(_categoriaUnidadesActual);
+                bool guardadoExitoso = await _viewModel.GuardarCategoriaAsync(_categoriaUnidadesActual, true);
                 switchControl.IsEnabled = true;
 
                 if (!guardadoExitoso)
@@ -1020,8 +754,7 @@ namespace ControlInventarioMovil.Views
             {
                 if (e.Value)
                 {
-                    if (!_unidadesSeleccionadasTemporales.Contains(unitSelection.Unit.Id))
-                        _unidadesSeleccionadasTemporales.Add(unitSelection.Unit.Id);
+                    if (!_unidadesSeleccionadasTemporales.Contains(unitSelection.Unit.Id)) _unidadesSeleccionadasTemporales.Add(unitSelection.Unit.Id);
                 }
                 else
                 {
@@ -1030,47 +763,29 @@ namespace ControlInventarioMovil.Views
             }
         }
 
-        // ==========================================
-        // 🚀 CEREBRO DE FÓRMULA (VALIDACIÓN DETRÁS DE CÁMARA)
-        // ==========================================
+        private void OnNamingCustomFocused(object sender, FocusEventArgs e) => _formulaBackupCat = TxtNamingCustom.Text ?? "";
 
-        private void OnNamingCustomFocused(object sender, FocusEventArgs e)
-        {
-            _formulaBackupCat = TxtNamingCustom.Text ?? "";
-        }
-
-        private void OnNamingCustomUnfocused(object sender, FocusEventArgs e)
+        private void OnNamingCustomUnfocused(object sender, EventArgs e)
         {
             string corregido = AutoCorregirFormulaCat(TxtNamingCustom.Text);
-
-            if (string.IsNullOrWhiteSpace(corregido)) TxtNamingCustom.Text = _formulaBackupCat;
-            else TxtNamingCustom.Text = corregido;
-
+            TxtNamingCustom.Text = string.IsNullOrWhiteSpace(corregido) ? _formulaBackupCat : corregido;
             ActualizarColoresBotonesNaming();
         }
 
         private string AutoCorregirFormulaCat(string input)
         {
             if (string.IsNullOrWhiteSpace(_formulaBackupCat)) return "";
-            
             var expectedTags = TagsRegex().Matches(_formulaBackupCat).Cast<Match>().Select(m => m.Value).ToList();
             string[] separators = FormulaWordRegex().Split(input ?? "");
-            
+
             string result = "";
             for (int i = 0; i < expectedTags.Count; i++)
             {
-                string sep = "";
-                if (i < separators.Length && i > 0) sep = separators[i];
-                else if (i > 0) sep = " + ";
-                else if (separators.Length > 0) sep = separators[0];
-                
+                string sep = (i < separators.Length && i > 0) ? separators[i] : (i > 0 ? " + " : (separators.Length > 0 ? separators[0] : ""));
                 if (i > 0 && !OperadorRegex().IsMatch(sep)) sep = " + ";
-                
                 result += sep + expectedTags[i];
             }
-            
-            result = TrimTagsRegex().Replace(result, "");
-            return result.Trim();
+            return TrimTagsRegex().Replace(result, "").Trim();
         }
 
         private void OnNamingCustomTextChanged(object sender, TextChangedEventArgs e)
@@ -1085,10 +800,9 @@ namespace ControlInventarioMovil.Views
             string molde = _formulaBackupCat ?? "";
             bool isDarkMode = Application.Current?.RequestedTheme == AppTheme.Dark;
 
-            Color actBg = isDarkMode ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32"); // Verde
-            Color modBg = Color.FromArgb("#EFA72F"); // 🚀 Naranja (Estado de Advertencia)
-            Color inactBg = isDarkMode ? Color.FromArgb("#232B35") : Color.FromArgb("#E9ECEF"); // Gris
-
+            Color actBg = isDarkMode ? Color.FromArgb("#A2D149") : Color.FromArgb("#2E7D32");
+            Color modBg = Color.FromArgb("#EFA72F");
+            Color inactBg = isDarkMode ? Color.FromArgb("#232B35") : Color.FromArgb("#E9ECEF");
             Color actTxt = isDarkMode ? Color.FromArgb("#1C262E") : Colors.White;
             Color modTxt = Color.FromArgb("#1C262E");
             Color inactTxt = isDarkMode ? Color.FromArgb("#939CA5") : Color.FromArgb("#54606C");
@@ -1097,22 +811,12 @@ namespace ControlInventarioMovil.Views
             {
                 if (btn == null) return;
                 string baseTag = $"[{tag}]";
-
                 bool enPantalla = formula.Contains(baseTag) || formula.Contains($"[{tag}:Izq]") || formula.Contains($"[{tag}:Der]");
                 bool enMolde = molde.Contains(baseTag) || molde.Contains($"[{tag}:Izq]") || molde.Contains($"[{tag}:Der]");
 
-                if (enPantalla)
-                {
-                    btn.BackgroundColor = actBg; btn.TextColor = actTxt;
-                }
-                else if (enMolde)
-                {
-                    btn.BackgroundColor = modBg; btn.TextColor = modTxt;
-                }
-                else
-                {
-                    btn.BackgroundColor = inactBg; btn.TextColor = inactTxt;
-                }
+                if (enPantalla) { btn.BackgroundColor = actBg; btn.TextColor = actTxt; }
+                else if (enMolde) { btn.BackgroundColor = modBg; btn.TextColor = modTxt; }
+                else { btn.BackgroundColor = inactBg; btn.TextColor = inactTxt; }
             }
 
             SetColor(BtnTagMarca, "Marca"); SetColor(BtnTagCodigo, "Código");
@@ -1131,122 +835,38 @@ namespace ControlInventarioMovil.Views
         {
             var btn = (Button)sender;
             string baseTag = btn.Text;
-
-            bool existeEnMolde = _formulaBackupCat.Contains($"[{baseTag}]") ||
-                                 _formulaBackupCat.Contains($"[{baseTag}:Izq]") ||
-                                 _formulaBackupCat.Contains($"[{baseTag}:Der]");
+            bool existeEnMolde = _formulaBackupCat.Contains($"[{baseTag}]") || _formulaBackupCat.Contains($"[{baseTag}:Izq]") || _formulaBackupCat.Contains($"[{baseTag}:Der]");
 
             _isSystemEdit = true;
-
             if (existeEnMolde)
             {
-                string nuevaFormula = _formulaBackupCat.Replace($"[{baseTag}]", "")
-                                                      .Replace($"[{baseTag}:Izq]", "")
-                                                      .Replace($"[{baseTag}:Der]", "").Trim();
-
+                string nuevaFormula = _formulaBackupCat.Replace($"[{baseTag}]", "").Replace($"[{baseTag}:Izq]", "").Replace($"[{baseTag}:Der]", "").Trim();
                 nuevaFormula = EspaciosRegex().Replace(nuevaFormula, " ");
                 nuevaFormula = DobleOperadorMathRegex().Replace(nuevaFormula, "");
                 nuevaFormula = TrimOperadorMathRegex().Replace(nuevaFormula, "");
-
                 if (string.IsNullOrWhiteSpace(nuevaFormula)) return;
                 _formulaBackupCat = nuevaFormula;
             }
             else
             {
-                if (_formulaBackupCat.Length > 0 && !TerminaConOperadorRegex().IsMatch(_formulaBackupCat))
-                    _formulaBackupCat += " + ";
-                else if (_formulaBackupCat.Length > 0 && !_formulaBackupCat.EndsWith(' '))
-                    _formulaBackupCat += " ";
-
+                if (_formulaBackupCat.Length > 0 && !TerminaConOperadorRegex().IsMatch(_formulaBackupCat)) _formulaBackupCat += " + ";
+                else if (_formulaBackupCat.Length > 0 && !_formulaBackupCat.EndsWith(' ')) _formulaBackupCat += " ";
                 _formulaBackupCat += $"[{baseTag}]";
             }
 
             TxtNamingCustom.Text = AutoCorregirFormulaCat(TxtNamingCustom.Text);
-
             _isSystemEdit = false;
             ActualizarColoresBotonesNaming();
             TxtNamingCustom.Unfocus();
         }
 
-        [GeneratedRegex(@"\[.*?\]")]
-        private static partial Regex TagsRegex();
-
-        [GeneratedRegex(@"[A-Za-zÀ-ÿ0-9\[\]:.]+")]
-        private static partial Regex FormulaWordRegex();
-
-        [GeneratedRegex(@"[+\-\|\/,]")]
-        private static partial Regex OperadorRegex();
-
-        [GeneratedRegex(@"^[\s+|/,-]+|[\s+|/,-]+$")]
-        private static partial Regex TrimTagsRegex();
-
-        [GeneratedRegex(@"\s+")]
-        private static partial Regex EspaciosRegex();
-
-        [GeneratedRegex(@"([-|/,+])\s*(?=[-|/,+])")]
-        private static partial Regex DobleOperadorMathRegex();
-
-        [GeneratedRegex(@"^[\s-|/,+]+|[\s-|/,+]+$")]
-        private static partial Regex TrimOperadorMathRegex();
-
-        [GeneratedRegex(@"[+\-\|\/,]\s*$")]
-        private static partial Regex TerminaConOperadorRegex();
-    }
-
-    public partial class CategoriaPadreUI : Category, INotifyPropertyChanged
-    {
-        public ObservableCollection<Category> Subcategorias { get; set; } = [];
-        public event PropertyChangedEventHandler? PropertyChanged;
-        public bool TieneHijas => Subcategorias != null && Subcategorias.Count > 0;
-        private bool _isExpanded;
-        public string ToggleText => IsExpanded ? "▲ Ocultar Subcategorías" : "▼ Ver Subcategorías";
-
-        public CategoriaPadreUI(Category b)
-        {
-            Id = b.Id;
-            InventoryId = b.InventoryId;
-            ParentCategoryId = b.ParentCategoryId;
-            Name = b.Name;
-            Description = b.Description;
-            TrackingMode = b.TrackingMode ?? ControlInventario.Shared.Models.TrackingMode.Standard.ToString();
-            NamingMethod = b.NamingMethod;
-            IsReturnable = b.IsReturnable;
-            SelectedUnitIds = b.SelectedUnitIds;
-            IsActive = b.IsActive;
-            Label1 = b.Label1; 
-            IsUnique1 = b.IsUnique1;
-            Label2 = b.Label2; 
-            IsUnique2 = b.IsUnique2;
-            Label3 = b.Label3; 
-            IsUnique3 = b.IsUnique3;
-            Label4 = b.Label4; 
-            IsUnique4 = b.IsUnique4;
-            Label5 = b.Label5; 
-            IsUnique5 = b.IsUnique5;
-            Label6 = b.Label6;
-            IsUnique6 = b.IsUnique6;
-        }
-
-        public bool IsExpanded
-        {
-            get => _isExpanded;
-            set
-            {
-                if (_isExpanded != value)
-                {
-                    _isExpanded = value;
-                    OnPropertyChanged();
-                    OnPropertyChanged(nameof(ToggleText));
-                }
-            }
-        }
-        public void ActualizarEstadoHijas()
-        {
-            OnPropertyChanged(nameof(TieneHijas));
-        }
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
+        [GeneratedRegex(@"\[.*?\]")] private static partial Regex TagsRegex();
+        [GeneratedRegex(@"[A-Za-zÀ-ÿ0-9\[\]:.]+")] private static partial Regex FormulaWordRegex();
+        [GeneratedRegex(@"[+\-\|\/,]")] private static partial Regex OperadorRegex();
+        [GeneratedRegex(@"^[\s+|/,-]+|[\s+|/,-]+$")] private static partial Regex TrimTagsRegex();
+        [GeneratedRegex(@"\s+")] private static partial Regex EspaciosRegex();
+        [GeneratedRegex(@"([-|/,+])\s*(?=[-|/,+])")] private static partial Regex DobleOperadorMathRegex();
+        [GeneratedRegex(@"^[\s-|/,+]+|[\s-|/,+]+$")] private static partial Regex TrimOperadorMathRegex();
+        [GeneratedRegex(@"[+\-\|\/,]\s*$")] private static partial Regex TerminaConOperadorRegex();
     }
 }

@@ -1250,6 +1250,75 @@ namespace ControlInventarioMovil.Services
 
             return null;
         }
+
+        public async Task<(bool IsSuccess, string ErrorMessage)> SaveCompanyAsync(Company company)
+        {
+            try
+            {
+                HttpResponseMessage response;
+
+                if (company.Id == 0)
+                    response = await _httpClient.PostAsJsonAsync($"{BaseApiUrl}/Companies", company);
+                else
+                    response = await _httpClient.PutAsJsonAsync($"{BaseApiUrl}/Companies/{company.Id}", company);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    if (company.Id == 0)
+                    {
+                        var createdCompany = await response.Content.ReadFromJsonAsync<Company>();
+                        if (createdCompany != null) company.Id = createdCompany.Id;
+                    }
+                    return (true, string.Empty);
+                }
+
+                string errorDetail = await response.Content.ReadAsStringAsync();
+                return (false, $"Código {(int)response.StatusCode}: {errorDetail}");
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+
+        public async Task<bool> DeleteCompanyAsync(int id)
+        {
+            try
+            {
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    using var context = new LocalDbContext();
+                    var company = await context.Companies.FindAsync(id);
+                    if (company != null)
+                    {
+                        company.IsActive = false;
+                        context.Companies.Update(company);
+                        await context.SaveChangesAsync();
+                    }
+                    return true;
+                }
+
+                var response = await _httpClient.DeleteAsync($"{BaseApiUrl}/Companies/{id}");
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                using var context = new LocalDbContext();
+                var company = await context.Companies.FindAsync(id);
+                if (company != null)
+                {
+                    company.IsActive = false;
+                    context.Companies.Update(company);
+                    await context.SaveChangesAsync();
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[API_DELETE_COMPANY_ERROR]: {ex.Message}");
+                return false;
+            }
+        }
         #endregion
 
         #region TRANSACCIONES Y LOGS
@@ -1431,6 +1500,25 @@ namespace ControlInventarioMovil.Services
             }
             catch
             {
+                return false;
+            }
+        }
+
+        public static async Task<bool> UpdateFcmTokenAsync(int userId, string fcmToken)
+        {
+            try
+            {
+                var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (s, c, chain, errors) => true };
+                using var client = new HttpClient(handler);
+
+                var content = new StringContent($"\"{fcmToken}\"", System.Text.Encoding.UTF8, "application/json");
+                var response = await client.PutAsync($"{BaseApiUrl}/Users/{userId}/fcm-token", content);
+
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Utilities.CrashLogger.LogHandledException(ex, "ApiService - UpdateFcmTokenAsync");
                 return false;
             }
         }

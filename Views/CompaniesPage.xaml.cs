@@ -1,89 +1,58 @@
 ﻿namespace ControlInventarioMovil.Views;
 
 using ControlInventario.Shared.Models;
-using ControlInventarioMovil.Helpers;
-using ControlInventarioMovil.Services;
-using ControlInventarioMovil.Utilities;
-using Newtonsoft.Json;
-using System.Collections.ObjectModel;
-using System.Text;
+using ControlInventarioMovil.ViewModels;
 
 [QueryProperty(nameof(TargetCompanyId), "TargetCompanyId")]
 public partial class CompaniesPage : ContentPage
 {
-    private readonly ObservableCollection<Company> _empresas = [];
+    private readonly CompaniesViewModel _viewModel;
     private Border? _panelActivo;
 
-    public int TargetCompanyId { get; set; } = -1;
+    public int TargetCompanyId
+    {
+        get => _viewModel.TargetCompanyId;
+        set => _viewModel.TargetCompanyId = value;
+    }
 
     public CompaniesPage()
     {
         InitializeComponent();
-        carouselCompanies.ItemsSource = _empresas;
+        _viewModel = new CompaniesViewModel();
+        BindingContext = _viewModel;
+
+        _viewModel.RequestAlert += async (title, message, cancel) => await DisplayAlertAsync(title, message, cancel);
+        _viewModel.RequestConfirmAlert += async (title, message, accept, cancel) => await DisplayAlertAsync(title, message, accept, cancel);
+        _viewModel.RequestPrompt += async (title, message, accept, cancel) => await DisplayPromptAsync(title, message, accept: accept, cancel: cancel);
+
+        _viewModel.RequestNavigateToForm += async (company) =>
+        {
+            if (company == null || company.Id == 0)
+                await Navigation.PushAsync(new CompanyFormPage());
+            else
+                await Navigation.PushAsync(new CompanyFormPage(company));
+        };
+
+        _viewModel.PositionChanged += (pos) =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                carouselCompanies.ScrollTo(pos, position: ScrollToPosition.Center, animate: false);
+                DibujarIndicadores();
+            });
+        };
     }
 
     protected override async void OnNavigatedTo(NavigatedToEventArgs args)
     {
         base.OnNavigatedTo(args);
-        await CargarEmpresasAsync();
-    }
-
-    private async Task CargarEmpresasAsync()
-    {
-        loadingOverlay.IsVisible = true;
-
-        try
-        {
-            var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (s, c, chain, errors) => true };
-            using var client = new HttpClient(handler);
-            var response = await client.GetAsync($"{ApiService.BaseApiUrl}/Companies");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var empresasDescargadas = JsonConvert.DeserializeObject<List<Company>>(content) ?? [];
-
-                if (TargetCompanyId > 0)
-                {
-                    var empresaModificada = empresasDescargadas.FirstOrDefault(c => c.Id == TargetCompanyId);
-
-                    if (empresaModificada != null)
-                    {
-                        empresasDescargadas.Remove(empresaModificada);
-                        empresasDescargadas.Insert(0, empresaModificada);
-                    }
-                    TargetCompanyId = -1;
-                }
-
-                _empresas.Clear();
-                foreach (var emp in empresasDescargadas)
-                {
-                    _empresas.Add(emp);
-                }
-
-                _empresas.Add(new Company { Id = 0, BusinessName = "Nueva Sucursal", LogoUrl = "add_icon.png", Ruc = "" });
-
-                carouselCompanies.Position = 0;
-                DibujarIndicadores();
-            }
-        }
-        catch (Exception ex)
-        {
-            CrashLogger.LogHandledException(ex, "CompaniesPage - CargarEmpresasAsync");
-            await DisplayAlertAsync("Error", $"No se pudieron cargar las sucursales: {ex.Message}", "OK");
-            return;
-        }
-        finally
-        {
-            await Task.Delay(150);
-            loadingOverlay.IsVisible = false;
-        }
+        await _viewModel.CargarEmpresasAsync();
     }
 
     private void DibujarIndicadores()
     {
         customIndicator.Children.Clear();
-        for (int i = 0; i < _empresas.Count; i++)
+        for (int i = 0; i < _viewModel.Empresas.Count; i++)
         {
             var punto = new Microsoft.Maui.Controls.Shapes.Ellipse
             {
@@ -96,6 +65,7 @@ public partial class CompaniesPage : ContentPage
                 punto.Fill = new SolidColorBrush(Color.Parse(Application.Current?.RequestedTheme == AppTheme.Light ? "#2E7D32" : "#A2D149"));
             else
                 punto.Fill = new SolidColorBrush(Color.Parse(Application.Current?.RequestedTheme == AppTheme.Light ? "#CDD5DB" : "#2E3842"));
+
             customIndicator.Children.Add(punto);
         }
     }
@@ -110,20 +80,6 @@ public partial class CompaniesPage : ContentPage
             _ = _panelActivo.FadeToAsync(0, 200, Easing.CubicIn);
             _panelActivo = null;
         }
-    }
-
-    private void OnPrevClicked(object sender, EventArgs e)
-    {
-        int currentIndex = carouselCompanies.Position;
-        if (currentIndex > 0)
-            carouselCompanies.ScrollTo(currentIndex - 1, position: ScrollToPosition.Center, animate: true);
-    }
-
-    private void OnNextClicked(object sender, EventArgs e)
-    {
-        int currentIndex = carouselCompanies.Position;
-        if (currentIndex < _empresas.Count - 1)
-            carouselCompanies.ScrollTo(currentIndex + 1, position: ScrollToPosition.Center, animate: true);
     }
 
     private async void OnLogoTapped(object sender, TappedEventArgs e)
@@ -159,81 +115,6 @@ public partial class CompaniesPage : ContentPage
                     actionPanel.InputTransparent = true;
                     await actionPanel.FadeToAsync(0, 250, Easing.CubicIn);
                     if (_panelActivo == actionPanel) _panelActivo = null;
-                }
-            }
-        }
-    }
-
-    private async void OnVolverClicked(object sender, EventArgs e)
-    {
-        try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
-        if (sender is View btn) btn.IsEnabled = false;
-        await Task.Delay(50);
-
-        await Shell.Current.GoToAsync("..");
-
-        if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
-    }
-
-    private async void OnEditarEmpresaClicked(object sender, EventArgs e)
-    {
-        try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
-        if (sender is View btn) btn.IsEnabled = false;
-        await Task.Delay(50);
-
-        if (sender is ImageButton imgBtn && imgBtn.CommandParameter is Company company)
-        {
-            await Navigation.PushAsync(new CompanyFormPage(company));
-        }
-
-        if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
-    }
-
-    private async void OnEliminarEmpresaClicked(object sender, EventArgs e)
-    {
-        if (!SecurityHelper.HasPermission("DELETE_RECORDS"))
-        {
-            await DisplayAlertAsync("Operación Bloqueada", "No tienes autorización para desactivar sucursales.", "Entendido");
-            return;
-        }
-
-        if (sender is ImageButton btn && btn.CommandParameter is Company company)
-        {
-            bool confirmar = await DisplayAlertAsync("Confirmar Acción", $"¿Es seguro de desactivar la empresa {company.BusinessName}?", "Desactivar", "Cancelar");
-
-            if (confirmar)
-            {
-                try
-                {
-                    loadingOverlay.IsVisible = true;
-                    company.IsActive = false;
-
-                    var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (s, c, chain, errors) => true };
-                    using var client = new HttpClient(handler);
-
-                    string json = JsonConvert.SerializeObject(company);
-                    var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                    var response = await client.PutAsync($"{ApiService.BaseApiUrl}/Companies/{company.Id}", content);
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        await DisplayAlertAsync("Desactivada", "La sucursal fue dada de baja con éxito.", "OK");
-                        await CargarEmpresasAsync();
-                    }
-                    else
-                    {
-                        company.IsActive = true;
-                        loadingOverlay.IsVisible = false;
-                        await DisplayAlertAsync("Error", "No se pudo actualizar el estado en el servidor.", "OK");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    CrashLogger.LogHandledException(ex, "CompaniesPage - OnEliminarEmpresaClicked");
-                    loadingOverlay.IsVisible = false;
-                    await DisplayAlertAsync("Error de Red", ex.Message, "OK");
-                    return;
                 }
             }
         }

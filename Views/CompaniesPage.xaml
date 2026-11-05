@@ -17,26 +17,31 @@
         <Grid RowDefinitions="Auto, *" VerticalOptions="Fill">
             <!-- Barra Superior -->
             <Grid Grid.Row="0" ColumnDefinitions="50, *, 50" Padding="15,10" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1A232C}">
-                <ImageButton Grid.Column="0" Source="arrow_back.png" Aspect="AspectFit" BackgroundColor="Transparent" Padding="10" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVolverClicked"/>
                 <Label Grid.Column="1" Text="GESTIÓN DE SUCURSALES" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="16" HorizontalTextAlignment="Center" VerticalOptions="Center"/>
-                <BoxView Grid.Column="2" Color="Transparent" />
+                <Label Grid.Column="2" Text="🔑" FontSize="22" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding OpenTokenOverlayCommand}" />
+                    </Label.GestureRecognizers>
+                </Label>
             </Grid>
 
             <!-- CONTENEDOR PRINCIPAL -->
             <Grid Grid.Row="1" RowDefinitions="*, Auto, 20" VerticalOptions="Fill" Padding="0,20,0,0">
                 <Grid Grid.Row="0" ColumnDefinitions="Auto, 280, Auto" HorizontalOptions="Center" VerticalOptions="Fill" ColumnSpacing="10">
-                    <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="40" HeightRequest="180" Padding="5" Aspect="AspectFit" BackgroundColor="Transparent" Clicked="OnPrevClicked" VerticalOptions="Center" helpers:EfectosVisualesHelper.Animar="True" />
+                    <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="40" HeightRequest="180" Padding="5" Aspect="AspectFit" BackgroundColor="Transparent" Command="{Binding PrevCommand}" VerticalOptions="Center" helpers:EfectosVisualesHelper.Animar="True" />
 
-                    <CarouselView x:Name="carouselCompanies" Grid.Column="1" HorizontalScrollBarVisibility="Never" Loop="False" VerticalOptions="Fill" PositionChanged="OnCarouselPositionChanged">
+                    <CarouselView x:Name="carouselCompanies" ItemsSource="{Binding Empresas}" Position="{Binding CarouselPosition, Mode=TwoWay}" Grid.Column="1" HorizontalScrollBarVisibility="Never" Loop="False" VerticalOptions="Fill" PositionChanged="OnCarouselPositionChanged">
                         <CarouselView.ItemTemplate>
                             <DataTemplate>
                                 <Grid VerticalOptions="Center" RowDefinitions="Auto, Auto" RowSpacing="20">
                                     <Grid Grid.Row="0" WidthRequest="180" HeightRequest="180" HorizontalOptions="Center">
+
                                         <Border WidthRequest="160" HeightRequest="160" StrokeShape="RoundRectangle 80" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="3" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" HorizontalOptions="Center" VerticalOptions="Center">
-                                            <Image Source="{Binding LogoUrl, Converter={StaticResource Base64Converter}}" Aspect="AspectFit" Margin="15">
+                                            <Image Source="{Binding LogoUrl, Converter={StaticResource Base64Converter}}" Aspect="AspectFill" Margin="0">
                                                 <Image.Triggers>
                                                     <DataTrigger TargetType="Image" Binding="{Binding Id}" Value="0">
                                                         <Setter Property="Margin" Value="40"/>
+                                                        <Setter Property="Aspect" Value="AspectFit"/>
                                                     </DataTrigger>
                                                 </Image.Triggers>
                                             </Image>
@@ -47,8 +52,19 @@
 
                                         <Border x:Name="ActionPanel" Opacity="0" InputTransparent="True" BackgroundColor="#D9000000" StrokeShape="RoundRectangle 80" WidthRequest="160" HeightRequest="160" HorizontalOptions="Center" VerticalOptions="Center">
                                             <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="15">
-                                                <ImageButton Source="edit_icon.png" Aspect="AspectFit" WidthRequest="45" HeightRequest="45" BackgroundColor="Transparent" CommandParameter="{Binding .}" Clicked="OnEditarEmpresaClicked" />
-                                                <ImageButton Source="delete_icon.png" Aspect="AspectFit" WidthRequest="45" HeightRequest="45" BackgroundColor="Transparent" CommandParameter="{Binding .}" Clicked="OnEliminarEmpresaClicked" />
+                                                <ImageButton Source="edit_icon.png" Aspect="AspectFit" WidthRequest="45" HeightRequest="45" BackgroundColor="Transparent" Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditCompanyCommand}" CommandParameter="{Binding .}" />
+
+                                                <ImageButton Source="delete_icon.png" Aspect="AspectFit" WidthRequest="45" HeightRequest="45" BackgroundColor="Transparent" Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteCompanyCommand}" CommandParameter="{Binding .}">
+                                                    <ImageButton.Triggers>
+                                                        <DataTrigger TargetType="ImageButton" Binding="{Binding IsActive}" Value="False">
+                                                            <Setter Property="IsVisible" Value="False" />
+                                                        </DataTrigger>
+                                                        <DataTrigger TargetType="ImageButton" Binding="{Binding Id}" Value="1">
+                                                            <Setter Property="IsVisible" Value="False" />
+                                                        </DataTrigger>
+                                                    </ImageButton.Triggers>
+                                                </ImageButton>
+
                                             </HorizontalStackLayout>
                                             <Border.GestureRecognizers>
                                                 <TapGestureRecognizer Tapped="OnLogoTapped" />
@@ -76,19 +92,36 @@
                         </CarouselView.ItemTemplate>
                     </CarouselView>
 
-                    <ImageButton Grid.Column="2" Source="arrow_back.png" Rotation="180" WidthRequest="40" HeightRequest="180" Padding="5" Aspect="AspectFit" BackgroundColor="Transparent" Clicked="OnNextClicked" VerticalOptions="Center" helpers:EfectosVisualesHelper.Animar="True" />
+                    <ImageButton Grid.Column="2" Source="arrow_back.png" Rotation="180" WidthRequest="40" HeightRequest="180" Padding="5" Aspect="AspectFit" BackgroundColor="Transparent" Command="{Binding NextCommand}" VerticalOptions="Center" helpers:EfectosVisualesHelper.Animar="True" />
                 </Grid>
 
                 <HorizontalStackLayout x:Name="customIndicator" Grid.Row="1" HorizontalOptions="Center" Spacing="8" Margin="0,15,0,0" />
             </Grid>
         </Grid>
 
-        <!-- Pantalla de Carga -->
-        <Grid x:Name="loadingOverlay" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" IsVisible="False">
+        <Grid BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" IsVisible="{Binding IsLoading}">
             <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="15">
                 <ActivityIndicator IsRunning="True" Color="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" WidthRequest="50" HeightRequest="50" />
                 <Label Text="Actualizando datos..." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
+        </Grid>
+        
+        <Grid BackgroundColor="#D9000000" IsVisible="{Binding IsTokenOverlayVisible}" InputTransparent="False" VerticalOptions="Fill" HorizontalOptions="Fill">
+            <Border StrokeShape="RoundRectangle 12" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C262E}" Padding="20" WidthRequest="320" HorizontalOptions="Center" VerticalOptions="Center">
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="Llave Maestra Decolecta" FontAttributes="Bold" FontSize="18" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" />
+                    <Label Text="Pega el nuevo Token (sk_...) para rehabilitar las consultas de RUC y DNI en todas las sucursales:" FontSize="13" TextColor="{AppThemeBinding Light=#54606C, Dark=#8A9AAB}" />
+
+                    <Border StrokeShape="RoundRectangle 6" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
+                        <Entry Text="{Binding NewTokenInput, Mode=TwoWay}" Placeholder="sk_..." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" VerticalOptions="Center" />
+                    </Border>
+
+                    <Grid ColumnDefinitions="*, *" ColumnSpacing="10" Margin="0,10,0,0">
+                        <Button Grid.Column="0" Text="Cancelar" BackgroundColor="{AppThemeBinding Light=#E0E0E0, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" CornerRadius="6" Command="{Binding CancelTokenCommand}" />
+                        <Button Grid.Column="1" Text="Actualizar" BackgroundColor="#A2D149" TextColor="#1C262E" FontAttributes="Bold" CornerRadius="6" Command="{Binding SaveTokenCommand}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
         </Grid>
     </Grid>
 </ContentPage>

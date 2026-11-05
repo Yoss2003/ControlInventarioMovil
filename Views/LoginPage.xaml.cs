@@ -1,522 +1,50 @@
 namespace ControlInventarioMovil.Views
 {
-    using ControlInventario.Models;
-    using ControlInventario.Shared.Models;
-    using ControlInventarioMovil.Data;
-    using ControlInventarioMovil.Services;
-    using ControlInventarioMovil.Utilities;
-    using Microsoft.EntityFrameworkCore;
-    using Newtonsoft.Json;
-    using System.Diagnostics;
-    using System.Security.Cryptography;
-    using System.Text;
+    using ControlInventarioMovil.ViewModels;
 
     public partial class LoginPage : ContentPage
     {
-        private readonly ApiService _apiService;
-        private CompanyPublicDTO? _selectedCompany;
+        private readonly LoginViewModel _viewModel;
         private CancellationTokenSource _animacionCts = new();
-        private List<CompanyPublicDTO> _empresasDisponibles = [];
-        private int _currentCompanyIndex = 0;
+
         public LoginPage()
-    	{
-    		InitializeComponent();
-            _apiService = new ApiService();
-        }
-
-        private async void OnForgot_Tapped(object sender, TappedEventArgs e)
         {
-            await DisplayAlertAsync("Recuperar", "Pantalla de recuperación en construcción", "OK");
-        }
+            InitializeComponent();
+            _viewModel = new LoginViewModel();
+            BindingContext = _viewModel;
 
-        private async void OnLoginClicked(object sender, EventArgs e)
-        {
-            if (!btnLogin.IsEnabled) return;
-            btnLogin.IsEnabled = false;
+            // Enlazamos los eventos del ViewModel con los métodos nativos de UI
+            _viewModel.RequestAlert += async (title, message, cancel) => await DisplayAlertAsync(title, message, cancel);
+            _viewModel.RequestPrompt2FA += async (title, message, accept, cancel) => await DisplayPromptAsync(title, message, accept, cancel, placeholder: "000000", maxLength: 6, keyboard: Keyboard.Numeric);
+            _viewModel.RequestPasswordChangeNavigation += async () => await Shell.Current.Navigation.PushAsync(new Views.EditProfilePage());
+            _viewModel.RequestMainPageNavigation += async () => await Shell.Current.GoToAsync("//MainPage");
 
-            try
+            _viewModel.CompanyChanged += (company) =>
             {
-                if (_selectedCompany == null)
+                if (company != null && Color.TryParse(company.PrimaryColorHex, out var newColor))
                 {
-                    await DisplayAlertAsync("Validación", "Por favor selecciona tu sucursal tocando uno de los logos en la parte superior.", "OK");
-                    return;
-                }
-
-                if (string.IsNullOrWhiteSpace(txtUsername.Text) || string.IsNullOrWhiteSpace(txtPassword.Text))
-                {
-                    await DisplayAlertAsync("Validación", "Ingresa tu usuario y contraseña.", "OK");
-                    return;
-                }
-
-                LoadingOverlay.IsVisible = true;
-                lblLoadingText.Text = "Iniciando Sesión...";
-
-                try
-                {
-                    var loginData = new
+                    MainThread.BeginInvokeOnMainThread(() =>
                     {
-                        Username = txtUsername.Text.Trim(),
-                        Password = txtPassword.Text.Trim(),
-                        TwoFactorCode = (string?)null,
-                        CompanyId = _selectedCompany.Id
-                    };
-
-                    var (statusCode, isSuccess, resString) = await ApiService.LoginAsync(loginData);
-
-                    if (statusCode == System.Net.HttpStatusCode.Unauthorized)
-                    {
-                        if (resString.Contains("accountPending"))
-                        {
-                            MainThread.BeginInvokeOnMainThread(() => LoadingOverlay.IsVisible = false);
-                            var errorObj = JsonConvert.DeserializeObject<dynamic>(resString);
-                            await DisplayAlertAsync("Acceso Denegado", (string)errorObj!.mensaje, "Entendido");
-                            return;
-                        }
-
-                        if (resString.Contains("requires2FA") || resString.Contains("Código 2FA requerido"))
-                        {
-                            LoadingOverlay.IsVisible = false;
-
-                            string tokenIngresado = await DisplayPromptAsync(
-                                "Seguridad de Dos Pasos (2FA)",
-                                "Tu cuenta está protegida. Ingresa el código de 6 dígitos de tu aplicación Google Authenticator:",
-                                "Verificar e Ingresar",
-                                "Cancelar",
-                                placeholder: "000000",
-                                maxLength: 6,
-                                keyboard: Keyboard.Numeric);
-
-                            if (string.IsNullOrWhiteSpace(tokenIngresado) || tokenIngresado.Length != 6)
-                            {
-                                await DisplayAlertAsync("Cancelado", "Inicio de sesión cancelado o código incompleto.", "OK");
-                                return;
-                            }
-
-                            LoadingOverlay.IsVisible = true;
-                            lblLoadingText.Text = "Verificando código...";
-
-                            // Se inyecta nuevamente el CompanyId para evitar errores de contexto
-                            var loginDataWith2FA = new
-                            {
-                                Username = txtUsername.Text.Trim(),
-                                Password = txtPassword.Text.Trim(),
-                                TwoFactorCode = tokenIngresado.Trim(),
-                                CompanyId = _selectedCompany.Id
-                            };
-
-                            var result2FA = await ApiService.LoginAsync(loginDataWith2FA);
-                            statusCode = result2FA.StatusCode;
-                            isSuccess = result2FA.IsSuccess;
-                            resString = result2FA.Content;
-                        }
-                    }
-
-                    if (isSuccess)
-                    {
-                        if (resString.Contains("requirePasswordChange"))
-                        {
-                            var apiResponse = JsonConvert.DeserializeObject<Newtonsoft.Json.Linq.JObject>(resString);
-                            var userJson = apiResponse?["user"]?.ToString();
-                            if (!string.IsNullOrEmpty(userJson))
-                            {
-                                UserSession.CurrentUser = JsonConvert.DeserializeObject<User>(userJson);
-                            }
-
-                            MainThread.BeginInvokeOnMainThread(async () =>
-                            {
-                                LoadingOverlay.IsVisible = false;
-                                await DisplayAlertAsync("Seguridad Obligatoria", "Debes establecer una contraseña privada antes de entrar.", "Aceptar");
-
-                                await Shell.Current.Navigation.PushAsync(new Views.EditProfilePage());
-                            });
-
-                            return;
-                        }
-
-                        lblLoadingText.Text = LoginPage.ObtenerTextoExitoRandom();
-                        await Task.Delay(600);
-
-                        var user = JsonConvert.DeserializeObject<User>(resString);
-
-                        if (user != null)
-                        {
-                            user.Password = LoginPage.HashPasswordLocal(txtPassword.Text.Trim());
-                            UserSession.CurrentUser = user;
-
-                            if(!String.IsNullOrEmpty(user.Token))
-                                await SecureStorage.Default.SetAsync("AuthToken", user.Token);
-
-                            Preferences.Set("SelectedCompanyId", _selectedCompany.Id);
-
-                            Preferences.Set("UserId", user.Id);
-
-                            string nombreCompleto = user.Username ?? "Usuario Móvil";
-                            if (user.Employee != null)
-                            {
-                                nombreCompleto = $"{user.Employee.FirstName} {user.Employee.LastName}".Trim();
-                            }
-                            Preferences.Set("UserName", nombreCompleto);
-
-                            try
-                            {
-                                using var localContext = new LocalDbContext();
-                                await localContext.Database.OpenConnectionAsync();
-                                using var command = localContext.Database.GetDbConnection().CreateCommand();
-                                command.CommandText = "PRAGMA foreign_keys = OFF;";
-                                await command.ExecuteNonQueryAsync();
-
-                                try
-                                {
-                                    var perfil = await _apiService.GetUserProfileConfigAsync(user.Username!);
-                                    if (perfil != null)
-                                    {
-                                        UserSession.CurrentProfile = perfil;
-
-                                        MainThread.BeginInvokeOnMainThread(() =>
-                                        {
-                                            Application.Current!.UserAppTheme = perfil.ThemeId == 2 ? AppTheme.Dark : AppTheme.Light;
-                                        });
-
-                                        Preferences.Set("UseBarcodes", perfil.UseBarcodes);
-                                        Preferences.Set("CurrencyId", perfil.CurrencyId ?? 1);
-                                        Preferences.Set("DateFormatId", perfil.DateFormatId ?? 1);
-                                        Preferences.Set("SalesModeId", perfil.SalesModeId ?? 1);
-                                        Preferences.Set("ApplyLateFee", perfil.ApplyLateFee);
-                                        Preferences.Set("CalculateDevaluation", perfil.CalculateDevaluation);
-
-                                        var localProfile = await localContext.Profiles.FirstOrDefaultAsync(p => p.Username == perfil.Username && p.CompanyId == perfil.CompanyId);
-                                        if (localProfile == null)
-                                            await localContext.Profiles.AddAsync(perfil);
-                                        else
-                                            localContext.Entry(localProfile).CurrentValues.SetValues(perfil);
-                                    }
-                                    else
-                                    {
-                                        perfil = new Profile
-                                        {
-                                            Username = user.Username!,
-                                            CompanyId = _selectedCompany.Id,
-                                            LanguageId = 1,
-                                            ThemeId = 1,
-                                            NotificationId = 1,
-                                            CurrencyId = 1,
-                                            MeasurementUnitId = 1,
-                                            TimeZoneId = 1,
-                                            DateFormatId = 1,
-                                            SalesModeId = 1,
-                                            ApplyLateFee = false,
-                                            LateFeePercentage = 0,
-                                            GraceDays = 0,
-                                            CalculateDevaluation = false,
-                                            SharedActivity = false,
-                                            UseBarcodes = true
-                                        };
-
-                                        await _apiService.SaveUserProfileConfigAsync(perfil);
-
-                                        UserSession.CurrentProfile = perfil;
-                                        await localContext.Profiles.AddAsync(perfil);
-
-                                        MainThread.BeginInvokeOnMainThread(() =>
-                                        {
-                                            Application.Current!.UserAppTheme = AppTheme.Light;
-                                        });
-
-                                        Preferences.Set("UseBarcodes", true);
-                                        Preferences.Set("CurrencyId", 1);
-                                        Preferences.Set("DateFormatId", 1);
-                                        Preferences.Set("SalesModeId", 1);
-                                    }
-
-                                    var existingUser = await localContext.Users.FirstOrDefaultAsync(u => u.Username == user.Username);
-
-                                    var tempCompany = user.Company;
-                                    var tempRole = user.Role;
-                                    var tempEmployee = user.Employee;
-
-                                    user.Company = null;
-                                    user.Role = null;
-                                    user.Employee = null;
-
-                                    if (existingUser == null)
-                                        await localContext.Users.AddAsync(user);
-                                    else
-                                        localContext.Entry(existingUser).CurrentValues.SetValues(user);
-
-                                    await localContext.SaveChangesAsync();
-
-                                    user.Company = tempCompany;
-                                    user.Role = tempRole;
-                                    user.Employee = tempEmployee;
-                                }
-                                finally
-                                {
-                                    command.CommandText = "PRAGMA foreign_keys = ON;";
-                                    await command.ExecuteNonQueryAsync();
-                                    await localContext.Database.CloseConnectionAsync();
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.WriteLine($"[CACHÉ_LOCAL_IGNORADO]: No se pudo guardar el inicio de sesión offline: {ex.Message}");
-                            }
-
-                            try
-                            {
-                                if (chkRememberMe.IsChecked)
-                                {
-                                    await SecureStorage.Default.SetAsync("saved_username", txtUsername.Text ?? "");
-                                    await SecureStorage.Default.SetAsync("saved_password", txtPassword.Text ?? "");
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.WriteLine($"[Keystore Ignorado]: {ex.Message}");
-                            }
-
-                            MainThread.BeginInvokeOnMainThread(async () =>
-                            {
-                                await Shell.Current.GoToAsync("//MainPage");
-                            });
-                        }
-                    }
-                    else
-                    {
-                        await MainThread.InvokeOnMainThreadAsync(async () =>
-                        {
-                            LoadingOverlay.IsVisible = false;
-                            if (statusCode == System.Net.HttpStatusCode.InternalServerError)
-                            {
-                                await DisplayAlertAsync("Error 500 del Servidor", "El servidor de Somee está explotando por dentro. Revisa los logs de tu API.", "OK");
-                                return;
-                            }
-                            if (statusCode == System.Net.HttpStatusCode.NotFound)
-                            {
-                                await DisplayAlertAsync("Error 404", "No se encontró la ruta del Login en el servidor.", "OK");
-                                return;
-                            }
-
-                            try
-                            {
-                                var errorObj = JsonConvert.DeserializeObject<dynamic>(resString);
-                                string msg = errorObj?.mensaje ?? "Usuario o contraseña incorrectos.";
-                                await DisplayAlertAsync("Error de Acceso", msg, "Intentar de nuevo");
-                            }
-                            catch
-                            {
-                                await DisplayAlertAsync("Respuesta Extraña del Servidor", $"Código: {statusCode}. Respuesta: {resString}", "OK");
-                            }
-                        });
-                    }
+                        btnLogin.Background = new SolidColorBrush(newColor);
+                        borderUser.Stroke = newColor;
+                        borderPass.Stroke = newColor;
+                        borderLogo.Stroke = newColor;
+                        LblCompanyName.TextColor = newColor;
+                    });
                 }
-                catch (HttpRequestException)
-                {
-                    using var localContext = new LocalDbContext();
-                    string userIngresado = txtUsername.Text.Trim();
-                    string passIngresadaHash = LoginPage.HashPasswordLocal(txtPassword.Text.Trim());
-
-                    var localUser = await localContext.Users.Include(u => u.Role!).ThenInclude(r => r.RolePermissions!).ThenInclude(rp => rp.Permission).FirstOrDefaultAsync(u => u.Username == userIngresado && u.Password == passIngresadaHash);
-
-                    if (localUser != null)
-                    {
-                        UserSession.CurrentUser = localUser;
-                        UserSession.CurrentProfile = await localContext.Profiles.FirstOrDefaultAsync(p => p.Username == localUser.Username!);
-
-                        string nombreCompleto = localUser.Username ?? "Usuario Móvil";
-                        if (localUser.Employee != null)
-                        {
-                            nombreCompleto = $"{localUser.Employee.FirstName} {localUser.Employee.LastName}".Trim();
-                        }
-                        Preferences.Set("UserName", nombreCompleto);
-
-                        MainThread.BeginInvokeOnMainThread(() => lblLoadingText.Text = "¡Modo Offline Activado!");
-                        await Task.Delay(800);
-
-                        MainThread.BeginInvokeOnMainThread(async () =>
-                        {
-                            await Shell.Current.GoToAsync("//MainPage");
-                        }); 
-                        return;
-                    }
-
-                    MainThread.BeginInvokeOnMainThread(() => LoadingOverlay.IsVisible = false);
-                    await DisplayAlertAsync("Servidor No Disponible", "El servidor está fuera de servicio...", "Entendido");
-                }
-                catch (TaskCanceledException)
-                {
-                    MainThread.BeginInvokeOnMainThread(() => LoadingOverlay.IsVisible = false);
-                    await DisplayAlertAsync("Tiempo Agotado", "El servidor tardó demasiado en responder...", "Entendido");
-                }
-                catch (Exception ex)
-                {
-                    MainThread.BeginInvokeOnMainThread(() => LoadingOverlay.IsVisible = false);
-
-                    CrashLogger.LogHandledException(ex, "LoginPage - OnLoginClicked");
-                    await DisplayAlertAsync("Error", $"Ocurrió un fallo de conexión: {ex.Message}", "OK");
-                    return;
-                }
-            }
-            finally
-            {
-                btnLogin.IsEnabled = true;
-            }
+            };
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-
             Application.Current!.UserAppTheme = AppTheme.Unspecified;
-
-            LoadingOverlay.IsVisible = false;
             txtPassword.Text = string.Empty;
 
-            try
-            {
-                var savedUser = await SecureStorage.Default.GetAsync("saved_username");
-                var savedPass = await SecureStorage.Default.GetAsync("saved_password");
+            await _viewModel.InicializarAsync();
 
-                if (!string.IsNullOrEmpty(savedUser) && !string.IsNullOrEmpty(savedPass))
-                {
-                    txtUsername.Text = savedUser;
-                    txtPassword.Text = savedPass;
-                    chkRememberMe.IsChecked = true;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[KEYSTORE RESET]: {ex.Message}");
-                SecureStorage.Default.RemoveAll();
-            }
-
-            await CargarEmpresasAsync();
             _animacionCts = new CancellationTokenSource();
             _ = AnimarFondo(_animacionCts.Token);
-        }
-
-        private async Task CargarEmpresasAsync()
-        {
-            try
-            {
-                _empresasDisponibles = await ApiService.GetActiveCompaniesAsync();
-
-                if (_empresasDisponibles.Count != 0)
-                {
-                    int ultimaEmpresaId = Preferences.Get("SelectedCompanyId", 0);
-                    int indiceEncontrado = _empresasDisponibles.FindIndex(e => e.Id == ultimaEmpresaId);
-                    _currentCompanyIndex = indiceEncontrado >= 0 ? indiceEncontrado : 0;
-
-                    ActualizarVistaEmpresa();
-                }
-                else
-                {
-                    LblCompanyName.Text = "Sin sucursales";
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error cargando empresas: {ex.Message}");
-                LblCompanyName.Text = "Error de conexión";
-            }
-        }
-
-        private void ActualizarVistaEmpresa()
-        {
-            if (_empresasDisponibles.Count == 0) return;
-
-            _selectedCompany = _empresasDisponibles[_currentCompanyIndex];
-
-            // Asignamos el objeto a la imagen para que el Converter dibuje el Base64
-            ImgCompanyLogo.BindingContext = _selectedCompany;
-            LblCompanyName.Text = _selectedCompany.BusinessName;
-
-            // Cambiamos el color de todos los bordes y botones dinámicamente
-            if (Color.TryParse(_selectedCompany.PrimaryColorHex, out var newColor))
-            {
-                btnLogin.Background = new SolidColorBrush(newColor);
-                borderUser.Stroke = newColor;
-                borderPass.Stroke = newColor;
-                borderLogo.Stroke = newColor;
-                LblCompanyName.TextColor = newColor;
-            }
-        }
-
-        private async void OnPrevCompanyClicked(object sender, EventArgs e)
-        {
-            if (_empresasDisponibles.Count == 0) return;
-
-            var btn = (ImageButton)sender;
-            _ = btn.TranslateToAsync(-15, 0, 100, Easing.CubicOut).ContinueWith(t => btn.TranslateToAsync(0, 0, 100, Easing.CubicIn));
-
-            await Task.WhenAll(
-                borderLogo.TranslateToAsync(50, 0, 150, Easing.CubicIn),
-                borderLogo.FadeToAsync(0, 150, Easing.CubicIn)
-            );
-
-            _currentCompanyIndex--;
-            if (_currentCompanyIndex < 0) _currentCompanyIndex = _empresasDisponibles.Count - 1;
-            ActualizarVistaEmpresa();
-
-            borderLogo.TranslationX = -50;
-
-            await Task.WhenAll(
-                borderLogo.TranslateToAsync(0, 0, 150, Easing.CubicOut),
-                borderLogo.FadeToAsync(1, 150, Easing.CubicOut)
-            );
-        }
-
-        private async void OnNextCompanyClicked(object sender, EventArgs e)
-        {
-            if (_empresasDisponibles.Count == 0) return;
-
-            var btn = (ImageButton)sender;
-            _ = btn.TranslateToAsync(15, 0, 100, Easing.CubicOut).ContinueWith(t => btn.TranslateToAsync(0, 0, 100, Easing.CubicIn));
-
-            await Task.WhenAll(
-                borderLogo.TranslateToAsync(-50, 0, 150, Easing.CubicIn),
-                borderLogo.FadeToAsync(0, 150, Easing.CubicIn)
-            );
-
-            _currentCompanyIndex++;
-            if (_currentCompanyIndex >= _empresasDisponibles.Count) _currentCompanyIndex = 0;
-            ActualizarVistaEmpresa();
-
-            borderLogo.TranslationX = 50;
-
-            await Task.WhenAll(
-                borderLogo.TranslateToAsync(0, 0, 150, Easing.CubicOut),
-                borderLogo.FadeToAsync(1, 150, Easing.CubicOut)
-            );
-        }
-
-        private void OnPageSizeChanged(object sender, EventArgs e)
-        {
-            if (Width > Height)
-            {
-                LayoutGrid.RowDefinitions.Clear();
-                LayoutGrid.ColumnDefinitions.Clear();
-                LayoutGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                LayoutGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-                Grid.SetRow(HeaderSection, 0);
-                Grid.SetColumn(HeaderSection, 0);
-
-                Grid.SetRow(FormSection, 0);
-                Grid.SetColumn(FormSection, 1);
-            }
-            else
-            {
-                LayoutGrid.RowDefinitions.Clear();
-                LayoutGrid.ColumnDefinitions.Clear();
-                LayoutGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                LayoutGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-
-                Grid.SetRow(HeaderSection, 0);
-                Grid.SetColumn(HeaderSection, 0);
-
-                Grid.SetRow(FormSection, 1);
-                Grid.SetColumn(FormSection, 0);
-            }
         }
 
         protected override void OnDisappearing()
@@ -528,14 +56,36 @@ namespace ControlInventarioMovil.Views
         private void OnShowPasswordTapped(object sender, EventArgs e)
         {
             txtPassword.IsPassword = !txtPassword.IsPassword;
-
             imgShowPassword.Source = txtPassword.IsPassword ? "eye_closed.png" : "eye_open.png";
+        }
+
+        private void OnPageSizeChanged(object sender, EventArgs e)
+        {
+            if (Width > Height)
+            {
+                LayoutGrid.RowDefinitions.Clear();
+                LayoutGrid.ColumnDefinitions.Clear();
+                LayoutGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                LayoutGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                Grid.SetRow(HeaderSection, 0); Grid.SetColumn(HeaderSection, 0);
+                Grid.SetRow(FormSection, 0); Grid.SetColumn(FormSection, 1);
+            }
+            else
+            {
+                LayoutGrid.RowDefinitions.Clear();
+                LayoutGrid.ColumnDefinitions.Clear();
+                LayoutGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                LayoutGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+                Grid.SetRow(HeaderSection, 0); Grid.SetColumn(HeaderSection, 0);
+                Grid.SetRow(FormSection, 1); Grid.SetColumn(FormSection, 0);
+            }
         }
 
         private async Task AnimarFondo(CancellationToken token)
         {
             Random random = new();
-
             try
             {
                 while (!token.IsCancellationRequested)
@@ -551,28 +101,7 @@ namespace ControlInventarioMovil.Views
                     await Task.WhenAll(moveMorado, moveAzul, moveCeleste, scaleMorado, scaleAzul, scaleCeleste);
                 }
             }
-            catch (Exception)
-            {
-            }
-        }
-
-        private static string ObtenerTextoExitoRandom()
-        {
-            var textos = new[] {
-                "¡Credenciales válidas!",
-                "Preparando tu entorno...",
-                "¡Ingresando al sistema!",
-                "Abriendo el almacén...",
-                "Cargando preferencias..."
-            };
-            return textos[new Random().Next(textos.Length)];
-        }
-
-        private static string HashPasswordLocal(string password)
-        {
-            var bytes = Encoding.UTF8.GetBytes(password);
-            var hash = SHA256.HashData(bytes);
-            return Convert.ToBase64String(hash);
+            catch { }
         }
     }
 }

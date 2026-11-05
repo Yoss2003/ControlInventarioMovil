@@ -10,7 +10,7 @@
     <Grid RowDefinitions="Auto, *">
 
         <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="15,20,15,10" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
-            <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" Padding="0" Clicked="OnVolverClicked"/>
+            <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" Padding="0" Command="{Binding BackCommand}"/>
             <Label Grid.Column="1" Text="PANEL DE COLABORADORES" TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" VerticalOptions="Center" CharacterSpacing="0.5"/>
             <BoxView Grid.Column="2" WidthRequest="30" BackgroundColor="Transparent"/>
         </Grid>
@@ -20,12 +20,12 @@
             <Border Grid.Row="0" StrokeShape="RoundRectangle 8" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="12,0" HeightRequest="45" Margin="0,5,0,15">
                 <Grid ColumnDefinitions="Auto, *">
                     <Image Grid.Column="0" Source="search_icon.png" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" Margin="4,0,8,0"/>
-                    <Entry Grid.Column="1" x:Name="txtSearchEmployee" Placeholder="Buscar por nombre o DNI..." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center" TextChanged="OnSearchTextChanged"/>
+                    <Entry Grid.Column="1" Text="{Binding SearchText, Mode=TwoWay}" Placeholder="Buscar por nombre o DNI..." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#606A72}" VerticalOptions="Center"/>
                 </Grid>
             </Border>
 
-            <RefreshView Grid.Row="1" x:Name="refreshEmployees" Refreshing="OnRefreshRequested">
-                <CollectionView x:Name="listEmployees" SelectionMode="None">
+            <RefreshView Grid.Row="1" IsRefreshing="{Binding IsRefreshing, Mode=TwoWay}" Command="{Binding RefreshCommand}">
+                <CollectionView ItemsSource="{Binding FilteredEmployees}" SelectionMode="None">
 
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
@@ -39,7 +39,6 @@
                                     <Border Grid.Column="0" WidthRequest="44" HeightRequest="44" StrokeShape="RoundRectangle 22" Stroke="Transparent" BackgroundColor="#0000FF" VerticalOptions="Center">
                                         <Grid>
                                             <Label Text="{Binding Initial}" TextColor="White" FontAttributes="Bold" FontSize="16" HorizontalOptions="Center" VerticalOptions="Center"/>
-
                                             <Image Source="{Binding PictureUrl}" Aspect="AspectFill" />
                                         </Grid>
                                     </Border>
@@ -53,10 +52,10 @@
                                     </VerticalStackLayout>
 
                                     <HorizontalStackLayout Grid.Column="2" VerticalOptions="Center" Spacing="10">
-                                        <ImageButton Source="edit_icon.png" WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" Clicked="OnEditEmployeeClicked" CommandParameter="{Binding .}"/>
-                                        <ImageButton Source="delete_icon.png" WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" Clicked="OnDeleteEmployeeClicked" CommandParameter="{Binding .}"/>
+                                        <ImageButton Source="edit_icon.png" WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditEmployeeCommand}" CommandParameter="{Binding .}"/>
+                                        <ImageButton Source="delete_icon.png" WidthRequest="24" HeightRequest="24" BackgroundColor="Transparent" Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteEmployeeCommand}" CommandParameter="{Binding .}"/>
                                     </HorizontalStackLayout>
-                                    
+
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -64,7 +63,7 @@
                 </CollectionView>
             </RefreshView>
 
-            <Button Grid.Row="1" Text="+" BackgroundColor="#0000FF" TextColor="White" FontSize="26" FontAttributes="Bold" WidthRequest="56" HeightRequest="56" CornerRadius="28" HorizontalOptions="End" VerticalOptions="End" Margin="0,0,10,10" Clicked="OnAddEmployeeClicked"/>
+            <Button Grid.Row="1" Text="+" BackgroundColor="#0000FF" TextColor="White" FontSize="26" FontAttributes="Bold" WidthRequest="56" HeightRequest="56" CornerRadius="28" HorizontalOptions="End" VerticalOptions="End" Margin="0,0,10,10" Command="{Binding AddEmployeeCommand}"/>
 
         </Grid>
     </Grid>

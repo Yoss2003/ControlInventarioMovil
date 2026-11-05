@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:helpers="clr-namespace:ControlInventarioMovil.Helpers"
+             xmlns:viewmodels="clr-namespace:ControlInventarioMovil.ViewModels"
              x:Class="ControlInventarioMovil.Views.AnalyticsPage"
              xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.Maui;assembly=LiveChartsCore.SkiaSharpView.Maui"
              BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}"
@@ -19,7 +20,7 @@
                 <Label Text="Métricas y sugerencias automatizadas" TextColor="{AppThemeBinding Light=#CDD5DB, Dark=#606A72}" FontSize="11"/>
             </VerticalStackLayout>
 
-            <ImageButton Grid.Column="2" Source="refresh_icon.png" WidthRequest="25" HeightRequest="25" BackgroundColor="Transparent" Padding="0" VerticalOptions="Center" Opacity="0.8" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnRefrescarClicked"/>
+            <ImageButton Grid.Column="2" Source="refresh_icon.png" WidthRequest="25" HeightRequest="25" BackgroundColor="Transparent" Padding="0" VerticalOptions="Center" Opacity="0.8" helpers:EfectosVisualesHelper.Animar="True" Command="{Binding RefreshCommand}"/>
         </Grid>
 
         <!-- CONTENIDO ESCROLLEABLE -->
@@ -37,7 +38,7 @@
                                 <Label Text="💰" FontSize="16"/>
                                 <Label Text="Capital en Stock" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" FontAttributes="Bold" VerticalOptions="Center"/>
                             </HorizontalStackLayout>
-                            <Label x:Name="LblCapital" Text="S/. 0.00" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="18" FontAttributes="Bold"/>
+                            <Label Text="{Binding CapitalTotalText}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="18" FontAttributes="Bold"/>
                         </VerticalStackLayout>
                     </Border>
 
@@ -50,7 +51,7 @@
                                 <Label Text="📉" FontSize="16"/>
                                 <Label Text="Mermas (Mes)" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" FontAttributes="Bold" VerticalOptions="Center"/>
                             </HorizontalStackLayout>
-                            <Label x:Name="LblMermas" Text="S/. 0.00" TextColor="#D32F2F" FontSize="18" FontAttributes="Bold"/>
+                            <Label Text="{Binding MermasTotalText}" TextColor="#D32F2F" FontSize="18" FontAttributes="Bold"/>
                         </VerticalStackLayout>
                     </Border>
                 </Grid>
@@ -73,8 +74,8 @@
                                 <Label Text="📦" FontSize="22" HorizontalOptions="Center"/>
                                 <Label Text="Reabastecer" TextColor="#8A2BE2" FontAttributes="Bold" FontSize="11" HorizontalTextAlignment="Center"/>
                                 <Label Text="Evita quiebres de inventario." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="9" HorizontalTextAlignment="Center" LineBreakMode="WordWrap" HeightRequest="26" VerticalTextAlignment="Start"/>
-                                <Label x:Name="LblSumRestock" Text="..." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="10" HorizontalTextAlignment="Center" HeightRequest="30" VerticalTextAlignment="Center"/>
-                                <Button Text="Detalles" BackgroundColor="#8A2BE2" TextColor="White" FontSize="10" FontAttributes="Bold" HeightRequest="32" Padding="0" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVerDetallesRestockClicked"/>
+                                <Label Text="{Binding RestockAlertText}" TextColor="{Binding RestockAlertColor}" FontAttributes="Bold" FontSize="10" HorizontalTextAlignment="Center" HeightRequest="30" VerticalTextAlignment="Center"/>
+                                <Button Text="Detalles" BackgroundColor="#8A2BE2" TextColor="White" FontSize="10" FontAttributes="Bold" HeightRequest="32" Padding="0" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Command="{Binding ShowDetailsCommand}" CommandParameter="Restock"/>
                             </VerticalStackLayout>
                         </Border>
 
@@ -87,8 +88,8 @@
                                 <Label Text="🏷️" FontSize="22" HorizontalOptions="Center"/>
                                 <Label Text="Precios" TextColor="#EFA72F" FontAttributes="Bold" FontSize="11" HorizontalTextAlignment="Center"/>
                                 <Label Text="Protege tu margen de ganancia." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="9" HorizontalTextAlignment="Center" LineBreakMode="WordWrap" HeightRequest="26" VerticalTextAlignment="Start"/>
-                                <Label x:Name="LblSumPrecios" Text="..." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="10" HorizontalTextAlignment="Center" HeightRequest="30" VerticalTextAlignment="Center"/>
-                                <Button Text="Detalles" BackgroundColor="#EFA72F" TextColor="White" FontSize="10" FontAttributes="Bold" HeightRequest="32" Padding="0" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVerDetallesPreciosClicked"/>
+                                <Label Text="{Binding PreciosAlertText}" TextColor="{Binding PreciosAlertColor}" FontAttributes="Bold" FontSize="10" HorizontalTextAlignment="Center" HeightRequest="30" VerticalTextAlignment="Center"/>
+                                <Button Text="Detalles" BackgroundColor="#EFA72F" TextColor="White" FontSize="10" FontAttributes="Bold" HeightRequest="32" Padding="0" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Command="{Binding ShowDetailsCommand}" CommandParameter="Precios"/>
                             </VerticalStackLayout>
                         </Border>
 
@@ -101,8 +102,8 @@
                                 <Label Text="⏳" FontSize="22" HorizontalOptions="Center"/>
                                 <Label Text="Estancado" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" FontAttributes="Bold" FontSize="11" HorizontalTextAlignment="Center"/>
                                 <Label Text="Libera capital sin movimiento." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="9" HorizontalTextAlignment="Center" LineBreakMode="WordWrap" HeightRequest="26" VerticalTextAlignment="Start"/>
-                                <Label x:Name="LblSumEstancado" Text="..." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="10" HorizontalTextAlignment="Center" HeightRequest="30" VerticalTextAlignment="Center"/>
-                                <Button Text="Detalles" BackgroundColor="#2E7D32" TextColor="White" FontSize="10" FontAttributes="Bold" HeightRequest="32" Padding="0" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVerDetallesEstancadoClicked"/>
+                                <Label Text="{Binding EstancadoAlertText}" TextColor="{Binding EstancadoAlertColor}" FontAttributes="Bold" FontSize="10" HorizontalTextAlignment="Center" HeightRequest="30" VerticalTextAlignment="Center"/>
+                                <Button Text="Detalles" BackgroundColor="#2E7D32" TextColor="White" FontSize="10" FontAttributes="Bold" HeightRequest="32" Padding="0" CornerRadius="6" helpers:EfectosVisualesHelper.Animar="True" Command="{Binding ShowDetailsCommand}" CommandParameter="Estancado"/>
                             </VerticalStackLayout>
                         </Border>
 
@@ -120,20 +121,22 @@
                             <RoundRectangle CornerRadius="12"/>
                         </Border.StrokeShape>
 
-                        <VerticalStackLayout x:Name="ContenedorGraficoTop" Spacing="15">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate>
-                                    <VerticalStackLayout Spacing="4">
-                                        <Grid ColumnDefinitions="*, Auto">
-                                            <Label Grid.Column="0" Text="{Binding Name}" TextColor="{AppThemeBinding Light=#54606C, Dark=#CDD5DB}" FontSize="12" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
-                                            <Label Grid.Column="1" Text="{Binding DisplayAmount}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
-                                        </Grid>
-                                        <ProgressBar Progress="{Binding ProgressValue}" ProgressColor="{Binding BarColor}" HeightRequest="8" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}"/>
-                                    </VerticalStackLayout>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
+                        <VerticalStackLayout Spacing="15">
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding TopProducts}" Spacing="15">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="viewmodels:TopProductChartItem">
+                                        <VerticalStackLayout Spacing="4">
+                                            <Grid ColumnDefinitions="*, Auto">
+                                                <Label Grid.Column="0" Text="{Binding Name}" TextColor="{AppThemeBinding Light=#54606C, Dark=#CDD5DB}" FontSize="12" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
+                                                <Label Grid.Column="1" Text="{Binding DisplayAmount}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="12" FontAttributes="Bold"/>
+                                            </Grid>
+                                            <ProgressBar Progress="{Binding ProgressValue}" ProgressColor="{Binding BarColor}" HeightRequest="8" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}"/>
+                                        </VerticalStackLayout>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
 
-                            <Label x:Name="LblSinVentas" Text="Aún no hay salidas registradas este mes." TextColor="Gray" FontSize="12" HorizontalOptions="Center" IsVisible="False" Margin="0,20"/>
+                            <Label Text="Aún no hay salidas registradas este mes." TextColor="Gray" FontSize="12" HorizontalOptions="Center" IsVisible="{Binding IsSinVentasVisible}" Margin="0,20"/>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
@@ -153,23 +156,16 @@
 
                             <!-- Botones de Filtro Interactivos -->
                             <Grid ColumnDefinitions="*, *, *, *" ColumnSpacing="8">
-                                <Button x:Name="BtnFiltroTodos" Grid.Column="0" Text="Todos" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="#8A2BE2" TextColor="White" Padding="0" HeightRequest="32" Clicked="OnFiltroChartClicked" CommandParameter="Todos"/>
-                                <Button x:Name="BtnFiltroEstandar" Grid.Column="1" Text="Estándar" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="Transparent" TextColor="Gray" BorderColor="Gray" BorderWidth="1" Padding="0" HeightRequest="32" Clicked="OnFiltroChartClicked" CommandParameter="Standard"/>
-                                <Button x:Name="BtnFiltroGranel" Grid.Column="2" Text="Granel" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="Transparent" TextColor="Gray" BorderColor="Gray" BorderWidth="1" Padding="0" HeightRequest="32" Clicked="OnFiltroChartClicked" CommandParameter="Bulk"/>
-                                <Button x:Name="BtnFiltroSerial" Grid.Column="3" Text="Serial" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="Transparent" TextColor="Gray" BorderColor="Gray" BorderWidth="1" Padding="0" HeightRequest="32" Clicked="OnFiltroChartClicked" CommandParameter="Serialized"/>
+                                <Button Grid.Column="0" Text="Todos" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="{Binding FiltroTodosBg}" TextColor="{Binding FiltroTodosText}" BorderColor="Gray" BorderWidth="{Binding FiltroTodosBorder}" Padding="0" HeightRequest="32" Command="{Binding FilterChartCommand}" CommandParameter="Todos"/>
+                                <Button Grid.Column="1" Text="Estándar" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="{Binding FiltroStandardBg}" TextColor="{Binding FiltroStandardText}" BorderColor="Gray" BorderWidth="{Binding FiltroStandardBorder}" Padding="0" HeightRequest="32" Command="{Binding FilterChartCommand}" CommandParameter="Standard"/>
+                                <Button Grid.Column="2" Text="Granel" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="{Binding FiltroBulkBg}" TextColor="{Binding FiltroBulkText}" BorderColor="Gray" BorderWidth="{Binding FiltroBulkBorder}" Padding="0" HeightRequest="32" Command="{Binding FilterChartCommand}" CommandParameter="Bulk"/>
+                                <Button Grid.Column="3" Text="Serial" FontSize="11" FontAttributes="Bold" CornerRadius="6" BackgroundColor="{Binding FiltroSerialBg}" TextColor="{Binding FiltroSerialText}" BorderColor="Gray" BorderWidth="{Binding FiltroSerialBorder}" Padding="0" HeightRequest="32" Command="{Binding FilterChartCommand}" CommandParameter="Serialized"/>
                             </Grid>
 
                             <!-- Contenedor del Gráfico -->
-                            <Grid x:Name="ContenedorGraficoLineas" HeightRequest="220">
-                                <lvc:CartesianChart x:Name="GraficoTendencias" 
-                                                    Series="{Binding SeriesGrafico}" 
-                                                    XAxes="{Binding XAxesGrafico}" 
-                                                    YAxes="{Binding YAxesGrafico}" 
-                                                    BackgroundColor="Transparent" 
-                                                    HorizontalOptions="Fill" VerticalOptions="Fill"
-                                                    FindingStrategy="ExactMatch"/>
-
-                                <Label x:Name="LblSinDatosGrafico" Text="No hay datos registrados para este filtro." TextColor="Gray" FontSize="12" HorizontalOptions="Center" VerticalOptions="Center" IsVisible="False"/>
+                            <Grid HeightRequest="220">
+                                <lvc:CartesianChart Series="{Binding SeriesGrafico}" XAxes="{Binding XAxesGrafico}" YAxes="{Binding YAxesGrafico}" BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Fill" FindingStrategy="ExactMatch" IsVisible="{Binding IsGraficoVisible}"/>
+                                <Label Text="No hay datos registrados para este filtro." TextColor="Gray" FontSize="12" HorizontalOptions="Center" VerticalOptions="Center" IsVisible="{Binding IsSinDatosGraficoVisible}"/>
                             </Grid>
 
                             <!-- Leyenda de las líneas -->
@@ -192,9 +188,9 @@
         </ScrollView>
 
         <!-- 🔥 MODAL PARA VER DETALLES DE IA -->
-        <Grid x:Name="OverlayDetallesIA" Grid.RowSpan="2" BackgroundColor="#CC000000" IsVisible="False" Opacity="0" ZIndex="105">
+        <Grid BackgroundColor="#CC000000" IsVisible="{Binding IsModalVisible}" ZIndex="105" Grid.RowSpan="2">
             <Grid.GestureRecognizers>
-                <TapGestureRecognizer />
+                <TapGestureRecognizer Command="{Binding CloseModalCommand}"/>
             </Grid.GestureRecognizers>
             <Border VerticalOptions="Center" HorizontalOptions="Center" WidthRequest="330" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#1C262E}" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" Padding="0">
                 <Border.StrokeShape>
@@ -202,29 +198,26 @@
                 </Border.StrokeShape>
                 <Grid RowDefinitions="Auto, *, Auto">
 
-                    <VerticalStackLayout x:Name="CabeceraModalIA" Grid.Row="0" Padding="15" BackgroundColor="#8A2BE2">
-                        <Label x:Name="LblModalIcono" Text="📦" FontSize="28" HorizontalOptions="Center"/>
-                        <Label x:Name="LblModalTitulo" Text="Título" TextColor="White" FontAttributes="Bold" FontSize="16" HorizontalOptions="Center" Margin="0,5,0,0"/>
+                    <VerticalStackLayout Grid.Row="0" Padding="15" BackgroundColor="{Binding ModalHeaderColor}">
+                        <Label Text="{Binding ModalIcon}" FontSize="28" HorizontalOptions="Center"/>
+                        <Label Text="{Binding ModalTitle}" TextColor="White" FontAttributes="Bold" FontSize="16" HorizontalOptions="Center" Margin="0,5,0,0"/>
                     </VerticalStackLayout>
 
                     <ScrollView Grid.Row="1" MaximumHeightRequest="350" Padding="20">
-                        <Label x:Name="LblModalDetalle" Text="Cargando detalles..." TextColor="{AppThemeBinding Light=#1C262E, Dark=#E0E0E0}" FontSize="13" LineBreakMode="WordWrap"/>
+                        <Label Text="{Binding ModalDetalleText}" TextColor="{AppThemeBinding Light=#1C262E, Dark=#E0E0E0}" FontSize="13" LineBreakMode="WordWrap"/>
                     </ScrollView>
 
                     <Grid Grid.Row="2" Padding="20" BackgroundColor="{AppThemeBinding Light=#E9ECEF, Dark=#161F27}">
-                        <Button Text="CERRAR DETALLES" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Clicked="OnCerrarOverlayDetallesClicked"/>
+                        <Button Text="CERRAR DETALLES" BackgroundColor="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" CornerRadius="8" HeightRequest="45" Command="{Binding CloseModalCommand}"/>
                     </Grid>
                 </Grid>
             </Border>
         </Grid>
 
         <!-- PANTALLA DE CARGA -->
-        <Grid x:Name="OverlayCargando" Grid.RowSpan="2" BackgroundColor="#B3000000" IsVisible="False" ZIndex="110">
-            <Grid.GestureRecognizers>
-                <TapGestureRecognizer />
-            </Grid.GestureRecognizers>
+        <Grid BackgroundColor="#B3000000" IsVisible="{Binding IsBusy}" ZIndex="110" Grid.RowSpan="2">
             <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="15">
-                <ActivityIndicator x:Name="ActCargando" IsRunning="False" IsVisible="True" Color="#A2D149" WidthRequest="50" HeightRequest="50" />
+                <ActivityIndicator IsRunning="True" Color="#A2D149" WidthRequest="50" HeightRequest="50" />
                 <Label Text="Procesando inteligencia..." TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" />
             </VerticalStackLayout>
         </Grid>

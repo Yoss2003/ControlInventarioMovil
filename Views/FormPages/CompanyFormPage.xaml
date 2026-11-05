@@ -7,64 +7,71 @@
              NavigationPage.HasNavigationBar="False"
              BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}">
 
-    <ContentPage.Resources>
-        <ResourceDictionary>
-            <helpers:Base64ToImageConverter x:Key="Base64Converter" />
-        </ResourceDictionary>
-    </ContentPage.Resources>
-
     <Grid RowDefinitions="Auto, *" VerticalOptions="Fill">
+
+        <!-- Barra Superior -->
         <Grid Grid.Row="0" ColumnDefinitions="50, *, 50" Padding="15,10" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1A232C}">
-            <ImageButton Grid.Column="0" Source="arrow_back.png" Aspect="AspectFit" BackgroundColor="Transparent" Padding="10" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVolverClicked"/>
-            <Label x:Name="lblTituloPantalla" Grid.Column="1" Text="NUEVA SUCURSAL" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="16" HorizontalTextAlignment="Center" VerticalOptions="Center"/>
+            <ImageButton Grid.Column="0" Source="arrow_back.png" Aspect="AspectFit" BackgroundColor="Transparent" Padding="10" helpers:EfectosVisualesHelper.Animar="True" Command="{Binding BackCommand}"/>
+            <Label Grid.Column="1" Text="{Binding PageTitle}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontAttributes="Bold" FontSize="16" HorizontalTextAlignment="Center" VerticalOptions="Center"/>
             <BoxView Grid.Column="2" Color="Transparent" />
         </Grid>
 
+        <!-- Contenido -->
         <ScrollView Grid.Row="1" Padding="20">
             <VerticalStackLayout Spacing="20">
+
                 <VerticalStackLayout HorizontalOptions="Center" Spacing="10">
-                    <Border WidthRequest="120" HeightRequest="120" StrokeShape="RoundRectangle 60" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="2" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}">
-                        <!-- Usamos el converter aquí también para previsualizar si estamos editando -->
-                        <Image x:Name="imgLogoPreview" Source="add_icon.png" Aspect="AspectFill" Margin="0" />
+                    <Border WidthRequest="120" HeightRequest="120" StrokeShape="RoundRectangle 60" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="2" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" IsEnabled="{Binding IsEditable}">
+                        <Image Source="{Binding LogoImageSource}" Aspect="AspectFill" Margin="0" />
                         <Border.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnSeleccionarLogoTapped" />
+                            <TapGestureRecognizer Command="{Binding SelectLogoCommand}" />
                         </Border.GestureRecognizers>
                     </Border>
                     <Label Text="Toca para subir logo" FontSize="12" TextColor="{AppThemeBinding Light=#54606C, Dark=#8A9AAB}" HorizontalOptions="Center" />
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Spacing="5">
-                    <Label Text="Nombre de la Empresa" FontSize="14" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" />
-                    <Border Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" StrokeShape="RoundRectangle 8" Padding="10,0" HeightRequest="50">
-                        <Entry x:Name="txtBusinessName" Placeholder="Ej. AgroSur S.A.C." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" PlaceholderColor="#8A9AAB" BackgroundColor="Transparent" />
-                    </Border>
+                    <Label Text="RUC de la Sucursal" TextColor="{AppThemeBinding Light=#54606C, Dark=#8A9AAB}" FontSize="14" Margin="0,0,0,5" />
+                    <Grid ColumnDefinitions="*, Auto" ColumnSpacing="10" Margin="0,0,0,15">
+                        <Border Grid.Column="0" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="10,0" StrokeShape="RoundRectangle 8">
+                            <Entry Text="{Binding Ruc}" Placeholder="Ej. 20123456789" Keyboard="Numeric" MaxLength="11" IsEnabled="{Binding IsEditable}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" />
+                        </Border>
+                        <ImageButton Grid.Column="1" Source="search_icon.png" WidthRequest="45" HeightRequest="45" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" CornerRadius="8" Padding="12" Command="{Binding SearchRucCommand}" IsEnabled="{Binding IsEditable}" />
+                    </Grid>
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Spacing="5">
-                    <Label Text="RUC" FontSize="14" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" />
-                    <Border Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" StrokeShape="RoundRectangle 8" Padding="10,0" HeightRequest="50">
-                        <Entry x:Name="txtRuc" Placeholder="11 dígitos" Keyboard="Numeric" MaxLength="11" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" PlaceholderColor="#8A9AAB" BackgroundColor="Transparent" />
+                    <Label Text="Razón Social / Nombre" TextColor="{AppThemeBinding Light=#54606C, Dark=#8A9AAB}" FontSize="14" Margin="0,0,0,5" />
+                    <Border Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" StrokeThickness="1" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="10,0" StrokeShape="RoundRectangle 8" Margin="0,0,0,15">
+                        <Entry Text="{Binding BusinessName}" Placeholder="Nombre de la sucursal" IsEnabled="{Binding IsEditable}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" />
                     </Border>
                 </VerticalStackLayout>
 
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="Color de Marca" FontSize="14" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" />
+                <VerticalStackLayout IsVisible="{Binding IsEditable}" Spacing="10" Margin="0,0,0,15">
+                    <Label Text="Color de Marca" TextColor="{AppThemeBinding Light=#54606C, Dark=#8A9AAB}" FontSize="14" />
                     <FlexLayout x:Name="ColorPaletteLayout" Wrap="Wrap" JustifyContent="SpaceBetween" AlignItems="Center" />
                 </VerticalStackLayout>
 
-                <HorizontalStackLayout x:Name="panelEstado" Spacing="10" IsVisible="False" VerticalOptions="Center" Margin="0,10,0,0">
-                    <Switch x:Name="switchEstado" OnColor="#2E7D32" />
-                    <Label Text="Sucursal Activa (Operativa)" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" VerticalOptions="Center" />
+                <HorizontalStackLayout IsVisible="{Binding ShowReactivateOption}" Spacing="10" VerticalOptions="Center" Margin="0,10,0,0">
+                    <Switch IsToggled="{Binding IsActive, Mode=TwoWay}" OnColor="#2E7D32" />
+                    <Label Text="Reactivar esta Sucursal" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" VerticalOptions="Center" />
                 </HorizontalStackLayout>
 
-                <Button x:Name="btnGuardar" Text="Guardar Empresa" FontAttributes="Bold" TextColor="White" HeightRequest="50" CornerRadius="10" Margin="0,20,0,0" Clicked="OnGuardarClicked" helpers:EfectosVisualesHelper.Animar="True">
+                <Button Text="{Binding SaveButtonText}" Command="{Binding SaveCommand}" FontAttributes="Bold" TextColor="White" HeightRequest="50" CornerRadius="10" Margin="0,20,0,0" helpers:EfectosVisualesHelper.Animar="True">
                     <Button.Background>
-                        <SolidColorBrush x:Name="btnGuardarBackground" Color="#2E7D32" />
+                        <SolidColorBrush Color="{Binding SaveButtonBg}" />
                     </Button.Background>
                 </Button>
 
-                <ActivityIndicator x:Name="loading" IsRunning="False" IsVisible="False" Color="#2E7D32" HorizontalOptions="Center" />
             </VerticalStackLayout>
         </ScrollView>
+
+        <Grid Grid.Row="0" Grid.RowSpan="2" BackgroundColor="#D9000000" IsVisible="{Binding IsLoading}" InputTransparent="False" VerticalOptions="Fill" HorizontalOptions="Fill">
+            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="15">
+                <ActivityIndicator IsRunning="True" Color="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" WidthRequest="50" HeightRequest="50" />
+                <Label Text="{Binding LoadingText}" TextColor="White" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+        </Grid>
+
     </Grid>
 </ContentPage>

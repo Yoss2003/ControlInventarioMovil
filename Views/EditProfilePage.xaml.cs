@@ -1,618 +1,175 @@
 using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
-using ControlInventarioMovil.Utilities;
-using Plugin.Maui.ImageCropper;
-using System.Text.RegularExpressions;
+using ControlInventarioMovil.ViewModels;
 
-namespace ControlInventarioMovil.Views;
-
-public partial class EditProfilePage : ContentPage
+namespace ControlInventarioMovil.Views
 {
-    private readonly ApiService _apiService;
-    private string? _croppedPhotoPath;
-    private string _currentParameterType = "";
-    private bool _isEditing = false;
-    private int _selectedItemIdToDeleteOrEdit = 0;
-
-    public EditProfilePage()
+    public partial class EditProfilePage : ContentPage
     {
-        InitializeComponent();
-        _apiService = new ApiService();
-    }
+        private readonly ApiService _apiService;
+        private string _currentParameterType = "";
+        private bool _isEditing = false;
+        private int _selectedItemIdToDeleteOrEdit = 0;
 
-    protected override async void OnAppearing()
-    {
-        base.OnAppearing();
-        loadingOverlay.IsVisible = true;
-        await CargarCatalogosAsync();
-
-        if (UserSession.CurrentUser != null)
+        public EditProfilePage()
         {
-            var user = UserSession.CurrentUser;
+            InitializeComponent();
+            _apiService = new ApiService();
+            BindingContext = new EditProfileViewModel();
+        }
 
-            txtFirstName.TextChanged -= OnNameFieldsChanged;
-            txtLastName.TextChanged -= OnNameFieldsChanged;
-
-            txtFirstName.Text = user.Employee?.FirstName;
-            txtLastName.Text = user.Employee?.LastName;
-            txtPhoneNumber.Text = user.PhoneNumber;
-            txtAge.Text = user.Employee?.DNI;
-            txtEmail.Text = user.Email;
-            txtUsername.Text = user.Username;
-            swIsActive.IsToggled = user.IsActive;
-
-            if (DateTime.TryParse(user.Employee?.BirthDate, out DateTime bDate))
-                dpBirthDate.Date = bDate;
-
-            if (DateTime.TryParse(user.Employee?.HireDate, out DateTime hDate))
-                dpHireDate.Date = hDate;
-
-            txtAge.Text = user.Employee?.Age?.ToString() ?? "0";
-
-            bool esAdmin = user.RoleId == 1;
-            stackActiveStatus.IsVisible = esAdmin;
-            stackRoleButtons.IsVisible = esAdmin;
-            stackAreaButtons.IsVisible = esAdmin;
-            stackPositionButtons.IsVisible = esAdmin;
-            stackContractButtons.IsVisible = esAdmin;
-            pckRole.IsEnabled = esAdmin;
-
-            if (user.MustChangePassword)
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            if (BindingContext is EditProfileViewModel vm)
             {
-                lblPasswordHeader.Text = "Nueva Contraseña (Obligatorio)";
-                txtPassword.Placeholder = "Escribe una contraseña segura";
-                btnSave.IsEnabled = false;
+                vm.LoadDataCommand.Execute(null);
+            }
+        }
+
+        private async void OnCancelClicked(object sender, EventArgs e)
+        {
+            try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
+            if (sender is View btn) btn.IsEnabled = false;
+
+            await Task.Delay(50);
+
+            if (Shell.Current == null)
+            {
+                UserSession.CurrentUser = null;
+                if (Application.Current?.Windows.Count > 0)
+                    Application.Current.Windows[0].Page = new Views.LoginPage();
             }
             else
             {
-                lblPasswordHeader.Text = "Nueva Contraseña (Opcional)";
-                txtPassword.Placeholder = "Dejar en blanco para no cambiar";
-                btnSave.IsEnabled = true;
+                await Shell.Current.GoToAsync("..");
             }
 
-            if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
-            {
-                imgProfilePreview.Source = ImageSource.FromUri(new Uri(user.ProfilePictureUrl));
-            }
-
-            txtFirstName.TextChanged += OnNameFieldsChanged;
-            txtLastName.TextChanged += OnNameFieldsChanged;
-
-            PreseleccionarValoresUsuario(user);
+            if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
         }
-        loadingOverlay.IsVisible = false;
-    }
 
-    //Metodo de preselección para Rol, Área, Puesto y Tipo de Contrato
-    private void PreseleccionarValoresUsuario(User user)
-    {
-        if (pckRole.ItemsSource is List<Role> rolesList)
+        // =========================================================================
+        // MÉTODOS DE VENTANAS FLOTANTES Y POPUPS VISUALES 
+        // =========================================================================
+
+        private void OnPasswordInfoClicked(object sender, EventArgs e)
         {
-            var match = rolesList.FirstOrDefault(r => r.Id != 0 && r.Name == user.Role?.Name);
-            pckRole.SelectedItem = match ?? rolesList[0];
+            PasswordInfoOverlay.IsVisible = true;
         }
-        if (pckArea.ItemsSource is List<Parameters> areasList)
+
+        private void OnClosePasswordInfoClicked(object sender, EventArgs e)
         {
-            var match = areasList.FirstOrDefault(a => a.Id != 0 && a.Id == user.Employee?.AreaId);
-            pckArea.SelectedItem = match ?? areasList[0];
+            PasswordInfoOverlay.IsVisible = false;
         }
-        if (pckPosition.ItemsSource is List<Parameters> puestosList)
+
+        private void OnAddRoleClicked(object sender, EventArgs e)
         {
-            var match = puestosList.FirstOrDefault(p => p.Id != 0 && p.Id == user.Employee?.JobPositionId);
-            pckPosition.SelectedItem = match ?? puestosList[0];
+            _currentParameterType = "Role";
+            lblPopupTitle.Text = "Nuevo Rol";
+            txtPopupName.Text = "";
+            layoutPopupDesc.IsVisible = false;
+            PopupOverlay.IsVisible = true;
         }
-        if (pckContractType.ItemsSource is List<Parameters> contratosList)
+
+        private void OnAddAreaClicked(object sender, EventArgs e) => AbrirPopup("Nueva Área", "Area", false, null, "", "");
+        private void OnAddPositionClicked(object sender, EventArgs e) => AbrirPopup("Nuevo Puesto", "JobPosition", false, null, "", "");
+        private void OnAddContractTypeClicked(object sender, EventArgs e) => AbrirPopup("Nuevo Contrato", "ContractType", false, null, "", "");
+
+        private async void OnEditRoleClicked(object sender, EventArgs e)
         {
-            var match = contratosList.FirstOrDefault(c => c.Id != 0 && c.Id == user.Employee?.ContractTypeId);
-            pckContractType.SelectedItem = match ?? contratosList[0];
+            if (BindingContext is EditProfileViewModel vm && vm.SelectedRole != null && vm.SelectedRole.Id != 0)
+                AbrirPopup("Editar Rol", "Role", true, vm.SelectedRole.Id, vm.SelectedRole.Name);
+            else await DisplayAlertAsync("Atención", "Seleccione primero un Rol de la lista para poder editarlo.", "OK");
         }
-    }
 
-    // Métodos para agregar nuevos registros a los catálogos
-    private void OnAddRoleClicked(object sender, EventArgs e)
-    {
-        _currentParameterType = "Role";
-        lblPopupTitle.Text = "Nuevo Rol";
-        txtPopupName.Text = "";
-        layoutPopupDesc.IsVisible = false; 
-        PopupOverlay.IsVisible = true;
-    }
-
-    // Metodo para agregar una nueva Área
-    private void OnAddAreaClicked(object sender, EventArgs e)
-    {
-        AbrirPopup("Nueva Área", "Area", false, null, "", "");
-    }
-
-    // Metodo para agregar un nuevo Puesto de trabajo
-    private void OnAddPositionClicked(object sender, EventArgs e)
-    {
-        AbrirPopup("Nuevo Puesto", "JobPosition", false, null, "", "");
-    }
-
-    // Metodo para agregar un nuevo Tipo de Contrato
-    private void OnAddContractTypeClicked(object sender, EventArgs e)
-    {
-        AbrirPopup("Nuevo Contrato", "ContractType", false, null, "","");
-    }
-
-    private async void OnEditRoleClicked(object sender, EventArgs e)
-    {
-        if (pckRole.SelectedItem is Role selected)
-            AbrirPopup("Editar Rol", "Role", true, selected.Id, selected.Name);
-        else await DisplayAlertAsync("Atención", "Seleccione primero un Rol de la lista para poder editarlo.", "OK");
-    }
-
-    private async void OnEditAreaClicked(object sender, EventArgs e)
-    {
-        if (pckArea.SelectedItem is Parameters selected)
-            AbrirPopup("Editar Área", "Area", true, selected.Id, selected.Name, selected.Description);
-        else await DisplayAlertAsync("Atención", "Seleccione primero un Área de la lista para poder editarla.", "OK");
-    }
-
-    private async void OnEditPositionClicked(object sender, EventArgs e)
-    {
-        if (pckPosition.SelectedItem is Parameters selected)
-            AbrirPopup("Editar Puesto", "JobPosition", true, selected.Id, selected.Name, selected.Description);
-        else await DisplayAlertAsync("Atención", "Seleccione primero un Puesto de la lista para poder editarlo.", "OK");
-    }
-
-    private async void OnEditContractTypeClicked(object sender, EventArgs e)
-    {
-        if (pckContractType.SelectedItem is Parameters selected)
-            AbrirPopup("Editar Contrato", "ContractType", true, selected.Id, selected.Name, selected.Description);
-        else await DisplayAlertAsync("Atención", "Seleccione primero un Contrato de la lista para poder editarlo.", "OK");
-    }
-
-    // Método para cerrar la ventana flotante sin guardar cambios
-    private void OnClosePopupClicked(object sender, EventArgs e)
-    {
-        PopupOverlay.IsVisible = false;
-    }
-
-    // Método para guardar el nuevo registro (Rol, Área, Puesto o Contrato) y actualizar las listas correspondientes
-    private async void OnSavePopupClicked(object sender, EventArgs e)
-    {
-        string nombre = txtPopupName.Text?.Trim() ?? "";
-        string descripcion = txtPopupDesc.Text?.Trim() ?? "";
-
-        if (string.IsNullOrWhiteSpace(nombre))
+        private async void OnEditAreaClicked(object sender, EventArgs e)
         {
-            await DisplayAlertAsync("Atención", "El nombre es obligatorio.", "OK");
-            return;
+            if (BindingContext is EditProfileViewModel vm && vm.SelectedArea != null && vm.SelectedArea.Id != 0)
+                AbrirPopup("Editar Área", "Area", true, vm.SelectedArea.Id, vm.SelectedArea.Name, vm.SelectedArea.Description);
+            else await DisplayAlertAsync("Atención", "Seleccione primero un Área de la lista para poder editarla.", "OK");
         }
 
-        bool exito = false;
-
-        if (_currentParameterType == "Role")
+        private async void OnEditPositionClicked(object sender, EventArgs e)
         {
-            var objetoRol = new Role { Id = _selectedItemIdToDeleteOrEdit, Name = nombre };
-
-            if (_isEditing) exito = await _apiService.UpdateRoleAsync(objetoRol);
-            else exito = await _apiService.CreateRoleAsync(objetoRol);
+            if (BindingContext is EditProfileViewModel vm && vm.SelectedPosition != null && vm.SelectedPosition.Id != 0)
+                AbrirPopup("Editar Puesto", "JobPosition", true, vm.SelectedPosition.Id, vm.SelectedPosition.Name, vm.SelectedPosition.Description);
+            else await DisplayAlertAsync("Atención", "Seleccione primero un Puesto de la lista para poder editarlo.", "OK");
         }
-        else
+
+        private async void OnEditContractTypeClicked(object sender, EventArgs e)
         {
-            var objetoParam = new Parameters
-            {
-                Id = _selectedItemIdToDeleteOrEdit,
-                Name = nombre,
-                Description = string.IsNullOrWhiteSpace(descripcion) ? "Sin descripción" : descripcion,
-                ParameterType = _currentParameterType,
-                InventoryId = 0
-            };
-
-            if (_isEditing) exito = await _apiService.UpdateParameterAsync(objetoParam);
-            else exito = (await _apiService.CreateParameterAsync(objetoParam)) != null;
+            if (BindingContext is EditProfileViewModel vm && vm.SelectedContractType != null && vm.SelectedContractType.Id != 0)
+                AbrirPopup("Editar Contrato", "ContractType", true, vm.SelectedContractType.Id, vm.SelectedContractType.Name, vm.SelectedContractType.Description);
+            else await DisplayAlertAsync("Atención", "Seleccione primero un Contrato de la lista para poder editarlo.", "OK");
         }
 
-        if (exito)
+        private void OnClosePopupClicked(object sender, EventArgs e)
         {
             PopupOverlay.IsVisible = false;
-            await CargarCatalogosAsync();
-
-            if (_currentParameterType == "Role" && pckRole.ItemsSource is List<Role> rList)
-                pckRole.SelectedItem = rList.FirstOrDefault(r => r.Name == nombre);
-            else if (_currentParameterType == "Area" && pckArea.ItemsSource is List<Parameters> aList)
-                pckArea.SelectedItem = aList.FirstOrDefault(p => p.Name == nombre);
-            else if (_currentParameterType == "JobPosition" && pckPosition.ItemsSource is List<Parameters> pList)
-                pckPosition.SelectedItem = pList.FirstOrDefault(p => p.Name == nombre);
-            else if (_currentParameterType == "ContractType" && pckContractType.ItemsSource is List<Parameters> cList)
-                pckContractType.SelectedItem = cList.FirstOrDefault(p => p.Name == nombre);
-
-            await DisplayAlertAsync("Éxito", _isEditing ? "Registro actualizado correctamente." : "Registro creado con éxito.", "OK");
         }
-        else
+
+        private async void OnSavePopupClicked(object sender, EventArgs e)
         {
-            await DisplayAlertAsync("Error", "Ocurrió un problema en la comunicación con el servidor.", "OK");
-        }
-    }
+            string nombre = txtPopupName.Text?.Trim() ?? "";
+            string descripcion = txtPopupDesc.Text?.Trim() ?? "";
 
-    // Método reutilizable para abrir la ventana flotante con el título y tipo de parámetro adecuado
-    private void AbrirPopup(string titulo, string tipoParametro, bool esEdicion, int? itemId, string nombre = "", string? desc = "")
-    {
-        _currentParameterType = tipoParametro;
-        _isEditing = esEdicion;
-        _selectedItemIdToDeleteOrEdit = itemId ?? 0;
-
-        lblPopupTitle.Text = titulo;
-        txtPopupName.Text = nombre;
-        txtPopupDesc.Text = desc;
-        layoutPopupDesc.IsVisible = (tipoParametro != "Role");
-        PopupOverlay.IsVisible = true;
-    }
-
-    // Método para cargar los catálogos de Roles, Áreas, Puestos y Tipos de Contrato
-    private async Task CargarCatalogosAsync()
-    {
-        try
-        {
-            var roles = await _apiService.GetRolesAsync();
-            if (roles != null)
+            if (string.IsNullOrWhiteSpace(nombre))
             {
-                var roleList = roles.ToList();
-                roleList.Insert(0, new Role { Id = 0, Name = "Seleccione un Rol..." });
-                pckRole.ItemsSource = roleList;
-            }
-
-            var parametros = await _apiService.GetParametersAsync();
-            if (parametros != null)
-            {
-                var areasList = parametros.Where(p => p.ParameterType == "Area").ToList();
-                areasList.Insert(0, new Parameters { Id = 0, Name = "Seleccione el Área..." });
-                pckArea.ItemsSource = areasList;
-
-                var puestosList = parametros.Where(p => p.ParameterType == "JobPosition").ToList();
-                puestosList.Insert(0, new Parameters { Id = 0, Name = "Seleccione el Puesto..." });
-                pckPosition.ItemsSource = puestosList;
-
-                var contratosList = parametros.Where(p => p.ParameterType == "ContractType").ToList();
-                contratosList.Insert(0, new Parameters { Id = 0, Name = "Seleccione el Contrato..." });
-                pckContractType.ItemsSource = contratosList;
-            }
-        }
-        catch (Exception ex)
-        {
-            CrashLogger.LogHandledException(ex, "EditProfilePage - CargarCatalogosAsync");
-        }
-    }
-
-    // Método para generar el nombre de usuario automáticamente al cambiar los campos de nombre y apellido
-    private void OnNameFieldsChanged(object? sender, TextChangedEventArgs e)
-    {
-        string firstName = txtFirstName.Text?.Trim() ?? "";
-        string lastName = txtLastName.Text?.Trim() ?? "";
-        txtUsername.Text = GenerarNombreUsuario(firstName, lastName);
-    }
-
-    // Método para generar el nombre de usuario basado en el primer nombre y las iniciales de los apellidos
-    private static string GenerarNombreUsuario(string nombres, string apellidos)
-    {
-        if (string.IsNullOrWhiteSpace(nombres) && string.IsNullOrWhiteSpace(apellidos)) return string.Empty;
-
-        string primerNombre = nombres.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.ToLower() ?? "";
-        if (primerNombre.Length > 4) primerNombre = primerNombre[..4];
-
-        string inicialesApellidos = "";
-        var palabrasApellido = apellidos.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        foreach (var palabra in palabrasApellido)
-        {
-            if (palabra.Length > 0) inicialesApellidos += palabra[0].ToString().ToLower();
-        }
-
-        return $"{primerNombre}{inicialesApellidos}";
-    }
-
-    // Método para manejar la selección de foto, ya sea desde la cámara o la galería, y luego recortarla
-    private async void OnChangePhotoTapped(object sender, EventArgs e)
-    {
-        string action = await DisplayActionSheetAsync("Seleccionar Foto", "Cancelar", null, "Tomar Foto (Cámara)", "Elegir de Galería");
-        try
-        {
-            FileResult? tempPhoto = null;
-            if (action == "Tomar Foto (Cámara)")
-            {
-                if (MediaPicker.Default.IsCaptureSupported) tempPhoto = await MediaPicker.Default.CapturePhotoAsync();
-                else { await DisplayAlertAsync("Error", "La cámara no está soportada.", "OK"); return; }
-            }
-            else if (action == "Elegir de Galería")
-            {
-                var selection = await MediaPicker.Default.PickPhotosAsync();
-                tempPhoto = selection?.FirstOrDefault();
-            }
-
-            if (tempPhoto != null)
-            {
-                string localSafePath = Path.Combine(FileSystem.CacheDirectory, $"temp_crop_{Guid.NewGuid()}.jpg");
-
-                using (var sourceStream = await tempPhoto.OpenReadAsync())
-                using (var localFileStream = File.OpenWrite(localSafePath))
-                {
-                    await sourceStream.CopyToAsync(localFileStream);
-                }
-
-                if (DeviceInfo.Platform == DevicePlatform.WinUI || DeviceInfo.Platform == DevicePlatform.MacCatalyst)
-                {
-                    _croppedPhotoPath = localSafePath;
-                    imgProfilePreview.Source = null;
-                    imgProfilePreview.Source = ImageSource.FromFile(_croppedPhotoPath);
-                }
-                else
-                {
-                    var settings = new CropSettings
-                    {
-                        AspectRatioX = 1,
-                        AspectRatioY = 1,
-                        CropShape = CropSettings.CropShapeType.Oval,
-                        PageTitle = "Ajustar Foto"
-                    };
-
-                    string resultPath = await Cropper.Current.Crop(settings, localSafePath);
-
-                    if (!string.IsNullOrEmpty(resultPath))
-                    {
-                        _croppedPhotoPath = resultPath;
-                        imgProfilePreview.Source = null;
-                        imgProfilePreview.Source = ImageSource.FromFile(_croppedPhotoPath);
-                    }
-                }
-            }
-        }
-        catch (PermissionException pEx)
-        {
-            CrashLogger.LogHandledException(pEx, "EditProfilePage - OnChangePhotoTapped (Permisos)");
-            await DisplayAlertAsync("Permisos", "Se necesitan permisos.", "OK");
-            return;
-        }
-        catch (Exception ex)
-        {
-            CrashLogger.LogHandledException(ex, "EditProfilePage - OnChangePhotoTapped (General)");
-            await DisplayAlertAsync("Error", "No se pudo procesar la foto.", "OK");
-            return;
-        }
-    }
-
-    private async void OnSaveClicked(object sender, EventArgs e)
-    {
-        if (string.IsNullOrWhiteSpace(txtFirstName.Text) || string.IsNullOrWhiteSpace(txtLastName.Text))
-        {
-            await DisplayAlertAsync("Atención", "El nombre y el apellido son obligatorios.", "OK");
-            return;
-        }
-
-        if (pckRole.SelectedIndex <= 0 || pckArea.SelectedIndex <= 0 || pckPosition.SelectedIndex <= 0)
-        {
-            await DisplayAlertAsync("Atención", "Debe seleccionar el Rol, Área y Puesto de trabajo.", "OK");
-            return;
-        }
-
-        if (UserSession.CurrentUser != null && UserSession.CurrentUser.MustChangePassword)
-        {
-            if (string.IsNullOrWhiteSpace(txtPassword.Text))
-            {
-                await DisplayAlertAsync("Seguridad", "Por ser tu primer ingreso, debes crear una nueva contraseña obligatoriamente.", "OK");
+                await DisplayAlertAsync("Atención", "El nombre es obligatorio.", "OK");
                 return;
             }
-            if (txtPassword.Text.Trim() == UserSession.CurrentUser.Password)
+
+            bool exito;
+            if (_currentParameterType == "Role")
             {
-                await DisplayAlertAsync("Advertencia", "La nueva contraseña no puede ser igual a la clave temporal.", "OK");
-                return;
-            }
-        }
-        // -------------------------------------------------------------------
-
-        btnSave.IsEnabled = false;
-        var updatedUser = UserSession.CurrentUser;
-
-        if (updatedUser != null)
-        {
-            updatedUser.Employee ??= new Employee();
-
-            updatedUser.Employee.FirstName = txtFirstName.Text.Trim();
-            updatedUser.Employee.LastName = txtLastName.Text.Trim();
-            updatedUser.Employee.JobPositionId = (pckPosition.SelectedItem as Parameters)?.Id ?? 0;
-            updatedUser.Employee.AreaId = (pckArea.SelectedItem as Parameters)?.Id ?? 0;
-            updatedUser.Employee.ContractTypeId = (pckContractType.SelectedItem as Parameters)?.Id ?? 0;
-
-            DateTime bDate = Convert.ToDateTime(dpBirthDate.Date);
-            updatedUser.Employee.BirthDate = bDate.ToString("yyyy-MM-dd");
-
-            DateTime hDate = Convert.ToDateTime(dpHireDate.Date);
-            updatedUser.Employee.HireDate = hDate.ToString("yyyy-MM-dd");
-
-            if (int.TryParse(txtAge.Text, out int edadCalculada))
-                updatedUser.Employee.Age = edadCalculada;
-
-            updatedUser.PhoneNumber = txtPhoneNumber.Text?.Trim() ?? string.Empty;
-            updatedUser.Email = txtEmail.Text.Trim();
-            updatedUser.Username = txtUsername.Text.Trim();
-            updatedUser.IsActive = swIsActive.IsToggled;
-
-            if (!string.IsNullOrWhiteSpace(txtPassword.Text))
-            {
-                updatedUser.Password = txtPassword.Text.Trim();
-                updatedUser.MustChangePassword = false;
+                var objetoRol = new Role { Id = _selectedItemIdToDeleteOrEdit, Name = nombre };
+                if (_isEditing) exito = await _apiService.UpdateRoleAsync(objetoRol);
+                else exito = await _apiService.CreateRoleAsync(objetoRol);
             }
             else
             {
-                updatedUser.Password = null;
-            }
-
-            updatedUser.RoleId = (pckRole.SelectedItem as Role)?.Id ?? 0;
-            updatedUser.Role = null;
-        }
-        else
-        {
-            await DisplayAlertAsync("Error", "No hay una sesión activa.", "OK");
-            btnSave.IsEnabled = true; return;
-        }
-
-        if (!string.IsNullOrEmpty(_croppedPhotoPath))
-        {
-            btnSave.Text = "Procesando foto...";
-            string compressedPath = _croppedPhotoPath;
-            try
-            {
-                if (File.Exists(_croppedPhotoPath))
+                var objetoParam = new Parameters
                 {
-                    using var stream = File.OpenRead(_croppedPhotoPath);
-                    var image = Microsoft.Maui.Graphics.Platform.PlatformImage.FromStream(stream);
-                    if (image != null)
-                    {
-                        float maxWidth = 500, maxHeight = 500;
-                        if (image.Width > maxWidth || image.Height > maxHeight)
-                        {
-                            using var newImageStream = new MemoryStream();
-                            var resizedImage = image.Downsize(maxWidth, maxHeight);
-                            resizedImage.Save(newImageStream, ImageFormat.Jpeg, 0.8f);
-                            newImageStream.Position = 0;
-                            string tempCachePath = Path.Combine(FileSystem.CacheDirectory, "compressed_profile.jpg");
-                            if (File.Exists(tempCachePath)) File.Delete(tempCachePath);
-                            using var fileStream = File.Create(tempCachePath);
-                            await newImageStream.CopyToAsync(fileStream);
-                            compressedPath = tempCachePath;
-                        }
-                    }
+                    Id = _selectedItemIdToDeleteOrEdit,
+                    Name = nombre,
+                    Description = string.IsNullOrWhiteSpace(descripcion) ? "Sin descripción" : descripcion,
+                    ParameterType = _currentParameterType,
+                    InventoryId = 0
+                };
+                if (_isEditing) exito = await _apiService.UpdateParameterAsync(objetoParam);
+                else exito = (await _apiService.CreateParameterAsync(objetoParam)) != null;
+            }
+
+            if (exito)
+            {
+                PopupOverlay.IsVisible = false;
+
+                // Refrescamos los datos en el ViewModel para que la UI se actualice
+                if (BindingContext is EditProfileViewModel vm)
+                {
+                    vm.LoadDataCommand.Execute(null);
                 }
-            }
-            catch { compressedPath = _croppedPhotoPath; }
 
-            btnSave.Text = "Subiendo foto...";
-            string? nuevaUrl = await _apiService.UploadPhotoAsync(updatedUser.Id, compressedPath);
-
-            if (nuevaUrl != null) updatedUser.ProfilePictureUrl = nuevaUrl;
-            if (compressedPath != _croppedPhotoPath && File.Exists(compressedPath)) File.Delete(compressedPath);
-        }
-
-        btnSave.Text = "Actualizando datos...";
-        bool success = await _apiService.UpdateUserAsync(updatedUser);
-
-        if (success)
-        {
-            UserSession.CurrentUser = updatedUser;
-
-            if (!string.IsNullOrWhiteSpace(txtPassword.Text))
-            {
-                var savedUsername = await SecureStorage.Default.GetAsync("saved_username");
-
-                if (savedUsername == updatedUser.Username)
-                    await SecureStorage.Default.SetAsync("saved_password", txtPassword.Text.Trim());
-            }
-
-            await DisplayAlertAsync("Éxito", "Perfil actualizado correctamente.", "OK");
-
-            if (Application.Current?.Windows.Count > 0 && Application.Current.Windows[0].Page is not AppShell)
-                Application.Current.Windows[0].Page = new AppShell();
-            
-            else
-                await Shell.Current.GoToAsync("..");
-        }
-        else
-        {
-            await DisplayAlertAsync("Error de Servidor", "El servidor rechazó la actualización.", "OK");
-            btnSave.IsEnabled = true; btnSave.Text = "Guardar Cambios";
-        }
-    }
-
-    private async void OnCancelClicked(object sender, EventArgs e)
-    {
-        try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); } catch { }
-        if (sender is View btn) btn.IsEnabled = false;
-
-        await Task.Delay(50);
-
-        if (Shell.Current == null)
-        {
-            UserSession.CurrentUser = null;
-            if (Application.Current?.Windows.Count > 0)
-                Application.Current.Windows[0].Page = new Views.LoginPage();
-        }
-        else
-            await Shell.Current.GoToAsync("..");
-
-        if (sender is View btnRestaurar) btnRestaurar.IsEnabled = true;
-    }
-
-    private void OnPickerIndexChanged(object sender, EventArgs e)
-    {
-        if (sender is Picker picker)
-        {
-            if (picker.SelectedIndex <= 0)
-            {
-                picker.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark
-                    ? Color.FromArgb("#606A72")
-                    : Color.FromArgb("#8895A5");
+                await DisplayAlertAsync("Éxito", _isEditing ? "Registro actualizado correctamente." : "Registro creado con éxito.", "OK");
             }
             else
             {
-                picker.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark
-                    ? Colors.White
-                    : Color.FromArgb("#1C262E");
+                await DisplayAlertAsync("Error", "Ocurrió un problema en la comunicación con el servidor.", "OK");
             }
         }
-    }
 
-    private void OnPasswordTextChanged(object sender, TextChangedEventArgs e)
-    {
-        string pwd = e.NewTextValue ?? "";
-
-        bool hasLength = pwd.Length >= 8;
-        bool hasUpper = Regex.IsMatch(pwd, @"[A-Z]");
-        bool hasNumber = Regex.IsMatch(pwd, @"[0-9]");
-        bool hasSpecial = Regex.IsMatch(pwd, @"[\W_]");
-
-        UpdateRequirementLabel(reqLength, hasLength, "Mínimo 8 caracteres");
-        UpdateRequirementLabel(reqUpper, hasUpper, "Al menos una mayúscula");
-        UpdateRequirementLabel(reqNumber, hasNumber, "Al menos un número");
-        UpdateRequirementLabel(reqSpecial, hasSpecial, "Al menos un carácter especial");
-
-        bool isPasswordValid = hasLength && hasUpper && hasNumber && hasSpecial;
-
-        if (UserSession.CurrentUser != null && UserSession.CurrentUser.MustChangePassword)
+        private void AbrirPopup(string titulo, string tipoParametro, bool esEdicion, int? itemId, string nombre = "", string? desc = "")
         {
-            btnSave.IsEnabled = isPasswordValid;
+            _currentParameterType = tipoParametro;
+            _isEditing = esEdicion;
+            _selectedItemIdToDeleteOrEdit = itemId ?? 0;
+
+            lblPopupTitle.Text = titulo;
+            txtPopupName.Text = nombre;
+            txtPopupDesc.Text = desc;
+            layoutPopupDesc.IsVisible = (tipoParametro != "Role");
+            PopupOverlay.IsVisible = true;
         }
-        else
-        {
-            btnSave.IsEnabled = string.IsNullOrEmpty(pwd) || isPasswordValid;
-        }
-    }
-
-    private static void UpdateRequirementLabel(Label lbl, bool isValid, string text)
-    {
-        if (isValid)
-        {
-            lbl.Text = $"✅ {text}";
-            lbl.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#A2D149") : Color.FromArgb("#10B981");
-        }
-        else
-        {
-            lbl.Text = $"❌ {text}";
-            lbl.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark ? Color.FromArgb("#939CA5") : Color.FromArgb("#54606C");
-        }
-    }
-
-    private void OnPasswordInfoClicked(object sender, EventArgs e)
-    {
-        PasswordInfoOverlay.IsVisible = true;
-    }
-
-    private void OnClosePasswordInfoClicked(object sender, EventArgs e)
-    {
-        PasswordInfoOverlay.IsVisible = false;
-    }
-
-    private void OnBirthDateSelected(object sender, DateChangedEventArgs e)
-    {
-        DateTime fechaSeleccionada = Convert.ToDateTime(e.NewDate);
-        DateTime hoy = DateTime.Today;
-
-        int edad = hoy.Year - fechaSeleccionada.Year;
-
-        if (fechaSeleccionada.Date > hoy.AddYears(-edad))
-            edad--;
-
-        txtAge.Text = edad.ToString();
     }
 }

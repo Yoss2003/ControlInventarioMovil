@@ -8,30 +8,20 @@
 
     <Grid RowDefinitions="Auto, *" Padding="15" RowSpacing="15">
 
-        <Button Text="+ REGISTRAR NUEVO MIEMBRO" 
-                Clicked="OnAddUserClicked" 
-                BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#2E7D32}" 
-                TextColor="White" 
-                FontAttributes="Bold" 
-                CornerRadius="8" 
-                HeightRequest="46"/>
+        <Button Text="+ REGISTRAR NUEVO MIEMBRO" Command="{Binding AddUserCommand}" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#2E7D32}" TextColor="White" FontAttributes="Bold" CornerRadius="8" HeightRequest="46"/>
 
         <Grid Grid.Row="1">
 
-            <RefreshView x:Name="RefreshUsers" Refreshing="OnRefreshing" IsVisible="False">
-                <CollectionView x:Name="CvUsers">
+            <RefreshView IsRefreshing="{Binding IsRefreshing, Mode=TwoWay}" Command="{Binding RefreshCommand}" IsVisible="{Binding IsContentVisible}">
+                <CollectionView ItemsSource="{Binding UsersList}">
 
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical" ItemSpacing="16" />
                     </CollectionView.ItemsLayout>
 
                     <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="{x:Null}">
-                            <Border StrokeShape="RoundRectangle 10" 
-                                    Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" 
-                                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" 
-                                    Padding="12,15" 
-                                    Margin="2,2,2,2">
+                        <DataTemplate x:DataType="models:User">
+                            <Border StrokeShape="RoundRectangle 10" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#232B35}" Padding="12,15" Margin="2,2,2,2">
 
                                 <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="12">
 
@@ -65,30 +55,11 @@
                                     </VerticalStackLayout>
 
                                     <HorizontalStackLayout Grid.Column="2" VerticalOptions="Center" Spacing="15">
-                                        <Border StrokeShape="RoundRectangle 6" 
-                                                BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B301F}" 
-                                                Padding="8,4" 
-                                                VerticalOptions="Center" 
-                                                StrokeThickness="0">
-                                            <Label Text="{Binding RoleName}" 
-                                                   FontSize="10" 
-                                                   FontAttributes="Bold" 
-                                                   TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}"/>
+                                        <Border StrokeShape="RoundRectangle 6" BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B301F}" Padding="8,4" VerticalOptions="Center" StrokeThickness="0">
+                                            <Label Text="{Binding RoleName}" FontSize="10" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}"/>
                                         </Border>
-                                        <ImageButton Source="edit_icon.png" 
-                                                     Clicked="OnEditUserClicked" 
-                                                     CommandParameter="{Binding .}" 
-                                                     HeightRequest="26" 
-                                                     WidthRequest="26" 
-                                                     VerticalOptions="Center" 
-                                                     BackgroundColor="Transparent"/>
-                                        <ImageButton Source="delete_icon.png" 
-                                                     Clicked="OnDeleteUserClicked" 
-                                                     CommandParameter="{Binding .}" 
-                                                     HeightRequest="26" 
-                                                     WidthRequest="26" 
-                                                     VerticalOptions="Center" 
-                                                     BackgroundColor="Transparent"/>
+                                        <ImageButton Source="edit_icon.png" Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditUserCommand}" CommandParameter="{Binding .}" HeightRequest="26" WidthRequest="26" VerticalOptions="Center" BackgroundColor="Transparent"/>
+                                        <ImageButton Source="delete_icon.png" Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteUserCommand}" CommandParameter="{Binding .}" HeightRequest="26" WidthRequest="26" VerticalOptions="Center" BackgroundColor="Transparent"/>
                                     </HorizontalStackLayout>
 
                                 </Grid>
@@ -98,7 +69,7 @@
                 </CollectionView>
             </RefreshView>
 
-            <VerticalStackLayout x:Name="LoadingOverlay" VerticalOptions="Center" HorizontalOptions="Center" Spacing="15" IsVisible="True">
+            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="15" IsVisible="{Binding IsLoading}">
                 <ActivityIndicator IsRunning="True" Color="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" HeightRequest="45" WidthRequest="45"/>
                 <Label Text="Actualizando personal..." TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="13" FontAttributes="Bold" HorizontalOptions="Center"/>
             </VerticalStackLayout>

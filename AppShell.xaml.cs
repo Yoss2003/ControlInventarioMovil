@@ -1,9 +1,9 @@
 ﻿using ControlInventario.Models;
 using ControlInventarioMovil.Data;
+using ControlInventarioMovil.Helpers;
 using ControlInventarioMovil.Services;
 using ControlInventarioMovil.Views;
 using ControlInventarioMovil.Views.Controls;
-using ControlInventarioMovil.Helpers;
 
 namespace ControlInventarioMovil
 {
@@ -19,19 +19,6 @@ namespace ControlInventarioMovil
                 await syncEngine.SincronizarBaseDeDatosCompletaAsync();
             });
 
-            MenuUsuarios.IsVisible = SecurityHelper.HasPermission("MANAGE_USERS");
-            MenuEmpresas.IsVisible = SecurityHelper.HasPermission("MANAGE_COMPANIES");
-
-            var role = UserSession.CurrentUser?.Role;
-
-            bool puedeGestionar = role?.Name == "Admin" ||
-                                 role?.RolePermissions?.Any(rp => rp.Permission?.SystemCode == "MANAGE_USERS") == true;
-
-            MenuUsuarios.IsVisible = puedeGestionar;
-
-            bool esSuperAdmin = UserSession.CurrentUser?.RoleId == 1 || role?.Name == "Developer";
-            MenuEmpresas.IsVisible = esSuperAdmin;
-
             Routing.RegisterRoute("CustomersPage", typeof(CustomersPage));
             Routing.RegisterRoute("EmployeesPage", typeof(EmployeesPage));
             Routing.RegisterRoute("RegistrosPage", typeof(RegistrosPage));
@@ -44,11 +31,38 @@ namespace ControlInventarioMovil
             Routing.RegisterRoute("ShareInventoryPage", typeof(ShareInventoryPage));
             Routing.RegisterRoute("AnalyticsPage", typeof(AnalyticsPage));
             Routing.RegisterRoute(nameof(ArticleFormPage), typeof(ArticleFormPage));
-            Routing.RegisterRoute(nameof(ConfiguracionPage), typeof(ConfiguracionPage));
+            Routing.RegisterRoute(nameof(ConfigurationPage), typeof(ConfigurationPage));
             Routing.RegisterRoute(nameof(CategoriasPage), typeof(CategoriasPage));
             Routing.RegisterRoute(nameof(CompanyFormPage), typeof(CompanyFormPage));
-
             Routing.RegisterRoute(nameof(CompaniesPage), typeof(CompaniesPage));
+        }
+
+        // 🚀 REEMPLAZAMOS OnAppearing POR OnNavigated
+        protected override void OnNavigated(ShellNavigatedEventArgs args)
+        {
+            base.OnNavigated(args);
+
+            // Validamos solo si ya hay una sesión activa (después del login)
+            if (UserSession.CurrentUser != null)
+            {
+                var role = UserSession.CurrentUser.Role;
+
+                bool puedeGestionar = role?.Name == "Admin" ||
+                                     role?.RolePermissions?.Any(rp => rp.Permission?.SystemCode == "MANAGE_USERS") == true;
+
+                MenuUsuarios.IsVisible = puedeGestionar;
+
+                bool esSuperAdmin = UserSession.CurrentUser.RoleId == 1 ||
+                                    role?.Name == "Developer" ||
+                                    role?.Name == "SuperAdmin";
+
+                MenuEmpresas.IsVisible = esSuperAdmin;
+            }
+            else
+            {
+                MenuUsuarios.IsVisible = false;
+                MenuEmpresas.IsVisible = false;
+            }
         }
     }
 }

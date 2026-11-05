@@ -13,7 +13,7 @@
         <!-- 1. BARRA DE NAVEGACIÓN SUPERIOR            -->
         <!-- ========================================== -->
         <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="15,20,15,10" BackgroundColor="{AppThemeBinding Light=#1B4F5F, Dark=#161F27}">
-            <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" Padding="0" helpers:EfectosVisualesHelper.Animar="True" Clicked="OnVolverClicked"/>
+            <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" Padding="0" helpers:EfectosVisualesHelper.Animar="True" Command="{Binding BackCommand}"/>
             <Label Grid.Column="1" Text="REPORTES Y AUDITORÍA" TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" VerticalOptions="Center" CharacterSpacing="0.5"/>
             <BoxView Grid.Column="2" WidthRequest="30" BackgroundColor="Transparent"/>
         </Grid>
@@ -48,7 +48,7 @@
                         <VerticalStackLayout Spacing="6">
                             <Label Text="Categoría de Información" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" FontAttributes="Bold"/>
                             <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
-                                <Picker x:Name="PickerTipoReporte" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" TitleColor="Gray" BackgroundColor="Transparent" VerticalOptions="Center">
+                                <Picker SelectedIndex="{Binding SelectedReportTypeIndex, Mode=TwoWay}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" TitleColor="Gray" BackgroundColor="Transparent" VerticalOptions="Center">
                                     <Picker.Items>
                                         <x:String>Movimientos e Inventario General</x:String>
                                         <x:String>Compras e Historial por Proveedor</x:String>
@@ -65,13 +65,13 @@
                             <VerticalStackLayout Grid.Column="0" Spacing="6">
                                 <Label Text="Desde:" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" FontAttributes="Bold"/>
                                 <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
-                                    <DatePicker x:Name="DateInicio" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Center"/>
+                                    <DatePicker Date="{Binding StartDate, Mode=TwoWay}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Center"/>
                                 </Border>
                             </VerticalStackLayout>
                             <VerticalStackLayout Grid.Column="1" Spacing="6">
                                 <Label Text="Hasta:" TextColor="{AppThemeBinding Light=#54606C, Dark=#939CA5}" FontSize="12" FontAttributes="Bold"/>
                                 <Border StrokeShape="RoundRectangle 6" StrokeThickness="1" Stroke="{AppThemeBinding Light=#CDD5DB, Dark=#2E3842}" BackgroundColor="{AppThemeBinding Light=#F4F6F7, Dark=#161F27}" Padding="10,0" HeightRequest="45">
-                                    <DatePicker x:Name="DateFin" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Center"/>
+                                    <DatePicker Date="{Binding EndDate, Mode=TwoWay}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" BackgroundColor="Transparent" VerticalOptions="Center"/>
                                 </Border>
                             </VerticalStackLayout>
                         </Grid>
@@ -95,7 +95,7 @@
                 </Border>
 
                 <!-- Botón Principal de Acción -->
-                <Button x:Name="BtnGenerarExcel" Text="Generar y Exportar a Excel (.xlsx)" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" FontSize="14" CornerRadius="8" HeightRequest="50" Clicked="OnExportarExcelClicked" helpers:EfectosVisualesHelper.Animar="True" Margin="0,10,0,10"/>
+                <Button Text="Generar y Exportar a Excel (.xlsx)" BackgroundColor="{AppThemeBinding Light=#2E7D32, Dark=#A2D149}" TextColor="{AppThemeBinding Light=White, Dark=#1C262E}" FontAttributes="Bold" FontSize="14" CornerRadius="8" HeightRequest="50" Command="{Binding ExportExcelCommand}" helpers:EfectosVisualesHelper.Animar="True" Margin="0,10,0,10"/>
 
             </VerticalStackLayout>
         </ScrollView>
@@ -103,10 +103,10 @@
         <!-- ========================================== -->
         <!-- 3. OVERLAY DE CARGA                        -->
         <!-- ========================================== -->
-        <Grid x:Name="OverlayCargando" Grid.RowSpan="2" BackgroundColor="#B3000000" IsVisible="False" ZIndex="100">
+        <Grid Grid.RowSpan="2" BackgroundColor="#B3000000" IsVisible="{Binding IsLoading}" ZIndex="100">
             <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="15">
                 <ActivityIndicator IsRunning="True" Color="#A2D149" WidthRequest="50" HeightRequest="50" />
-                <Label x:Name="LblOverlayTexto" Text="Generando reporte..." TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" />
+                <Label Text="{Binding LoadingText}" TextColor="White" FontAttributes="Bold" FontSize="14" HorizontalOptions="Center" />
             </VerticalStackLayout>
         </Grid>
 

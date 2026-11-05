@@ -52,7 +52,7 @@
                 <Label Text="¡Bienvenido de vuelta!" FontSize="26" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" HorizontalOptions="Center" />
 
                 <Grid ColumnDefinitions="Auto, *, Auto" HorizontalOptions="Center" VerticalOptions="Center" ColumnSpacing="20" Margin="0,10">
-                    <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="40" HeightRequest="40" BackgroundColor="Transparent" VerticalOptions="Center" Clicked="OnPrevCompanyClicked" helpers:EfectosVisualesHelper.Animar="True"/>
+                    <ImageButton Grid.Column="0" Source="arrow_back.png" WidthRequest="40" HeightRequest="40" BackgroundColor="Transparent" VerticalOptions="Center" Command="{Binding PrevCompanyCommand}" helpers:EfectosVisualesHelper.Animar="True"/>
 
                     <Border x:Name="borderLogo" Grid.Column="1" WidthRequest="110" HeightRequest="110" StrokeShape="RoundRectangle 55" Stroke="#A0E2FF" StrokeThickness="3" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#80FFFFFF}" HorizontalOptions="Center" VerticalOptions="Center">
                         <Border.Shadow>
@@ -61,10 +61,10 @@
                         <Image x:Name="ImgCompanyLogo" Source="{Binding LogoUrl, Converter={StaticResource Base64Converter}}" Aspect="AspectFit" Margin="15" />
                     </Border>
 
-                    <ImageButton Grid.Column="2" Source="arrow_back.png" Rotation="180" WidthRequest="40" HeightRequest="40" BackgroundColor="Transparent" VerticalOptions="Center" Clicked="OnNextCompanyClicked" helpers:EfectosVisualesHelper.Animar="True"/>
+                    <ImageButton Grid.Column="2" Source="arrow_back.png" Rotation="180" WidthRequest="40" HeightRequest="40" BackgroundColor="Transparent" VerticalOptions="Center" Command="{Binding NextCompanyCommand}" helpers:EfectosVisualesHelper.Animar="True"/>
                 </Grid>
 
-                <Label x:Name="LblCompanyName" Text="Cargando sucursales..." FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#A0E2FF}" HorizontalOptions="Center" HorizontalTextAlignment="Center" />
+                <Label x:Name="LblCompanyName" Text="{Binding CompanyName}" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#54606C, Dark=#A0E2FF}" HorizontalOptions="Center" HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
 
             <!-- BLOQUE 2: Formulario de Login -->
@@ -86,7 +86,7 @@
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="8" />
                                 </Border.StrokeShape>
-                                <Entry x:Name="txtUsername" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Tu usuario" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#80FFFFFF}" BackgroundColor="Transparent" VerticalOptions="Center"/>
+                                <Entry x:Name="txtUsername" Text="{Binding Username, Mode=TwoWay}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder="Tu usuario" PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#80FFFFFF}" BackgroundColor="Transparent" VerticalOptions="Center"/>
                             </Border>
 
                             <Label Text="Contraseña:" TextColor="{AppThemeBinding Light=#54606C, Dark=#A0E2FF}" FontSize="14" FontAttributes="Bold" Margin="0,5,0,0" />
@@ -95,23 +95,23 @@
                                     <RoundRectangle CornerRadius="8" />
                                 </Border.StrokeShape>
                                 <Grid ColumnDefinitions="*, Auto">
-                                    <Entry x:Name="txtPassword" Grid.Column="0" IsPassword="True" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder=" " PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#80FFFFFF}" BackgroundColor="Transparent" VerticalOptions="Center"/>
+                                    <Entry x:Name="txtPassword" Grid.Column="0" Text="{Binding Password, Mode=TwoWay}" IsPassword="True" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" Placeholder=" " PlaceholderColor="{AppThemeBinding Light=#8895A5, Dark=#80FFFFFF}" BackgroundColor="Transparent" VerticalOptions="Center"/>
                                     <ImageButton x:Name="imgShowPassword" Source="eye_closed.png" Grid.Column="1" HeightRequest="25" WidthRequest="25" BackgroundColor="Transparent" VerticalOptions="Center" Clicked="OnShowPasswordTapped" helpers:EfectosVisualesHelper.Animar="True"/>
                                 </Grid>
                             </Border>
 
                             <HorizontalStackLayout VerticalOptions="Center" Margin="0,15,0,0">
-                                <CheckBox x:Name="chkRememberMe" Color="{AppThemeBinding Light=#8A2BE2, Dark=#00CED1}"/>
+                                <CheckBox x:Name="chkRememberMe" IsChecked="{Binding RememberMe, Mode=TwoWay}" Color="{AppThemeBinding Light=#8A2BE2, Dark=#00CED1}"/>
                                 <Label Text="Recordarme" TextColor="{AppThemeBinding Light=#54606C, Dark=White}" VerticalOptions="Center" FontSize="14" />
                             </HorizontalStackLayout>
 
                             <Label Text="¿Olvidaste tu contraseña?" TextColor="{AppThemeBinding Light=#1976D2, Dark=#E0E0E0}" TextDecorations="Underline" HorizontalOptions="Center" Margin="0,0,0,10" FontSize="14">
                                 <Label.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnForgot_Tapped" />
+                                    <TapGestureRecognizer Command="{Binding ForgotPasswordCommand}" />
                                 </Label.GestureRecognizers>
                             </Label>
 
-                            <Button x:Name="btnLogin" Text="Ingresar" TextColor="White" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnLoginClicked" helpers:EfectosVisualesHelper.Animar="True">
+                            <Button x:Name="btnLogin" Text="Ingresar" TextColor="White" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Command="{Binding LoginCommand}" helpers:EfectosVisualesHelper.Animar="True">
                                 <Button.Background>
                                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                                         <GradientStop Color="#4B0082" Offset="0.0" />
@@ -122,17 +122,17 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <Label x:Name="lblStatus" Text="" TextColor="{AppThemeBinding Light=#2E7D32, Dark=LightGreen}" HorizontalOptions="Center"/>
+                    <Label x:Name="lblStatus" Text="{Binding StatusText}" TextColor="{AppThemeBinding Light=#2E7D32, Dark=LightGreen}" HorizontalOptions="Center"/>
                     <Label Text="© 2026. Todos los derechos reservados." TextColor="{AppThemeBinding Light=#8895A5, Dark=#A0A0A0}" FontSize="12" HorizontalOptions="Center" />
                 </VerticalStackLayout>
             </ScrollView>
         </Grid>
 
-        <!-- PANTALLA DE CARGA SUPERPUESTA (Se adapta al tema también) -->
-        <Grid x:Name="LoadingOverlay" BackgroundColor="{AppThemeBinding Light=#E6FFFFFF, Dark=#CC000000}" IsVisible="False" InputTransparent="False" ZIndex="10">
+        <!-- PANTALLA DE CARGA SUPERPUESTA -->
+        <Grid x:Name="LoadingOverlay" BackgroundColor="{AppThemeBinding Light=#E6FFFFFF, Dark=#CC000000}" IsVisible="{Binding IsLoading}" InputTransparent="False" ZIndex="10">
             <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="15">
                 <ActivityIndicator IsRunning="True" Color="{AppThemeBinding Light=#8A2BE2, Dark=#A0E2FF}" WidthRequest="60" HeightRequest="60" />
-                <Label x:Name="lblLoadingText" Text="Iniciando Sesión..." TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" />
+                <Label x:Name="lblLoadingText" Text="{Binding LoadingText}" TextColor="{AppThemeBinding Light=#1C262E, Dark=White}" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" />
             </VerticalStackLayout>
         </Grid>
     </Grid>
