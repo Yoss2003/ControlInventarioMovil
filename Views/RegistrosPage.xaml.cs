@@ -1,4 +1,4 @@
-using ControlInventario.Models;
+using ControlInventarioMovil.Models;
 using ControlInventario.Shared.Models;
 using ControlInventario.Shared.Models.DTO;
 using ControlInventarioMovil.Data;
@@ -109,7 +109,7 @@ namespace ControlInventarioMovil.Views
                         {
                             Id = m.Id,
                             ActionId = m.ActionId,
-                            MovementDate = m.MovementDate ?? string.Empty,
+                            MovementDate = m.MovementDate,
                             Observation = m.Observation ?? "Sin observación",
                             Recipient = m.Recipient ?? string.Empty,
                             Amount = m.Amount ?? 0m,

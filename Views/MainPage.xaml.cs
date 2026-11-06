@@ -312,7 +312,7 @@ namespace ControlInventarioMovil.Views
             var nuevoInventario = new Inventory
             {
                 InventoryName = $"{username}_Invent_{mmss}",
-                CreationDate = now.ToString("yyyy-MM-dd HH:mm:ss"),
+                CreationDate = now,
                 UserId = UserSession.CurrentUser?.Id ?? 1,
                 Username = username,
                 Alias = nombreIngresado.Trim()
@@ -860,7 +860,7 @@ namespace ControlInventarioMovil.Views
                     ArticleId = _articuloRapidoEncontrado.Id,
                     EmployeeId = empleadoId,
                     ActionId = 1, // Ingreso
-                    MovementDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    MovementDate = DateTime.UtcNow,
                     Observation = $"Ingreso Rápido desde Footer (Por {nombreEmpleado})",
                     Amount = stockAAgregar,
                     SalePrice = 0,

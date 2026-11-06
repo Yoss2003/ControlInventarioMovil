@@ -1,6 +1,6 @@
 namespace ControlInventarioMovil.Views
 {
-    using ControlInventario.Models;
+    using ControlInventarioMovil.Models;
     using ControlInventario.Shared.Models;
     using ControlInventarioMovil.Data;
     using ControlInventarioMovil.Services;

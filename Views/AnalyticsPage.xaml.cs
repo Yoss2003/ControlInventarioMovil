@@ -1,4 +1,5 @@
-﻿using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Models;
+using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
 using System.Collections.ObjectModel;
 using LiveChartsCore;
@@ -84,10 +85,21 @@ namespace ControlInventarioMovil.Views
 
                 // Calculamos mermas del mes en memoria RAM
                 decimal mermasMes = 0;
-                string prefijoMesActual = DateTime.Now.ToString("yyyy-MM");
+                DateTime inicioMes = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+                DateTime finMes = inicioMes.AddMonths(1);
+
+                var inicioMes = new DateTime(
+                DateTime.Today.Year,
+                DateTime.Today.Month,
+                1);
+
+                var finMes = inicioMes.AddMonths(1);
 
                 var retirosDelMes = todosMovimientos
-                    .Where(m => m.ActionId == 2 && m.MovementDate != null && m.MovementDate.StartsWith(prefijoMesActual))
+                    .Where(m =>
+                        m.ActionId == 2 &&
+                        m.MovementDate >= inicioMes &&
+                        m.MovementDate < finMes)
                     .ToList();
 
                 foreach (var retiro in retirosDelMes)
@@ -141,13 +153,12 @@ namespace ControlInventarioMovil.Views
 
                 // 5. IA: CAPITAL ESTANCADO (Análisis de Rotación)
                 var fechaLimite = DateTime.Now.AddDays(-30);
-                string fechaLimiteStr = fechaLimite.ToString("yyyy-MM-dd");
+                
 
                 // Extraemos todas las salidas (ActionId = 2) de los últimos 30 días a la variable global
                 _salidasUltimoMes = [.. todosMovimientos.Where(m =>
                     m.ActionId == 2 &&
-                    m.MovementDate != null &&
-                    string.Compare(m.MovementDate, fechaLimiteStr) >= 0 &&
+                    m.MovementDate >= fechaLimite &&
                     _inventarioActual.Any(a => a.Id == m.ArticleId)
                 )];
 
@@ -415,9 +426,9 @@ namespace ControlInventarioMovil.Views
 
             // 2. Agrupar por Fecha (Día)
             var diasAgrupados = movimientosFiltrados
-                .GroupBy(m => m.MovementDate.Length >= 10 ? m.MovementDate[..10] : m.MovementDate)
-                .OrderBy(g => g.Key)
-                .ToList();
+            .GroupBy(m => m.MovementDate.Date)
+            .OrderBy(g => g.Key)
+            .ToList();
 
             var labelsFecha = new List<string>();
             var valoresIngresos = new ObservableCollection<double>();
@@ -425,10 +436,7 @@ namespace ControlInventarioMovil.Views
 
             foreach (var dia in diasAgrupados)
             {
-                if (DateTime.TryParse(dia.Key, out DateTime fecha))
-                    labelsFecha.Add(fecha.ToString("dd MMM"));
-                else
-                    labelsFecha.Add(dia.Key);
+                labelsFecha.Add(dia.Key.ToString("dd MMM"));
 
                 double cantidadDia = (double)dia.Sum(m => m.Amount ?? 0m);
                 double ingresoDia = (double)dia.Sum(m => (m.Amount ?? 0m) * (_inventarioActual.FirstOrDefault(a => a.Id == m.ArticleId)?.SalePrice ?? 0m));

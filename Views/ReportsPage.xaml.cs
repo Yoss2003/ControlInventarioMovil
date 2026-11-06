@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using MiniExcelLibs;
 using ControlInventarioMovil.Data;
 using System.Diagnostics;
@@ -57,8 +57,8 @@ public partial class ReportsPage : ContentPage
             DateTime fechaInicio = Convert.ToDateTime(DateInicio.Date);
             DateTime fechaFin = Convert.ToDateTime(DateFin.Date).AddDays(1).AddSeconds(-1);
 
-            string strFechaInicio = fechaInicio.ToString("yyyy-MM-dd");
-            string strFechaFin = fechaFin.ToString("yyyy-MM-dd HH:mm:ss");
+            
+            
 
             using var context = new LocalDbContext();
             List<object> datosExportar = [];
@@ -68,8 +68,7 @@ public partial class ReportsPage : ContentPage
             {
                 nombreReporte = "Movimientos_Stock";
                 var movimientos = await context.Movements
-                    .Where(m => string.Compare(m.MovementDate, strFechaInicio) >= 0 &&
-                                string.Compare(m.MovementDate, strFechaFin) <= 0)
+                    .Where(m => m.MovementDate >= fechaInicio && m.MovementDate <= fechaFin)
                     .ToListAsync();
 
                 var articulosCache = await context.Articles.ToListAsync();
@@ -94,8 +93,7 @@ public partial class ReportsPage : ContentPage
                 nombreReporte = "Historial_Proveedores";
                 var ingresos = await context.Movements
                     .Where(m => m.ActionId == 1 &&
-                                string.Compare(m.MovementDate, strFechaInicio) >= 0 &&
-                                string.Compare(m.MovementDate, strFechaFin) <= 0)
+                                m.MovementDate >= fechaInicio && m.MovementDate <= fechaFin)
                     .ToListAsync();
 
                 var articulosCache = await context.Articles.ToListAsync();
@@ -119,8 +117,7 @@ public partial class ReportsPage : ContentPage
             {
                 nombreReporte = "Auditoria_Trabajadores";
                 var todosMovimientos = await context.Movements
-                    .Where(m => string.Compare(m.MovementDate, strFechaInicio) >= 0 &&
-                                string.Compare(m.MovementDate, strFechaFin) <= 0)
+                    .Where(m => m.MovementDate >= fechaInicio && m.MovementDate <= fechaFin)
                     .OrderBy(m => m.MovementDate)
                     .ToListAsync();
 

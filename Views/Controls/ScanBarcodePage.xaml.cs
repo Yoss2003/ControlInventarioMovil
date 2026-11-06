@@ -1,4 +1,4 @@
-using ControlInventario.Models;
+using ControlInventarioMovil.Models;
 using ControlInventarioMovil.Data;
 using ZXing.Net.Maui;
 

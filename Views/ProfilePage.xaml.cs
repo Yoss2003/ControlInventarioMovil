@@ -1,4 +1,4 @@
-using ControlInventario.Models;
+using ControlInventarioMovil.Models;
 using ControlInventarioMovil.Services;
 
 namespace ControlInventarioMovil.Views;
