@@ -88,13 +88,6 @@ namespace ControlInventarioMovil.Views
                 DateTime inicioMes = new(DateTime.Today.Year, DateTime.Today.Month, 1);
                 DateTime finMes = inicioMes.AddMonths(1);
 
-                var inicioMes = new DateTime(
-                DateTime.Today.Year,
-                DateTime.Today.Month,
-                1);
-
-                var finMes = inicioMes.AddMonths(1);
-
                 var retirosDelMes = todosMovimientos
                     .Where(m =>
                         m.ActionId == 2 &&

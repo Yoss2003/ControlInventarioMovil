@@ -119,7 +119,7 @@ namespace ControlInventarioMovil.Views
 
             try
             {
-                string fechaActual = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
+                DateTime fechaActual = DateTime.Now;
                 string prefijoFecha = DateTime.Now.ToString("ddMM");
 
                 var nuevoInventario = new Inventory

@@ -391,7 +391,7 @@ namespace ControlInventarioMovil.Views
                 SecNamingMethod.IsVisible = false;
             }
 
-            SwRetornable.IsToggled = _categoriaEnEdicion.IsReturnable == 1;
+            SwRetornable.IsToggled = _categoriaEnEdicion.IsReturnable;
 
             ActualizarControlesNamingSegunTracking();
 
