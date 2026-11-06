@@ -1,5 +1,4 @@
-﻿using ControlInventario.Models;
-using ControlInventario.Shared.Models;
+﻿using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Services;
 using System.Collections.ObjectModel;
 using LiveChartsCore;
