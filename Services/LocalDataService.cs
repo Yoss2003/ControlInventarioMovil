@@ -11,7 +11,6 @@ namespace ControlInventarioMovil.Services
             using var context = new LocalDbContext();
 
             // Marcamos el registro como pendiente de sincronización
-            articulo.IsSynced = false;
             articulo.LastModified = DateTime.Now;
 
             // Verificamos si ya existe localmente

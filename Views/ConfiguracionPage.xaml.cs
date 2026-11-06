@@ -1,4 +1,4 @@
-using ControlInventario.Models;
+using InventoryAPI.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Helpers;
 using ControlInventarioMovil.Services;

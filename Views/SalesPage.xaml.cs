@@ -1,4 +1,4 @@
-using ControlInventario.Models;
+using ControlInventarioMovil.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Helpers;
 using ControlInventarioMovil.Services;
@@ -392,8 +392,7 @@ namespace ControlInventarioMovil.Views
                 AmountReceived = (tipoPago == PaymentType.Efectivo) ? _montoRecibidoActual : null,
                 ChangeGiven = (tipoPago == PaymentType.Efectivo) ? _vueltoActual : null,
                 CustomerName = string.IsNullOrWhiteSpace(txtCustomerName.Text) ? null : txtCustomerName.Text.Trim(),
-                Notes = "Venta móvil.",
-                IsSynced = false // Por defecto arranca como no sincronizada
+                Notes = "Venta móvil."
             };
 
             var productosEnCarrito = _allArticles.Where(a => a.QuantityInCart > 0).ToList();
@@ -427,7 +426,6 @@ namespace ControlInventarioMovil.Views
                     var ventaLocal = localDb.Sales.Find(nuevaVenta.Id);
                     if (ventaLocal != null)
                     {
-                        ventaLocal.IsSynced = true;
                         localDb.SaveChanges();
                     }
                 }

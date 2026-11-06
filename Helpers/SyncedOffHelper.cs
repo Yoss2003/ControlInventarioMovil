@@ -1,29 +1,26 @@
 ﻿using ControlInventarioMovil.Data;
-using ControlInventario.Shared.Models.Interfaces;
 
-namespace ControlInventarioMovil.Helper
+namespace ControlInventarioMovil.Helpers
 {
     public static class SyncedOffHelper
     {
-        public static async Task<bool> SaveLocallyAsync<T>(T entity) where T : class, ISyncable
+        public static async Task<bool> SaveLocallyAsync<T>(T entity) where T : class
         {
             using var context = new LocalDbContext();
-            entity.IsSynced = false;
             context.Set<T>().Add(entity);
             await context.SaveChangesAsync();
             return true;
         }
 
-        public static async Task<bool> UpdateLocallyAsync<T>(T entity) where T : class, ISyncable
+        public static async Task<bool> UpdateLocallyAsync<T>(T entity) where T: class
         {
             using var context = new LocalDbContext();
-            entity.IsSynced = false;
             context.Set<T>().Update(entity);
             await context.SaveChangesAsync();
             return true;
         }
 
-        public static async Task<bool> DeleteLocallyAsync<T>(int id) where T : class, ISyncable
+        public static async Task<bool> DeleteLocallyAsync<T>(int id) where T : class
         {
             using var context = new LocalDbContext();
             var entity = await context.Set<T>().FindAsync(id);

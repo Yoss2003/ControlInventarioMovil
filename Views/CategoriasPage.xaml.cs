@@ -1,4 +1,4 @@
-using ControlInventario.Models;
+using InventoryAPI.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Helpers;
 using ControlInventarioMovil.Services;
@@ -548,7 +548,7 @@ namespace ControlInventarioMovil.Views
                     TrackingMode = trackingModeEnum.ToString(),
                     NamingMethod = namingMethod,
                     Description = TxtDescription.Text,
-                    IsReturnable = esRetornable ? 1 : 0,
+                    IsReturnable = esRetornable ? false : true,
                     CreationDate = _categoriaEnEdicion != null ? _categoriaEnEdicion.CreationDate : DateTime.Now,
                     CreationUser = _categoriaEnEdicion != null ? _categoriaEnEdicion.CreationUser : "Admin",
                     SelectedUnitIds = [.. _unidadesSeleccionadasTemporales],

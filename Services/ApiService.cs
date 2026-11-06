@@ -1,11 +1,7 @@
-﻿using ControlInventario.Models;
-using ControlInventario.Shared.Models;
-using ControlInventario.Shared.Models.Interfaces;
+﻿using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Data;
-using ControlInventarioMovil.Helper;
 using ControlInventarioMovil.Modelo.API;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Net;
@@ -13,6 +9,8 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Net.Http.Headers;
+using ControlInventarioMovil.Helpers;
+using ControlInventarioMovil.Models;
 
 namespace ControlInventarioMovil.Services
 {
@@ -636,7 +634,7 @@ namespace ControlInventarioMovil.Services
                     opcionesJson.Converters.Add(new TrackingModeJsonConverter());
 
                     var listaNube = await response.Content.ReadFromJsonAsync<List<Category>>(opcionesJson) ?? [];
-                    var pendientesLocales = await context.Categories.Where(c => c.IsActive && c.IsSynced == false).ToListAsync();
+                    var pendientesLocales = await context.Categories.Where(c => c.IsActive).ToListAsync();
                     var pendientesReales = pendientesLocales
                         .Where(p => !listaNube.Any(n => n.Name.Equals(p.Name, StringComparison.OrdinalIgnoreCase)))
                         .ToList();
@@ -718,7 +716,7 @@ namespace ControlInventarioMovil.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var listaNube = await response.Content.ReadFromJsonAsync<List<Brand>>(GetOptions()) ?? [];
-                    var pendientesLocales = await context.Brands.Where(b => b.IsActive && b.IsSynced == false).ToListAsync();
+                    var pendientesLocales = await context.Brands.Where(b => b.IsActive).ToListAsync();
 
                     return [.. listaNube, .. pendientesLocales];
                 }
@@ -800,7 +798,7 @@ namespace ControlInventarioMovil.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var listaNube = await response.Content.ReadFromJsonAsync<List<Article>>(GetOptions()) ?? [];
-                    var pendientesLocales = await context.Articles.Where(a => a.IsActive && a.IsSynced == false).ToListAsync();
+                    var pendientesLocales = await context.Articles.Where(a => a.IsActive).ToListAsync();
 
                     return [.. listaNube, .. pendientesLocales];
                 }
@@ -866,7 +864,7 @@ namespace ControlInventarioMovil.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var listaNube = await response.Content.ReadFromJsonAsync<List<ArticleDetails>>(GetOptions()) ?? [];
-                    var locales = await context.ArticleDetails.Where(d => d.ArticleId == articleId && d.IsActive && d.IsSynced == false).ToListAsync();
+                    var locales = await context.ArticleDetails.Where(d => d.ArticleId == articleId && d.IsActive).ToListAsync();
 
                     return [.. listaNube, .. locales];
                 }
@@ -1055,7 +1053,7 @@ namespace ControlInventarioMovil.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var listaNube = await response.Content.ReadFromJsonAsync<List<Supplier>>(GetOptions()) ?? [];
-                    var pendientesLocales = await context.Supplier.Where(s => s.IsActive && s.IsSynced == false).ToListAsync();
+                    var pendientesLocales = await context.Supplier.Where(s => s.IsActive).ToListAsync();
 
                     return [.. listaNube, .. pendientesLocales];
                 }
@@ -1089,7 +1087,7 @@ namespace ControlInventarioMovil.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var listaNube = await response.Content.ReadFromJsonAsync<List<Customer>>(GetOptions()) ?? [];
-                    var pendientesLocales = await context.Customer.Where(c => c.IsActive && c.IsSynced == false).ToListAsync();
+                    var pendientesLocales = await context.Customer.Where(c => c.IsActive).ToListAsync();
 
                     return [.. listaNube, .. pendientesLocales];
                 }
@@ -1299,7 +1297,7 @@ namespace ControlInventarioMovil.Services
                 {
                     var listaNube = await response.Content.ReadFromJsonAsync<List<Movement>>(GetOptions()) ?? [];
                     var pendientesLocales = await context.Movements
-                        .Where(m => m.IsSynced == false && m.CompanyId == currentCompanyId)
+                        .Where(m => m.CompanyId == currentCompanyId)
                         .ToListAsync();
 
                     return [.. listaNube, .. pendientesLocales];
@@ -1382,7 +1380,7 @@ namespace ControlInventarioMovil.Services
 
         #region SINCRONIZACIÓN OFFLINE-FIRST
 
-        public async Task<bool> PostOfflineFirstAsync<T>(T entity, string endpoint) where T : class, ISyncable
+        public async Task<bool> PostOfflineFirstAsync<T>(T entity, string endpoint) where T : class
         {
             try
             {
@@ -1413,7 +1411,7 @@ namespace ControlInventarioMovil.Services
             }
         }
 
-        public async Task<bool> PutOfflineFirstAsync<T>(int id, T entity, string endpoint) where T : class, ISyncable
+        public async Task<bool> PutOfflineFirstAsync<T>(int id, T entity, string endpoint) where T : class
         {
             try
             {

@@ -1,5 +1,5 @@
-using ControlInventario.Models;
 using ControlInventario.Shared.Models;
+using ControlInventarioMovil.Models;
 using ControlInventarioMovil.Services;
 using ControlInventarioMovil.Utilities;
 using Plugin.Maui.ImageCropper;

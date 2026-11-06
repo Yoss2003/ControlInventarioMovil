@@ -1,4 +1,4 @@
-using ControlInventario.Models;
+using ControlInventarioMovil.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Data;
 using ControlInventarioMovil.Helpers;
@@ -850,7 +850,6 @@ namespace ControlInventarioMovil.Views
                 if (sender is Button btn) btn.IsEnabled = false;
 
                 _articuloRapidoEncontrado.Stock += stockAAgregar;
-                _articuloRapidoEncontrado.IsSynced = false; // Marcamos para sincronización
 
                 string nombreEmpleado = Preferences.Get("UserName", "Usuario Móvil");
                 int empleadoId = Preferences.Get("UserId", 1);
@@ -866,9 +865,7 @@ namespace ControlInventarioMovil.Views
                     Amount = stockAAgregar,
                     SalePrice = 0,
                     PaymentMethod = "N/A",
-                    Recipient = "Almacén Local",
-                    IsSynced = false
-                };
+                    Recipient = "Almacén Local"                };
 
                 // Guardado Local (Offline First)
                 using var context = new LocalDbContext();
@@ -885,8 +882,6 @@ namespace ControlInventarioMovil.Views
 
                     if (exitoArt && exitoMov)
                     {
-                        _articuloRapidoEncontrado.IsSynced = true;
-                        movimientoIngreso.IsSynced = true;
                         context.Articles.Update(_articuloRapidoEncontrado);
                         context.Movements.Update(movimientoIngreso);
                         await context.SaveChangesAsync();

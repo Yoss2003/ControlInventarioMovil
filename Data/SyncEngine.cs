@@ -64,7 +64,7 @@ namespace ControlInventarioMovil.Data
                 // ==========================================
                 await EjecutarSeguro("Push Marcas", async (ctx) =>
                 {
-                    var marcasPendientes = await ctx.Brands.AsNoTracking().Where(b => b.IsSynced != true).ToListAsync();
+                    var marcasPendientes = await ctx.Brands.AsNoTracking().ToListAsync();
                     foreach (var marca in marcasPendientes)
                     {
                         int idLocal = marca.Id;
@@ -79,7 +79,7 @@ namespace ControlInventarioMovil.Data
 
                 await EjecutarSeguro("Push Categorias", async (ctx) =>
                 {
-                    var pendientes = await ctx.Categories.AsNoTracking().Where(c => c.IsSynced != true).ToListAsync();
+                    var pendientes = await ctx.Categories.AsNoTracking().ToListAsync();
                     foreach (var item in pendientes)
                     {
                         int idLocal = item.Id;
@@ -94,7 +94,7 @@ namespace ControlInventarioMovil.Data
 
                 await EjecutarSeguro("Push Clientes", async (ctx) =>
                 {
-                    var pendientes = await ctx.Customer.AsNoTracking().Where(c => c.IsSynced != true).ToListAsync();
+                    var pendientes = await ctx.Customer.AsNoTracking().ToListAsync();
                     foreach (var item in pendientes)
                     {
                         int idLocal = item.Id;
@@ -109,7 +109,7 @@ namespace ControlInventarioMovil.Data
 
                 await EjecutarSeguro("Push Proveedores", async (ctx) =>
                 {
-                    var pendientes = await ctx.Supplier.AsNoTracking().Where(s => s.IsSynced != true).ToListAsync();
+                    var pendientes = await ctx.Supplier.AsNoTracking().ToListAsync();
                     foreach (var item in pendientes)
                     {
                         int idLocal = item.Id;
@@ -124,7 +124,7 @@ namespace ControlInventarioMovil.Data
 
                 await EjecutarSeguro("Push Articulos", async (ctx) =>
                 {
-                    var pendientes = await ctx.Articles.AsNoTracking().Where(a => a.IsSynced != true).ToListAsync();
+                    var pendientes = await ctx.Articles.AsNoTracking().ToListAsync();
                     foreach (var item in pendientes)
                     {
                         int idLocal = item.Id;
@@ -139,7 +139,7 @@ namespace ControlInventarioMovil.Data
 
                 await EjecutarSeguro("Push Movimientos", async (ctx) =>
                 {
-                    var movimientosPendientes = await ctx.Movements.AsNoTracking().Where(m => m.IsSynced != true).ToListAsync();
+                    var movimientosPendientes = await ctx.Movements.AsNoTracking().ToListAsync();
                     foreach (var mov in movimientosPendientes)
                     {
                         int idLocal = mov.Id;
@@ -154,7 +154,7 @@ namespace ControlInventarioMovil.Data
 
                 await EjecutarSeguro("Push Ventas", async (ctx) =>
                 {
-                    var ventasPendientes = await ctx.Sales.AsNoTracking().Include(s => s.SaleDetails).Where(s => s.IsSynced != true).ToListAsync();
+                    var ventasPendientes = await ctx.Sales.AsNoTracking().Include(s => s.SaleDetails).ToListAsync();
                     foreach (var venta in ventasPendientes)
                     {
                         int idLocal = venta.Id;

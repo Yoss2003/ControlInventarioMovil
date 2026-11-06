@@ -1,4 +1,4 @@
-using ControlInventario.Models;
+using ControlInventarioMovil.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Data;
 using ControlInventarioMovil.Services;
@@ -1909,7 +1909,6 @@ namespace ControlInventarioMovil.Views
                 LoggedUserId = UserSession.CurrentUser?.Employee?.Id,
                 LoggedUserFullName = $"{UserSession.CurrentUser?.Employee?.FirstName} {UserSession.CurrentUser?.Employee?.LastName}".Trim(),
                 IsActive = true,
-                IsSynced = false,
                 CompanyId = UserSession.CurrentUser?.CompanyId ?? 1
             };
 
@@ -2023,7 +2022,6 @@ namespace ControlInventarioMovil.Views
                 // 🚀 4. MARCAMOS COMO SINCRONIZADO SI HUBO ÉXITO
                 if (exitoNube)
                 {
-                    articuloData.IsSynced = true;
                     context.Articles.Update(articuloData);
                     await context.SaveChangesAsync();
                 }

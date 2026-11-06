@@ -1,11 +1,10 @@
-using ControlInventario.Models;
 using ControlInventario.Shared.Models;
 using ControlInventarioMovil.Data;
 using ControlInventarioMovil.Helpers;
+using ControlInventarioMovil.Models;
 using ControlInventarioMovil.Services;
 using ControlInventarioMovil.Utilities;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
@@ -121,7 +120,7 @@ namespace ControlInventarioMovil.Views
                 {
                     using var context = new LocalDbContext();
                     articulosPendientes = await context.Articles
-                        .Where(a => a.InventoryId == almacenActivo.Id && a.IsSynced == false)
+                        .Where(a => a.InventoryId == almacenActivo.Id)
                         .ToListAsync();
                 }
                 catch (Exception dbEx)
@@ -526,15 +525,12 @@ namespace ControlInventarioMovil.Views
                 SalePrice = 0,
                 PaymentMethod = "N/A",
                 Recipient = "Ajuste de Almacén",
-                PhotoPath = _rutaFotoRetiro,
-                IsSynced = false
-            };
+                PhotoPath = _rutaFotoRetiro            };
 
             try
             {
                 // 🚀 1. GUARDADO LOCAL (SQLite)
                 using var context = new LocalDbContext();
-                articuloUpdate.IsSynced = false;
                 context.Articles.Update(articuloUpdate);
                 context.Add(movimientoRetiro);
                 await context.SaveChangesAsync();
@@ -545,8 +541,6 @@ namespace ControlInventarioMovil.Views
 
                 if (exitoArticulo && exitoMovimiento)
                 {
-                    articuloUpdate.IsSynced = true;
-                    movimientoRetiro.IsSynced = true;
                     context.Articles.Update(articuloUpdate);
                     context.Movements.Update(movimientoRetiro);
                     await context.SaveChangesAsync();
@@ -892,7 +886,6 @@ namespace ControlInventarioMovil.Views
                 try
                 {
                     using var context = new LocalDbContext();
-                    articuloUpdate.IsSynced = false;
                     context.Articles.Update(articuloUpdate);
                     await context.SaveChangesAsync();
 
@@ -900,7 +893,6 @@ namespace ControlInventarioMovil.Views
 
                     if (exitoNube)
                     {
-                        articuloUpdate.IsSynced = true;
                         context.Articles.Update(articuloUpdate);
                         await context.SaveChangesAsync();
                     }

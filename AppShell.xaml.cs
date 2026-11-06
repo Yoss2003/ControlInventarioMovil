@@ -1,9 +1,9 @@
-﻿using ControlInventario.Models;
-using ControlInventarioMovil.Data;
+﻿using ControlInventarioMovil.Data;
 using ControlInventarioMovil.Services;
 using ControlInventarioMovil.Views;
 using ControlInventarioMovil.Views.Controls;
 using ControlInventarioMovil.Helpers;
+using ControlInventarioMovil.Models;
 
 namespace ControlInventarioMovil
 {

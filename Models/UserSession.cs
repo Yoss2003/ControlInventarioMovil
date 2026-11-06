@@ -1,6 +1,6 @@
 ﻿using ControlInventario.Shared.Models;
 
-namespace ControlInventario.Models
+namespace ControlInventarioMovil.Models
 {
     public static class UserSession
     {
